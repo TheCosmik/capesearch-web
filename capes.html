@@ -449,7 +449,7 @@ function renderGrid(){
         (c.rare?'<span class="badge by" style="position:absolute;top:7px;right:7px">Rare</span>':'')+
       '</div>'+
       '<div class="cbody"><div class="cname">'+c.name+'</div>'+
-      '<div class="cwear">👥 '+fmt(c.wearers)+' wearers</div></div></div>';
+      '<div class="cwear">👥 '+fmt(c.wearers)+'</div></div></div>';
   }).join('');
   var hash=location.hash.replace('#','');
   if(hash){var el=document.getElementById('cape-'+hash);if(el)setTimeout(function(){el.scrollIntoView({behavior:'smooth',block:'center'})},100)}

@@ -1,0 +1,17 @@
+name: CapeSearchClaim
+version: 1.0.0
+main: net.capesearch.claim.ClaimPlugin
+api-version: "1.21"
+description: Links Minecraft accounts to CapeSearch profiles via /claim
+
+commands:
+  claim:
+    description: Claim your CapeSearch profile
+    usage: /claim <code>
+    permission: capesearch.claim
+    permission-message: You don't have permission to use this command.
+
+permissions:
+  capesearch.claim:
+    description: Allows a player to claim their CapeSearch profile
+    default: true

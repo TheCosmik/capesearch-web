@@ -130,11 +130,38 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
 .capes-section{margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid var(--bdr)}
 .capes-section-hdr{font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.8rem;display:flex;align-items:center;gap:.4rem}
 .capes-row{display:flex;gap:.6rem;flex-wrap:wrap;align-items:flex-start}
-.cape-card{background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad2);padding:.8rem .65rem .7rem;display:flex;flex-direction:column;align-items:center;gap:.45rem;width:110px;text-align:center;transition:border-color .2s,background .2s}
+.cape-card{background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad2);padding:.8rem .65rem .7rem;display:flex;flex-direction:column;align-items:center;gap:.45rem;width:110px;text-align:center;transition:border-color .2s,background .2s,transform .15s}
+.cape-card.c-clickable{cursor:pointer}
+.cape-card.c-clickable:hover{border-color:var(--green);background:rgba(74,222,128,.05);transform:translateY(-2px)}
 .cape-card.c-active{border-color:var(--green);background:rgba(74,222,128,.05)}
 .cape-card img{height:60px;width:auto;border-radius:5px;object-fit:contain;border:1px solid var(--bdr)}
 .cape-card .cc-name{font-size:.72rem;font-weight:700;color:var(--txt);line-height:1.25;word-break:break-word}
-.cape-card .cc-date{font-size:.63rem;color:var(--muted);line-height:1.3}
+.cape-card .cc-status{font-size:.63rem;color:var(--muted);line-height:1.3}
+
+/* CAPE MODAL */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:500;align-items:center;justify-content:center;padding:1rem}
+.overlay.show{display:flex}
+.modal{background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad2);max-width:1000px;width:100%;max-height:90vh;overflow-y:auto;display:flex;flex-direction:column}
+.mhdr{display:flex;align-items:center;justify-content:space-between;padding:1.4rem 1.6rem;border-bottom:1px solid var(--bdr);flex-shrink:0}
+.mhdr .mtitle{font-size:1.25rem;font-weight:800}
+.mhdr .msub{font-size:.8rem;color:var(--txt2);margin-top:3px;letter-spacing:.02em;text-transform:uppercase}
+.mclose{background:none;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;padding:.1rem;border-radius:4px;line-height:1;transition:color .15s}
+.mclose:hover{color:var(--txt)}
+.mbody{padding:1.6rem;display:flex;gap:2rem;flex:1;min-height:0;overflow-y:auto}
+.mbody-left{flex:0 0 auto;min-width:320px;display:flex;flex-direction:column;align-items:center}
+.mbody-right{flex:1;min-width:220px;overflow-y:auto}
+.mrow{display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--bdr);font-size:.9rem}
+.mrow:last-child{border-bottom:none}
+.mrow .lbl{color:var(--muted);font-weight:500}
+#capeCanvas{border:1px solid var(--bdr);border-radius:var(--rad2);width:320px;height:400px;margin-bottom:1rem;background:var(--bg2);display:block;cursor:grab}
+#capePreviewImg{max-width:100%;height:auto;border-radius:var(--rad2);display:none;image-rendering:pixelated;padding:1rem;background:var(--bg2)}
+.cico{width:80px;height:120px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:48px}
+.mpc{background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--rad2);padding:.8rem;display:flex;align-items:center;gap:.7rem;transition:all .2s;text-decoration:none;color:inherit}
+.mpc:hover{border-color:var(--green);background:var(--card2);text-decoration:none}
+.mpc img{width:38px;height:38px;border-radius:5px;image-rendering:pixelated;flex-shrink:0;background:var(--card)}
+.mpc .pn{font-weight:700;font-size:.85rem}
+.mpc .pm{font-size:.72rem;color:var(--muted);margin-top:1px}
+@media(max-width:640px){.mbody{flex-direction:column}.mbody-left{min-width:unset;width:100%}}
 </style>
 </head>
 <body>
@@ -251,17 +278,178 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
   <div class="foot-bot">&copy; 2025 CapeSearch — Built for educational purposes.</div>
 </footer>
 
+<!-- CAPE MODAL (same popup as capes.html) -->
+<div class="overlay" id="capeOverlay">
+  <div class="modal" id="capeModal">
+    <div class="mhdr">
+      <div><div class="mtitle" id="mName"></div><div class="msub" id="mSub"></div></div>
+      <button class="mclose" onclick="closeModal()">✕</button>
+    </div>
+    <div class="mbody">
+      <div class="mbody-left">
+        <div style="position:relative;width:320px;height:400px;border:1px solid var(--bdr);border-radius:var(--rad2);background:linear-gradient(135deg,var(--bg2),var(--card));margin-bottom:1rem;overflow:hidden;display:flex;align-items:center;justify-content:center">
+          <canvas id="capeCanvas" width="320" height="400" style="cursor:grab;display:block"></canvas>
+          <img id="capePreviewImg" style="max-width:280px;max-height:360px;object-fit:contain;image-rendering:pixelated;display:none"/>
+          <div style="position:absolute;bottom:10px;right:10px;display:flex;gap:6px;z-index:10">
+            <button id="capeWalkBtn" style="width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;line-height:1" title="Toggle walking">🚶</button>
+          </div>
+        </div>
+        <div id="mRare" style="margin-bottom:.8rem"></div>
+      </div>
+      <div class="mbody-right">
+        <div style="font-size:.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:1rem;font-weight:600">Cape Details</div>
+        <div id="mStats" style="margin-bottom:1.5rem"></div>
+        <div style="font-size:.85rem;font-weight:700;margin-bottom:1rem;margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid var(--bdr)">Known Wearers</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:.75rem" id="mWearers"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="skinview3d.bundle.js"></script>
 <script>
 // ── DATA ──────────────────────────────────────────────────────────────────────
 var CAPES=[
-  {id:'migrator',name:'Migrator Cape',rare:false},{id:'vanilla',name:'Vanilla Cape',rare:false},
-  {id:'minecon11',name:'MineCon 2011',rare:true},{id:'minecon12',name:'MineCon 2012',rare:true},
-  {id:'minecon13',name:'MineCon 2013',rare:true},{id:'minecon15',name:'MineCon 2015',rare:true},
-  {id:'minecon16',name:'MineCon 2016',rare:true},{id:'earth',name:'Minecraft Earth',rare:false},
-  {id:'birthday',name:'Birthday Cape',rare:false},{id:'follower',name:'Follower Cape',rare:false},
-  {id:'mojang',name:'Mojang Cape',rare:true},{id:'translator',name:'Translator Cape',rare:true},
+  {id:'migrator',    name:'Migrator Cape',          wearers:5914416,color:'#6366f1',rare:false},
+  {id:'pan',         name:'Pan Cape',               wearers:2507842,color:'#f9a8d4',rare:false},
+  {id:'anniversary15',name:'15th Anniversary',      wearers:1593614,color:'#eab308',rare:false},
+  {id:'common',      name:'Common Cape',            wearers:1081454,color:'#94a3b8',rare:false},
+  {id:'vanilla',     name:'Vanilla Cape',           wearers:653295, color:'#f59e0b',rare:false},
+  {id:'cherry',      name:'Cherry Blossom',         wearers:560452, color:'#fb7185',rare:false},
+  {id:'purpleheart', name:'Purple Heart',           wearers:444092, color:'#7c3aed',rare:false},
+  {id:'follower',    name:"Follower's Cape",        wearers:433156, color:'#a78bfa',rare:false},
+  {id:'menace',      name:'Menace Cape',            wearers:352184, color:'#ef4444',rare:false},
+  {id:'copper',      name:'Copper Cape',            wearers:206001, color:'#c2410c',rare:false},
+  {id:'home',        name:'Home Cape',              wearers:202377, color:'#fbbf24',rare:false},
+  {id:'mojangoffice',name:'Mojang Office',          wearers:192873, color:'#ef4444',rare:true},
+  {id:'yearn',       name:'Yearn Cape',             wearers:150501, color:'#c084fc',rare:false},
+  {id:'founders',    name:"Founder's Cape",         wearers:138245, color:'#22d3ee',rare:false},
+  {id:'mcc15',       name:'MCC 15th Year',          wearers:118665, color:'#f59e0b',rare:true},
+  {id:'zombiehorse', name:'Zombie Horse',           wearers:109119, color:'#4ade80',rare:true},
+  {id:'experience',  name:'Minecraft Experience',   wearers:42544,  color:'#84cc16',rare:false},
+  {id:'minecon16',   name:'MineCon 2016',           wearers:6645,   color:'#10b981',rare:true},
+  {id:'minecon13',   name:'MineCon 2013',           wearers:6028,   color:'#10b981',rare:true},
+  {id:'minecon15',   name:'MineCon 2015',           wearers:5817,   color:'#10b981',rare:true},
+  {id:'minecon12',   name:'MineCon 2012',           wearers:3690,   color:'#10b981',rare:true},
+  {id:'minecon11',   name:'MineCon 2011',           wearers:3147,   color:'#10b981',rare:true},
+  {id:'realmsmapper',name:'Realms Mapmaker',        wearers:539,    color:'#06b6d4',rare:true},
+  {id:'mojangstudios',name:'Mojang Studios',        wearers:179,    color:'#ef4444',rare:true},
+  {id:'mojang',      name:'Mojang Cape',            wearers:178,    color:'#ef4444',rare:true},
+  {id:'translator',  name:'Translator Cape',        wearers:112,    color:'#f97316',rare:true},
+  {id:'mojiramod',   name:'Mojira Moderator',       wearers:61,     color:'#ef4444',rare:true},
+  {id:'mojangclassic',name:'Mojang (Classic)',      wearers:24,     color:'#ef4444',rare:true},
+  {id:'cobalt',      name:'Cobalt Cape',            wearers:19,     color:'#3b82f6',rare:true},
+  {id:'scrolls',     name:'Scrolls Champion',       wearers:7,      color:'#8b5cf6',rare:true},
+  {id:'translatorcn',name:'Translator (Chinese)',   wearers:3,      color:'#f97316',rare:true},
+  {id:'birthday',    name:'Birthday Cape',          wearers:2,      color:'#f472b6',rare:true},
+  {id:'turtle',      name:'Turtle Cape',            wearers:2,      color:'#84cc16',rare:true},
+  {id:'valentine',   name:'Valentine Cape',         wearers:2,      color:'#f43f5e',rare:true},
+  {id:'prismarine',  name:'Prismarine Cape',        wearers:1,      color:'#06b6d4',rare:true},
+  {id:'oxeye',       name:'Oxeye Cape',             wearers:1,      color:'#fde68a',rare:true},
+  {id:'snowman',     name:'Snowman Cape',           wearers:1,      color:'#bfdbfe',rare:true},
+  {id:'spade',       name:'Spade Cape',             wearers:1,      color:'#94a3b8',rare:true},
+  {id:'db',          name:'dB Cape',               wearers:1,      color:'#10b981',rare:true},
+  {id:'translatorjp',name:'Translator (Japanese)', wearers:1,      color:'#f97316',rare:true},
+  {id:'millionth',   name:'Millionth Customer',     wearers:1,      color:'#fbbf24',rare:true},
 ];
+var W='https://minecraft.wiki/images/thumb/';
+var CAPE_IMGS={
+  migrator:     W+'Migrator_Cape.png/256px-Migrator_Cape.png',
+  vanilla:      W+'Vanilla_Cape.png/256px-Vanilla_Cape.png',
+  common:       W+'Common_Cape_JE.png/256px-Common_Cape_JE.png',
+  turtle:       W+'Turtle_Cape.png/256px-Turtle_Cape.png',
+  follower:     W+'Follower%27s_Cape_JE.png/256px-Follower%27s_Cape_JE.png',
+  founders:     W+'Founder%27s_Cape.png/256px-Founder%27s_Cape.png',
+  cherry:       W+'Cherry_Blossom_Cape_JE.png/256px-Cherry_Blossom_Cape_JE.png',
+  snowman:      W+'JulianClark%27s_Cape.png/256px-JulianClark%27s_Cape.png',
+  pan:          W+'Pan_Cape_JE.png/256px-Pan_Cape_JE.png',
+  valentine:    W+'Valentine_Cape.png/256px-Valentine_Cape.png',
+  anniversary15:W+'15th_Anniversary_Cape_JE.png/256px-15th_Anniversary_Cape_JE.png',
+  prismarine:   W+'Prismarine_Cape.png/256px-Prismarine_Cape.png',
+  birthday:     W+'Birthday_Cape.png/256px-Birthday_Cape.png',
+  purpleheart:  W+'Purple_Heart_Cape_JE.png/256px-Purple_Heart_Cape_JE.png',
+  oxeye:        W+'OxeyeCape.png/256px-OxeyeCape.png',
+  copper:       W+'Copper_Cape_JE.png/256px-Copper_Cape_JE.png',
+  experience:   W+'Minecraft_Experience_Cape_JE.png/256px-Minecraft_Experience_Cape_JE.png',
+  menace:       W+'Menace_Cape_JE.png/256px-Menace_Cape_JE.png',
+  home:         W+'Home_Cape_JE.png/256px-Home_Cape_JE.png',
+  yearn:        W+'Yearn_Cape_JE.png/256px-Yearn_Cape_JE.png',
+  minecon16:    W+'MINECON_2016_Cape.png/256px-MINECON_2016_Cape.png',
+  minecon15:    W+'MINECON_2015_Cape.png/256px-MINECON_2015_Cape.png',
+  minecon13:    W+'MINECON_2013_Cape.png/256px-MINECON_2013_Cape.png',
+  zombiehorse:  W+'Zombie_Horse_Cape_JE.png/256px-Zombie_Horse_Cape_JE.png',
+  minecon12:    W+'MINECON_2012_Cape.png/256px-MINECON_2012_Cape.png',
+  mojangstudios:W+'Mojang_Studios_Cape.png/256px-Mojang_Studios_Cape.png',
+  minecon11:    W+'MINECON_2011_Cape.png/256px-MINECON_2011_Cape.png',
+  translator:   W+'Translator_Cape.png/256px-Translator_Cape.png',
+  mcc15:        W+'MCC_15th_Year_Cape_JE.png/256px-MCC_15th_Year_Cape_JE.png',
+  scrolls:      W+'Scrolls_Champion_Cape.png/256px-Scrolls_Champion_Cape.png',
+  realmsmapper: W+'Realms_MapMaker_Cape.png/256px-Realms_MapMaker_Cape.png',
+  spade:        W+'MrMessiah%27s_Cape.png/256px-MrMessiah%27s_Cape.png',
+  mojang:       W+'Mojang_Cape.png/256px-Mojang_Cape.png',
+  cobalt:       W+'Cobalt_Cape_render.png/256px-Cobalt_Cape_render.png',
+  translatorcn: W+'Translator_Cape.png/256px-Translator_Cape.png',
+  mojiramod:    W+'Moderator_Cape.png/256px-Moderator_Cape.png',
+  translatorjp: W+'Translator_Cape.png/256px-Translator_Cape.png',
+  mojangclassic:W+'Classic_Mojang_Cape.png/256px-Classic_Mojang_Cape.png',
+  db:           W+'DannyBstyle%27s_Cape.png/256px-DannyBstyle%27s_Cape.png',
+  mojangoffice: W+'Mojang_Office_Cape_JE.png/256px-Mojang_Office_Cape_JE.png',
+  millionth:    W+'Millionth_Customer_Cape.png/256px-Millionth_Customer_Cape.png',
+};
+var CAPE_TEXTURES={
+  migrator:  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAAgCAYAAACinX6EAAACiElEQVR4XuWWT2oVQRjE3xGCCDG4MFF0EzSIGFBBEZTss8km4M6NJ/AE7gR3HsO1kHU2LvUIHsATjKlmaqjU149umh5BevHj9avpmf6q+ps/m1enPzZnr3cmsH9wmIXHP9y4NX3Zuz99v3OUBcfmOZtfD55V8eTp2+nw4Yt0/tX/HOEcME1TFzZq0o3XHNuGF7wNBuB6CTfSyhLAp/e7qRCAolgYwDE3WMILLsF18fvm5Dyha/t8N9JK2gEWffF5PwQAjcd1bgkvuASvr0DT8FcLgIuh1dUwxmx/naegwFyHuMEaNHyupfXoreJGWkmL0sjHm7cTP789TvA/DXKumsdDD3gIbq4GnKfdB1DHqgEwZRj9und3MU2o6U64+VwIbq4GmsyZXy0ANU/4WlONIbDl3TxgtwA3V0MuAO0+0jUAFK1m9X3sOubSKMceAHU3VwON4tdvQT6guwegOw4u7x1fC0DBXDeaCwC4uRrY6t6VvCZ00D0AmNYAfj86SriuxeCrz0OARt3N1cCdVvPalRquG2llCYBmsRADwJjmNQAa5acvd1/1+VrBZAma59qsiVBzI61cC4DtzwDYBdAYkJrkbrt5MBccDFYQnkVO1wB0h9n+f14+T7ALAMb/IgCuo3B9rceNtJIC4IURAM0TLoixB0DzPQPgmtoBuVvBjbSSAuCiLQFsewbM5wWDJTQArWO1DsD9VhsA5qpJfw12CmAJget6ENDdSCtB6MVsIBgsoQFoEKt1gAu9mAsNBksggOnd+RIAxmSYDrgyu4SgATCEIQLA+blb4L/pgPm1FQyWkA5YQvDd7/oh5MJoBGE0gjAaQRiNIIxGEEYjCKMRhNEIwmgEYTT+AksiJ9gdoefNAAAAAElFTkSuQmCC',
+  vanilla:      'https://textures.minecraft.net/texture/f9a76537647989f9a0b6d001e320dac591c359e9e61a31f4ce11c88f207f0ad4',
+  common:       'https://textures.minecraft.net/texture/5ec930cdd2629c8771655c60eebeb867b4b6559b0e6d3bc71c40c96347fa03f0',
+  turtle:       'https://textures.minecraft.net/texture/5048ea61566353397247d2b7d946034de926b997d5e66c86483dfb1e031aee95',
+  follower:     'https://textures.minecraft.net/texture/569b7f2a1d00d26f30efe3f9ab9ac817b1e6d35f4f3cfb0324ef2d328223d350',
+  founders:     'https://textures.minecraft.net/texture/99aba02ef05ec6aa4d42db8ee43796d6cd50e4b2954ab29f0caeb85f96bf52a1',
+  cherry:       'https://textures.minecraft.net/texture/afd553b39358a24edfe3b8a9a939fa5fa4faa4d9a9c3d6af8eafb377fa05c2bb',
+  snowman:      'https://textures.minecraft.net/texture/23ec737f18bfe4b547c95935fc297dd767bb84ee55bfd855144d279ac9bfd9fe',
+  pan:          'https://textures.minecraft.net/texture/28de4a81688ad18b49e735a273e086c18f1e3966956123ccb574034c06f5d336',
+  valentine:    'https://textures.minecraft.net/texture/e578ef995fabcf0a94768f9651ac3aaba30c59ef85d2438e9b3e0cc1d810652b',
+  anniversary15:'https://textures.minecraft.net/texture/cd9d82ab17fd92022dbd4a86cde4c382a7540e117fae7b9a2853658505a80625',
+  prismarine:   'https://textures.minecraft.net/texture/d8f8d13a1adf9636a16c31d47f3ecc9bb8d8533108aa5ad2a01b13b1a0c55eac',
+  birthday:     'https://textures.minecraft.net/texture/2056f2eebd759cce93460907186ef44e9192954ae12b227d817eb4b55627a7fc',
+  purpleheart:  'https://textures.minecraft.net/texture/cb40a92e32b57fd732a00fc325e7afb00a7ca74936ad50d8e860152e482cfbde',
+  oxeye:        'https://textures.minecraft.net/texture/7706b5f5fc90329691e59277dcc66ba20572219fa8e5da472afd5235fad12cc8',
+  copper:       'https://textures.minecraft.net/texture/5e6f3193e74cd16cdd6637d9bae5484e3a37ff2a14c2d157c659a07810b1bdca',
+  experience:   'https://textures.minecraft.net/texture/7658c5025c77cfac7574aab3af94a46a8886e3b7722a895255fbf22ab8652434',
+  menace:       'https://textures.minecraft.net/texture/dbc21e222528e30dc88445314f7be6ff12d3aeebc3c192054fba7e3b3f8c77b1',
+  home:         'https://textures.minecraft.net/texture/1de21419009db483900da6298a1e6cbf9f1bc1523a0dcdc16263fab150693edd',
+  yearn:        'https://textures.minecraft.net/texture/308b32a9e303155a0b4262f9e5483ad4a22e3412e84fe8385a0bdd73dc41fa89',
+  minecon16:    'https://textures.minecraft.net/texture/153b1a0dfcbae953cdeb6f2c2bf6bf79943239b1372780da44bcbb29273131da',
+  minecon15:    'https://textures.minecraft.net/texture/b0cc08840700447322d953a02b965f1d65a13a603bf64b17c803c21446fe1635',
+  minecon13:    'https://textures.minecraft.net/texture/953cac8b779fe41383e675ee2b86071a71658f2180f56fbce8aa315ea70e2ed6',
+  zombiehorse:  'https://textures.minecraft.net/texture/a3f6e4f14801f3ea55e3d95b9b4ef3b5e8802d947f669de93d6ec4b9354a436b',
+  minecon12:    'https://textures.minecraft.net/texture/a2e8d97ec79100e90a75d369d1b3ba81273c4f82bc1b737e934eed4a854be1b6',
+  mojangstudios:'https://textures.minecraft.net/texture/5786fe99be377dfb6858859f926c4dbc995751e91cee373468c5fbf4865e7151',
+  minecon11:    'https://textures.minecraft.net/texture/953cac8b779fe41383e675ee2b86071a71658f2180f56fbce8aa315ea70e2ed6',
+  translator:   'https://textures.minecraft.net/texture/ca29f5dd9e94fb1748203b92e36b66fda80750c87ebc18d6eafdb0e28cc1d05f',
+  mcc15:        'https://textures.minecraft.net/texture/56c35628fe1c4d59dd52561a3d03bfa4e1a76d397c8b9c476c2f77cb6aebb1df',
+  scrolls:      'https://textures.minecraft.net/texture/3efadf6510961830f9fcc077f19b4daf286d502b5f5aafbd807c7bbffcaca245',
+  realmsmapper: 'https://textures.minecraft.net/texture/17912790ff164b93196f08ba71d0e62129304776d0f347334f8a6eae509f8a56',
+  spade:        'https://textures.minecraft.net/texture/2e002d5e1758e79ba51d08d92a0f3a95119f2f435ae7704916507b6c565a7da8',
+  cobalt:       'https://textures.minecraft.net/texture/ca35c56efe71ed290385f4ab5346a1826b546a54d519e6a3ff01efa01acce81',
+  translatorcn: 'https://textures.minecraft.net/texture/2262fb1d24912209490586ecae98aca8500df3eff91f2a07da37ee524e7e3cb6',
+  mojiramod:    'https://textures.minecraft.net/texture/ae677f7d98ac70a533713518416df4452fe5700365c09cf45d0d156ea9396551',
+  translatorjp: 'https://textures.minecraft.net/texture/ca29f5dd9e94fb1748203b92e36b66fda80750c87ebc18d6eafdb0e28cc1d05f',
+  mojangclassic:'https://textures.minecraft.net/texture/8f120319222a9f4a104e2f5cb97b2cda93199a2ee9e1585cb8d09d6f687cb761',
+  db:           'https://textures.minecraft.net/texture/bcfbe84c6542a4a5c213c1cacf8979b5e913dcb4ad783a8b80e3c4a7d5c8bdac',
+  millionth:    'https://textures.minecraft.net/texture/70efffaf86fe5bc089608d3cb297d3e276b9eb7a8f9f2fe6659c23a2d8b18edf',
+  mojangoffice: 'https://textures.minecraft.net/texture/5c29410057e32abec02d870ecb52ec25fb45ea81e785a7854ae8429d7236ca26',
+  mojang:       'https://textures.minecraft.net/texture/9e507afc56359978a3eb3e32367042b853cddd0995d17d0da995662913fb00f7',
+};
+var EMOJIS={
+  migrator:'🟣',vanilla:'🟡',common:'⬛',turtle:'🐢',follower:'💜',founders:'🌍',
+  cherry:'🌸',snowman:'⛄',pan:'🌈',valentine:'❤️',anniversary15:'🎉',prismarine:'🔷',
+  birthday:'🎂',purpleheart:'💜',oxeye:'🌻',copper:'🟤',experience:'🌟',menace:'⚡',
+  home:'🏠',yearn:'✨',minecon16:'🏆',minecon15:'🏆',minecon13:'🏆',zombiehorse:'🐴',
+  minecon12:'🏆',mojangstudios:'🔴',minecon11:'🏆',translator:'🟠',mcc15:'🏆',
+  scrolls:'🎲',realmsmapper:'🗺️',spade:'♠️',mojang:'🔴',cobalt:'🔵',translatorcn:'🌏',
+  mojiramod:'🔴',translatorjp:'🌏',mojangclassic:'🔴',db:'🎵',mojangoffice:'🏢',
+  millionth:'🥇',
+};
+function fmt(n){return n.toLocaleString()}
 var PLAYERS=[
   {name:'Dream',uuid:'69e76b14-1d14-4b87-9b5b-01b32e9b6f4c',cape:'minecon16',followers:'1.2M'},
   {name:'Technoblade',uuid:'b876ec32-e396-476b-a115-8438d83c67d4',cape:'migrator',followers:'987K'},
@@ -293,68 +481,62 @@ var UUIDS={dream:'69e76b14-1d14-4b87-9b5b-01b32e9b6f4c',technoblade:'b876ec32-e3
 // Maps Mojang texture hash → { name, img (local path) }
 // img uses the locally hosted renders in /capes/ — add new entries as hashes are discovered.
 var CAPE_HASH_DATA={
-  // ── Confirmed via bulk Mojang API lookups + crafty.gg player-count cross-ref ─
   '2340c0e03dd24a11b15a8b33c2a7e9e32abb2051b2481d0ba7defd635ca7a933':
-    {name:'Migrator',              img:'capes/migrator.png'},
+    {name:'Migrator',              img:'capes/migrator.png',              id:'migrator'},
   '7658c5025c77cfac7574aab3af94a46a8886e3b7722a895255fbf22ab8652434':
-    {name:'Minecraft Experience',  img:'capes/Experience.png'},
+    {name:'Minecraft Experience',  img:'capes/Experience.png',            id:'experience'},
   '28de4a81688ad18b49e735a273e086c18f1e3966956123ccb574034c06f5d336':
-    {name:'Pan',                   img:'capes/Pan.png'},
+    {name:'Pan',                   img:'capes/Pan.png',                   id:'pan'},
   '9e507afc56359978a3eb3e32367042b853cddd0995d17d0da995662913fb00f7':
-    {name:'Mojang',                img:'capes/mojang.png'},
+    {name:'Mojang',                img:'capes/mojang.png',                id:'mojang'},
   '5786fe99be377dfb6858859f926c4dbc995751e91cee373468c5fbf4865e7151':
-    {name:'Mojang Studios',        img:'capes/Mojang Studios.png'},
+    {name:'Mojang Studios',        img:'capes/Mojang Studios.png',        id:'mojangstudios'},
   'cb40a92e32b57fd732a00fc325e7afb00a7ca74936ad50d8e860152e482cfbde':
-    {name:'Purple Heart',          img:'capes/Purple Heart.png'},
+    {name:'Purple Heart',          img:'capes/Purple Heart.png',          id:'purpleheart'},
   'dbc21e222528e30dc88445314f7be6ff12d3aeebc3c192054fba7e3b3f8c77b1':
-    {name:'Menace',                img:'capes/Menace.png'},
+    {name:'Menace',                img:'capes/Menace.png',                id:'menace'},
   'cd9d82ab17fd92022dbd4a86cde4c382a7540e117fae7b9a2853658505a80625':
-    {name:'15th Anniversary',      img:'capes/15th Anniversary.png'},
+    {name:'15th Anniversary',      img:'capes/15th Anniversary.png',      id:'anniversary15'},
   '5ec930cdd2629c8771655c60eebeb867b4b6559b0e6d3bc71c40c96347fa03f0':
-    {name:'Common',                img:'capes/Common.png'},
+    {name:'Common',                img:'capes/Common.png',                id:'common'},
   'afd553b39358a24edfe3b8a9a939fa5fa4faa4d9a9c3d6af8eafb377fa05c2bb':
-    {name:'Cherry Blossom',        img:'capes/Cherry Blossom.png'},
+    {name:'Cherry Blossom',        img:'capes/Cherry Blossom.png',        id:'cherry'},
   'a3f6e4f14801f3ea55e3d95b9b4ef3b5e8802d947f669de93d6ec4b9354a436b':
-    {name:'Zombie Horse',          img:'capes/Zombie Horse.png'},
+    {name:'Zombie Horse',          img:'capes/Zombie Horse.png',          id:'zombiehorse'},
   '308b32a9e303155a0b4262f9e5483ad4a22e3412e84fe8385a0bdd73dc41fa89':
-    {name:'Yearn',                 img:'capes/Yearn.png'},
+    {name:'Yearn',                 img:'capes/Yearn.png',                 id:'yearn'},
   'ca29f5dd9e94fb1748203b92e36b66fda80750c87ebc18d6eafdb0e28cc1d05f':
-    {name:'Translator (Japanese)', img:'capes/Translator (Japanese).png'},
+    {name:'Translator (Japanese)', img:'capes/Translator (Japanese).png', id:'translatorjp'},
   '23ec737f18bfe4b547c95935fc297dd767bb84ee55bfd855144d279ac9bfd9fe':
-    {name:'Snowman',               img:'capes/Snowman.png'},
+    {name:'Snowman',               img:'capes/Snowman.png',               id:'snowman'},
   '5048ea61566353397247d2b7d946034de926b997d5e66c86483dfb1e031aee95':
-    {name:'Turtle',                img:'capes/Turtle.png'},
+    {name:'Turtle',                img:'capes/Turtle.png',                id:'turtle'},
   '70efffaf86fe5bc089608d3cb297d3e276b9eb7a8f9f2fe6659c23a2d8b18edf':
-    {name:'Millionth Customer',    img:'capes/Millionth Customer.png'},
+    {name:'Millionth Customer',    img:'capes/Millionth Customer.png',    id:'millionth'},
   'd8f8d13a1adf9636a16c31d47f3ecc9bb8d8533108aa5ad2a01b13b1a0c55eac':
-    {name:'Prismarine',            img:'capes/Prismarine.png'},
+    {name:'Prismarine',            img:'capes/Prismarine.png',            id:'prismarine'},
   'ae677f7d98ac70a533713518416df4452fe5700365c09cf45d0d156ea9396551':
-    {name:'Mojira Moderator',      img:'capes/Mojira Moderator.png'},
+    {name:'Mojira Moderator',      img:'capes/Mojira Moderator.png',      id:'mojiramod'},
   '569b7f2a1d00d26f30efe3f9ab9ac817b1e6d35f4f3cfb0324ef2d328223d350':
-    {name:"Follower's",            img:'capes/Followers.png'},
+    {name:"Follower's",            img:'capes/Followers.png',             id:'follower'},
   '2e002d5e1758e79ba51d08d92a0f3a95119f2f435ae7704916507b6c565a7da8':
-    {name:'Spade',                 img:'capes/Spade.png'},
-  // ── MineCon capes — identified by wearer counts vs. historical attendance ───
+    {name:'Spade',                 img:'capes/Spade.png',                 id:'spade'},
   '953cac8b779fe41383e675ee2b86071a71658f2180f56fbce8aa315ea70e2ed6':
-    {name:'MineCon 2011',          img:'capes/Minecon2011png.png'},
+    {name:'MineCon 2011',          img:'capes/Minecon2011png.png',        id:'minecon11'},
   'a2e8d97ec79100e90a75d369d1b3ba81273c4f82bc1b737e934eed4a854be1b6':
-    {name:'MineCon 2012',          img:'capes/Minecon2012.png'},
+    {name:'MineCon 2012',          img:'capes/Minecon2012.png',           id:'minecon12'},
   'b0cc08840700447322d953a02b965f1d65a13a603bf64b17c803c21446fe1635':
-    {name:'MineCon 2015',          img:'capes/Minecon2015.png'},
+    {name:'MineCon 2015',          img:'capes/Minecon2015.png',           id:'minecon15'},
   '153b1a0dfcbae953cdeb6f2c2bf6bf79943239b1372780da44bcbb29273131da':
-    {name:'MineCon 2016',          img:'capes/Minecon2016.png'},
-  // ── Copper — confirmed via C0smik live lookup (May 23 2026) ─────────────────
+    {name:'MineCon 2016',          img:'capes/Minecon2016.png',           id:'minecon16'},
   '5e6f3193e74cd16cdd6637d9bae5484e3a37ff2a14c2d157c659a07810b1bdca':
-    {name:'Copper',                img:'capes/Copper.png'},
-  // ── Home — confirmed via C0smik live lookup (May 23 2026) ───────────────────
+    {name:'Copper',                img:'capes/Copper.png',                id:'copper'},
   '1de21419009db483900da6298a1e6cbf9f1bc1523a0dcdc16263fab150693edd':
-    {name:'Home',                  img:'capes/Home.png'},
-  // ── Mojang Office — confirmed via C0smik live lookup (May 23 2026) ──────────
+    {name:'Home',                  img:'capes/Home.png',                  id:'home'},
   '5c29410057e32abec02d870ecb52ec25fb45ea81e785a7854ae8429d7236ca26':
-    {name:'Mojang Office',         img:'capes/Mojang Office.png'},
-  // ── MCC 15th Year — confirmed via C0smik live lookup (May 23 2026) ──────────
+    {name:'Mojang Office',         img:'capes/Mojang Office.png',         id:'mojangoffice'},
   '56c35628fe1c4d59dd52561a3d03bfa4e1a76d397c8b9c476c2f77cb6aebb1df':
-    {name:'MCC 15th Year',         img:'capes/MCC 15th Year.png'},
+    {name:'MCC 15th Year',         img:'capes/MCC 15th Year.png',         id:'mcc15'},
   // ── add more below as they are identified ───────────────────────────────────
 };
 var FB='https://mc-heads.net/avatar/Steve/32';
@@ -498,14 +680,15 @@ function fetchTextures(uuid){
         var hash=url.replace(/https?:\/\/textures\.minecraft\.net\/texture\//,'');
         var capeData=CAPE_HASH_DATA[hash]||{};
         var name=capeData.name||'Unknown Cape';
+        var capeId=capeData.id||null;
         var imgSrc=capeData.img||url;
         var isKnown=!!capeData.img;
-        var firstStr=firstSeen?fmtTs(firstSeen):'—';
-        var lastStr=isActive?'Present':(lastSeen?fmtTs(lastSeen):'—');
-        return'<div class="cape-card'+(isActive?' c-active':'')+'">'+
+        var clickable=!!capeId;
+        var onclick=clickable?' onclick="openModal(\''+capeId+'\')"':'';
+        return'<div class="cape-card'+(isActive?' c-active':'')+(clickable?' c-clickable':'')+'"'+onclick+'>'+
           '<img src="'+imgSrc+'" style="'+(isKnown?'':'image-rendering:pixelated')+'" onerror="this.style.display=\'none\'"/>'+
           '<div class="cc-name">'+name+'</div>'+
-          '<div class="cc-date">'+(isActive?'<span style="color:var(--green)">Active</span>':firstStr+' – '+lastStr)+'</div>'+
+          (isActive?'<div class="cc-status" style="color:var(--green);font-weight:600">Active</div>':'')+
           '</div>';
       }
 
@@ -633,6 +816,108 @@ document.getElementById('tabBar').addEventListener('click',function(e){
     if(!inp.contains(e.target)&&!drop.contains(e.target))drop.classList.remove('show');
   });
 })();
+
+// ── CAPE MODAL ────────────────────────────────────────────────────────────────
+function capePreview(c,size){
+  var url=CAPE_IMGS[c.id];
+  var h=size||88;
+  if(url){
+    return'<img src="'+url+'" alt="'+c.name+'" '+
+      'style="max-height:'+h+'px;max-width:100%;image-rendering:auto;display:block;margin:auto" '+
+      'onerror="this.replaceWith(Object.assign(document.createElement(\'div\'),{className:\'cico\',textContent:\''+(EMOJIS[c.id]||'🎭')+'\',style:\'background:linear-gradient(135deg,'+c.color+'33,'+c.color+'66);border:2px solid '+c.color+'88\'}))"'+
+      '/>';
+  }
+  return'<div class="cico" style="background:linear-gradient(135deg,'+c.color+'33,'+c.color+'66);border:2px solid '+c.color+'88">'+(EMOJIS[c.id]||'🎭')+'</div>';
+}
+function openModal(id){
+  var c=CAPES.find(function(x){return x.id===id});
+  if(!c)return;
+  document.getElementById('mName').textContent=c.name;
+  document.getElementById('mSub').textContent=c.rare?'Rare / Limited Edition':'Common Cape';
+  document.getElementById('mRare').innerHTML=c.rare
+    ?'<span class="badge by" style="font-size:.8rem;padding:.2rem .6rem">Rare Cape</span>'
+    :'<span class="badge bg" style="font-size:.8rem;padding:.2rem .6rem">Common Cape</span>';
+  document.getElementById('mStats').innerHTML=[
+    ['Wearers',fmt(c.wearers)],
+    ['Category',c.rare?'Limited / Event':'Obtainable'],
+    ['Edition','Java Edition'],
+    ['Cape ID','<span style="font-family:monospace;font-size:.8rem;background:var(--bg2);padding:.2rem .4rem;border-radius:3px">'+c.id+'</span>'],
+  ].map(function(r){return'<div class="mrow"><span class="lbl">'+r[0]+'</span><span style="font-weight:600">'+r[1]+'</span></div>'}).join('');
+  var wearers=PLAYERS.filter(function(p){return p.cape===id});
+  document.getElementById('mWearers').innerHTML=wearers.length
+    ?wearers.map(function(p){
+        return'<a href="profile.html?name='+encodeURIComponent(p.name)+'" class="mpc">'+
+          '<img src="'+avN(p.name)+'" onerror="this.src=\''+FB+'\'" alt="'+p.name+'"/>'+
+          '<div><div class="pn">'+p.name+'</div><div class="pm">'+p.followers+' followers</div></div></a>';
+      }).join('')
+    :'<p style="color:var(--muted);font-size:.85rem;padding:1rem 0">No tracked players wearing this cape yet.</p>';
+  document.getElementById('capeOverlay').classList.add('show');
+  document.body.style.overflow='hidden';
+  var capeTexture=CAPE_TEXTURES[c.id]||null;
+  setTimeout(function(){initModalViewer(capeTexture)},100);
+}
+function closeModal(){
+  document.getElementById('capeOverlay').classList.remove('show');
+  document.body.style.overflow='';
+  if(window._capeViewer){try{window._capeViewer.dispose();}catch(e){}window._capeViewer=null;}
+  if(window._capeMoveHandler){
+    document.removeEventListener('mousemove',window._capeMoveHandler);
+    document.removeEventListener('mouseup',window._capeUpHandler);
+    window._capeMoveHandler=null;window._capeUpHandler=null;
+  }
+}
+document.getElementById('capeOverlay').addEventListener('click',function(e){if(e.target===this)closeModal()});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal()});
+
+function initModalViewer(capeImageUrl){
+  if(!window.skinview3d){loadCapeImgFallback(capeImageUrl);return;}
+  if(window._capeViewer){try{window._capeViewer.dispose();}catch(e){}window._capeViewer=null;}
+  if(window._capeMoveHandler){
+    document.removeEventListener('mousemove',window._capeMoveHandler);
+    document.removeEventListener('mouseup',window._capeUpHandler);
+    window._capeMoveHandler=null;window._capeUpHandler=null;
+  }
+  var canvas=document.getElementById('capeCanvas');
+  if(!canvas)return;
+  canvas.style.cursor='grab';
+  try{
+    var viewer=new skinview3d.SkinViewer({canvas:canvas,width:320,height:400,skin:'https://mc-heads.net/skin/MHF_Steve'});
+    viewer.animation=new skinview3d.IdleAnimation();
+    viewer.autoRotate=false;
+    viewer.zoom=0.9;
+    window._capeViewer=viewer;
+    if(viewer.playerObject)viewer.playerObject.rotation.y=2.6;
+    var walking=false;
+    var walkBtn=document.getElementById('capeWalkBtn');
+    walkBtn.style.background='rgba(0,0,0,.55)';
+    walkBtn.onclick=function(){
+      walking=!walking;
+      viewer.animation=walking?new skinview3d.WalkingAnimation():new skinview3d.IdleAnimation();
+      walkBtn.style.background=walking?'rgba(74,222,128,.2)':'rgba(0,0,0,.55)';
+    };
+    if(capeImageUrl)viewer.loadCape(capeImageUrl).catch(function(){});
+    var isDragging=false,prevX=0,prevY=0;
+    canvas.addEventListener('mousedown',function(e){isDragging=true;prevX=e.clientX;prevY=e.clientY;canvas.style.cursor='grabbing';});
+    window._capeMoveHandler=function(e){
+      if(!isDragging)return;
+      if(viewer.playerObject){
+        viewer.playerObject.rotation.y+=(e.clientX-prevX)*0.01;
+        viewer.playerObject.rotation.x+=(e.clientY-prevY)*0.005;
+      }
+      prevX=e.clientX;prevY=e.clientY;
+    };
+    window._capeUpHandler=function(){isDragging=false;canvas.style.cursor='grab';};
+    document.addEventListener('mousemove',window._capeMoveHandler);
+    document.addEventListener('mouseup',window._capeUpHandler);
+    canvas.addEventListener('wheel',function(e){e.preventDefault();viewer.zoom=Math.max(0.5,Math.min(3,viewer.zoom+e.deltaY*-0.001));},{passive:false});
+  }catch(e){loadCapeImgFallback(capeImageUrl);}
+}
+function loadCapeImgFallback(url){
+  var img=document.getElementById('capePreviewImg');
+  if(!img||!url)return;
+  img.src=url;img.style.display='block';
+  img.onerror=function(){img.parentElement.innerHTML='<div style="font-size:120px;color:var(--txt2)">🎭</div>';};
+}
 
 function copyText(text,btn){
   navigator.clipboard.writeText(text).then(function(){

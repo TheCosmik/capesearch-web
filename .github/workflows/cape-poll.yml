@@ -1,0 +1,22 @@
+name: Cape Poller
+
+# Runs every 5 minutes — GitHub Actions allows this on free plans.
+# Calls /api/cron-poll which checks the 8 most-stale tracked players
+# and records any cape changes into KV history.
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:  # allow manual trigger from GitHub Actions tab
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Trigger cape poll
+        run: |
+          curl -sf \
+            -X GET "https://capesearch.net/api/cron-poll" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            --max-time 30

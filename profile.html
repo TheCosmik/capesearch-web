@@ -396,9 +396,21 @@ function fetchPlayerData(uuid){
             '<td><span class="badge br">Inactive</span></td></tr>';
         }).join('');
 
-      // load cape onto the 3D viewer if it's ready
+      // load skin + cape onto the 3D viewer via textures.minecraft.net (CORS-safe)
+      var skinTexUrl=d.textures&&d.textures.skin?d.textures.skin.url:null;
+      if(skinTexUrl&&window._profileViewer){
+        window._profileViewer.loadSkin(skinTexUrl).catch(function(){});
+      }
       if(capeUrl&&window._profileViewer){
         window._profileViewer.loadCape(capeUrl).catch(function(){});
+      }
+
+      // update skin tab details with the real texture URL
+      if(skinTexUrl){
+        document.getElementById('skinUrl').textContent=skinTexUrl;
+        document.getElementById('dlSkin').href=skinTexUrl;
+        var isSlim=d.textures.skin.metadata&&d.textures.skin.metadata.model==='slim';
+        document.getElementById('skinModel').textContent=isSlim?'Alex (Slim)':'Steve (Classic)';
       }
 
       if(capeUrl){
@@ -555,8 +567,7 @@ function initProfileViewer(uuid){
       canvas:canvas,
       width:370,
       height:550,
-      // crafatar.com sends Access-Control-Allow-Origin: * — required for WebGL textures
-      skin:'https://crafatar.com/skins/'+uuid
+      // skin loaded separately via fetchPlayerData → Ashcon API (textures.minecraft.net has CORS)
     });
 
     viewer.animation=null;

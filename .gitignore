@@ -1,0 +1,12 @@
+# Downloaded/reference files not part of the site
+Minecraft Cape Editor — MCTools_files/
+Minecraft Cape Editor — MCTools.html
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor dirs
+.vscode/
+.idea/

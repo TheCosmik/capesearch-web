@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>CapeSearch – Minecraft Player Lookup</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1923;--bg2:#131f2e;--card:#182030;--card2:#1e2b3f;
+  --green:#4ade80;--green2:#22c55e;--gdim:rgba(74,222,128,.13);
+  --txt:#f1f5f9;--txt2:#94a3b8;--muted:#64748b;
+  --bdr:#243347;--bdr2:#2d3f5e;--rad:8px;--rad2:12px;
+  --red:#f87171;--yellow:#fbbf24;--blue:#60a5fa;
+}
+html{font-size:16px}
+body{background:var(--bg);color:var(--txt);font-family:'Segoe UI',system-ui,sans-serif;line-height:1.5;min-height:100vh}
+a{color:var(--green);text-decoration:none}
+a:hover{text-decoration:underline}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg2)}::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:3px}
+
+/* NAV */
+.nav{background:var(--bg2);border-bottom:1px solid var(--bdr);position:sticky;top:0;z-index:99;padding:0 1rem}
+.nav-in{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:1rem;height:54px}
+.logo{display:flex;align-items:center;gap:.5rem;font-size:1.15rem;font-weight:800;color:var(--txt);text-decoration:none;flex-shrink:0}
+.logo-icon{width:30px;height:30px;background:var(--green);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.logo span{color:var(--green)}
+.nav-s{flex:1;max-width:400px;position:relative}
+.nav-s input{width:100%;background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad);color:var(--txt);padding:.4rem .75rem .4rem 2.2rem;font-size:.875rem;outline:none;transition:border-color .2s}
+.nav-s input:focus{border-color:var(--green)}
+.nav-s input::placeholder{color:var(--muted)}
+.nav-s .si{position:absolute;left:.6rem;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;pointer-events:none}
+.nav-links{display:flex;gap:.15rem;margin-left:auto}
+.nav-links a{color:var(--txt2);font-size:.875rem;font-weight:500;padding:.35rem .7rem;border-radius:var(--rad);transition:all .2s}
+.nav-links a:hover,.nav-links a.on{color:var(--txt);background:var(--card);text-decoration:none}
+.sdrop{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad);box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:200;display:none}
+.sdrop.show{display:block}
+.sri{display:flex;align-items:center;gap:.65rem;padding:.55rem .8rem;cursor:pointer;transition:background .15s}
+.sri:hover{background:var(--card2)}
+.sri img{width:30px;height:30px;image-rendering:pixelated;border-radius:4px;background:var(--bg2)}
+.sri .sn{font-size:.85rem;font-weight:600}
+.sri .ss{font-size:.73rem;color:var(--muted)}
+
+/* HERO */
+.hero{background:linear-gradient(135deg,var(--bg2),var(--bg));border-bottom:1px solid var(--bdr);padding:3rem 1rem;text-align:center}
+.hero h1{font-size:2.4rem;font-weight:800;margin-bottom:.4rem;line-height:1.2}
+.hero h1 span{color:var(--green)}
+.hero p{color:var(--txt2);margin-bottom:1.75rem;font-size:1rem}
+.hsearch{display:flex;max-width:500px;margin:0 auto}
+.hsearch input{flex:1;background:var(--card);border:2px solid var(--bdr);border-right:none;border-radius:var(--rad) 0 0 var(--rad);color:var(--txt);padding:.7rem 1rem;font-size:1rem;outline:none;transition:border-color .2s}
+.hsearch input:focus{border-color:var(--green)}
+.hsearch input::placeholder{color:var(--muted)}
+.btn{display:inline-flex;align-items:center;gap:.35rem;padding:.7rem 1.1rem;border-radius:var(--rad);font-size:.875rem;font-weight:600;cursor:pointer;border:none;transition:all .2s;text-decoration:none}
+.btn-p{background:var(--green);color:#0a1a0a}
+.btn-p:hover{background:var(--green2);text-decoration:none}
+.btn-search{border-radius:0 var(--rad) var(--rad) 0}
+.btn-sm{padding:.3rem .75rem;font-size:.78rem}
+.btn-o{background:transparent;border:1px solid var(--bdr);color:var(--txt2)}
+.btn-o:hover{border-color:var(--green);color:var(--green);text-decoration:none}
+
+/* LAYOUT */
+.wrap{max-width:1200px;margin:0 auto;padding:0 1rem}
+.sec{padding:1.75rem 0}
+.sec-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.1rem}
+.sec-title{font-size:1.05rem;font-weight:700;display:flex;align-items:center;gap:.4rem}
+.sec-title .ic{color:var(--green)}
+
+/* STATS */
+.stats{display:flex;gap:1rem;margin-bottom:.25rem}
+.stat{flex:1;background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad2);padding:.9rem 1.1rem}
+.stat .sl{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.2rem}
+.stat .sv{font-size:1.4rem;font-weight:800}
+.stat .ss{font-size:.72rem;color:var(--txt2);margin-top:2px}
+
+/* GRID */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:.9rem}
+
+/* CARD */
+.card{background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad2);overflow:hidden}
+
+/* FEED */
+.fi{display:flex;align-items:center;gap:.9rem;padding:.8rem 1rem;border-bottom:1px solid var(--bdr);transition:background .15s}
+.fi:last-child{border-bottom:none}
+.fi:hover{background:var(--card2)}
+.fi img{width:38px;height:38px;border-radius:5px;image-rendering:pixelated;flex-shrink:0;background:var(--bg2)}
+.fi-info{flex:1;min-width:0}
+.fi-name{font-weight:600;font-size:.875rem}
+.fi-detail{font-size:.78rem;color:var(--txt2);margin-top:1px}
+.fi-detail .cn{color:var(--green)}
+.fi-time{font-size:.72rem;color:var(--muted);flex-shrink:0}
+.badge{display:inline-flex;align-items:center;padding:.12rem .45rem;border-radius:999px;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em}
+.bg{background:var(--gdim);color:var(--green)}
+.br{background:rgba(248,113,113,.14);color:var(--red)}
+.by{background:rgba(251,191,36,.14);color:var(--yellow)}
+.bb{background:rgba(96,165,250,.14);color:var(--blue)}
+
+/* PLAYER CARD */
+.pc{background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad2);padding:.9rem;display:flex;align-items:center;gap:.8rem;transition:all .2s;text-decoration:none;color:inherit}
+.pc:hover{border-color:var(--green);background:var(--card2);text-decoration:none}
+.pc img{width:44px;height:44px;border-radius:5px;image-rendering:pixelated;flex-shrink:0;background:var(--bg2)}
+.pc .pn{font-weight:700;font-size:.9rem;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pc .pm{font-size:.75rem;color:var(--muted);margin-top:2px}
+
+/* CAPE CARD */
+.cc{background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad2);overflow:hidden;transition:all .2s;cursor:pointer}
+.cc:hover{border-color:var(--green);transform:translateY(-2px)}
+.cc .cprev{background:var(--bg2);display:flex;align-items:center;justify-content:center;height:110px;position:relative}
+.cc .cico{width:52px;height:78px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:24px}
+.cc .cbody{padding:.8rem;border-top:1px solid var(--bdr)}
+.cc .cname{font-weight:700;font-size:.875rem}
+.cc .cwear{font-size:.75rem;color:var(--muted);margin-top:2px}
+
+/* FOOTER */
+footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:2rem 1rem;margin-top:2.5rem}
+.foot-in{max-width:1200px;margin:0 auto;display:flex;flex-wrap:wrap;gap:2rem;justify-content:space-between}
+.foot-brand .fl{font-size:1.05rem;font-weight:800;color:var(--txt);margin-bottom:.4rem}
+.foot-brand .fl span{color:var(--green)}
+.foot-brand p{font-size:.78rem;color:var(--muted);max-width:220px}
+.foot-col h4{font-size:.73rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.65rem}
+.foot-col ul{list-style:none;display:flex;flex-direction:column;gap:.35rem}
+.foot-col ul a{font-size:.83rem;color:var(--txt2)}
+.foot-col ul a:hover{color:var(--green)}
+.foot-bot{max-width:1200px;margin:1.25rem auto 0;padding-top:.9rem;border-top:1px solid var(--bdr);font-size:.72rem;color:var(--muted);text-align:center}
+
+@media(max-width:768px){.g2{grid-template-columns:1fr}.g4{grid-template-columns:repeat(2,1fr)}.stats{flex-wrap:wrap}.nav-links{display:none}.hero h1{font-size:1.7rem}}
+@media(max-width:480px){.g4{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-in">
+    <a href="index.html" class="logo"><div class="logo-icon">⛏</div>Cape<span>Search</span></a>
+    <div class="nav-s">
+      <span class="si">🔍</span>
+      <input id="navQ" type="text" placeholder="Search player..." autocomplete="off"/>
+      <div class="sdrop" id="navDrop"></div>
+    </div>
+    <div class="nav-links">
+      <a href="index.html" class="on">Home</a>
+      <a href="capes.html">Capes</a>
+      <a href="#">Servers</a>
+      <a href="#">Skins</a>
+    </div>
+  </div>
+</nav>
+
+<div class="hero">
+  <div class="wrap">
+    <h1>Search <span>Minecraft</span> Players</h1>
+    <p>Look up players, capes, skins, name history and more.</p>
+    <div class="hsearch">
+      <input id="heroQ" type="text" placeholder="Enter username or UUID…"/>
+      <button class="btn btn-p btn-search" onclick="goSearch()">🔍 Search</button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="sec">
+    <div class="stats">
+      <div class="stat"><div class="sl">Players Tracked</div><div class="sv">48.2M</div><div class="ss">+12,481 today</div></div>
+      <div class="stat"><div class="sl">Cape Changes Today</div><div class="sv">3,847</div><div class="ss">Last updated 2 min ago</div></div>
+      <div class="stat"><div class="sl">Capes Tracked</div><div class="sv">47</div><div class="ss">Including Bedrock capes</div></div>
+      <div class="stat"><div class="sl">Skins Database</div><div class="sv">128M</div><div class="ss">Unique skins indexed</div></div>
+    </div>
+  </div>
+
+  <div class="g2" style="margin-bottom:2rem">
+    <div>
+      <div class="sec-hd">
+        <div class="sec-title"><span class="ic">⚡</span> Recent Cape Changes</div>
+        <a href="capes.html" class="btn btn-sm btn-o">View All</a>
+      </div>
+      <div class="card" id="feed"></div>
+    </div>
+    <div>
+      <div class="sec-hd">
+        <div class="sec-title"><span class="ic">🔥</span> Popular Players</div>
+        <a href="#" class="btn btn-sm btn-o">See More</a>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.55rem" id="players"></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hd">
+      <div class="sec-title"><span class="ic">⭐</span> Notable Capes</div>
+      <a href="capes.html" class="btn btn-sm btn-o">All Capes</a>
+    </div>
+    <div class="g4" id="capegrid"></div>
+  </div>
+</div>
+
+<footer>
+  <div class="foot-in">
+    <div class="foot-brand"><div class="fl">Cape<span>Search</span></div><p>Most comprehensive Minecraft player tracking. Not affiliated with Mojang or Microsoft.</p></div>
+    <div class="foot-col"><h4>Players</h4><ul><li><a href="#">Search Players</a></li><li><a href="#">Name History</a></li><li><a href="#">UUID Lookup</a></li><li><a href="#">Skin Library</a></li></ul></div>
+    <div class="foot-col"><h4>Capes</h4><ul><li><a href="capes.html">All Capes</a></li><li><a href="#">Recent Changes</a></li><li><a href="#">Rarest Capes</a></li><li><a href="#">Bedrock Capes</a></li></ul></div>
+    <div class="foot-col"><h4>More</h4><ul><li><a href="#">Servers</a></li><li><a href="#">API</a></li><li><a href="#">About</a></li></ul></div>
+  </div>
+  <div class="foot-bot">&copy; 2025 CapeSearch &mdash; Not affiliated with Mojang Studios or Microsoft &mdash; Built for educational purposes.</div>
+</footer>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────────
+var CAPES=[
+  {id:'migrator',name:'Migrator Cape',wearers:8420311,color:'#6366f1',rare:false},
+  {id:'vanilla',name:'Vanilla Cape',wearers:2140000,color:'#f59e0b',rare:false},
+  {id:'minecon11',name:'MineCon 2011',wearers:4200,color:'#10b981',rare:true},
+  {id:'minecon12',name:'MineCon 2012',wearers:7800,color:'#10b981',rare:true},
+  {id:'minecon13',name:'MineCon 2013',wearers:11200,color:'#10b981',rare:true},
+  {id:'minecon15',name:'MineCon 2015',wearers:14600,color:'#10b981',rare:true},
+  {id:'minecon16',name:'MineCon 2016',wearers:19800,color:'#10b981',rare:true},
+  {id:'earth',name:'Minecraft Earth',wearers:311000,color:'#22d3ee',rare:false},
+  {id:'birthday',name:'Birthday Cape',wearers:95400,color:'#f472b6',rare:false},
+  {id:'follower',name:'Follower Cape',wearers:432100,color:'#a78bfa',rare:false},
+  {id:'mojang',name:'Mojang Cape',wearers:1240,color:'#ef4444',rare:true},
+  {id:'translator',name:'Translator Cape',wearers:3100,color:'#f97316',rare:true},
+  {id:'cobalt',name:'Cobalt Cape',wearers:890,color:'#3b82f6',rare:true},
+  {id:'scrolls',name:'Scrolls Champion',wearers:2240,color:'#8b5cf6',rare:true},
+  {id:'turtle',name:'Turtle Cape',wearers:560400,color:'#84cc16',rare:false},
+  {id:'cherry',name:'Cherry Blossom',wearers:287600,color:'#fb7185',rare:false},
+];
+var PLAYERS=[
+  {name:'Dream',uuid:'69e76b14-1d14-4b87-9b5b-01b32e9b6f4c',cape:'minecon16',followers:'1.2M'},
+  {name:'Technoblade',uuid:'b876ec32-e396-476b-a115-8438d83c67d4',cape:'migrator',followers:'987K'},
+  {name:'TommyInnit',uuid:'e94de2df-60c0-4dea-baa2-e4c29d82cbb8',cape:'vanilla',followers:'876K'},
+  {name:'Ph1LzA',uuid:'a5704282-91f1-400e-9e8e-e57d29562e70',cape:'minecon15',followers:'654K'},
+  {name:'Skeppy',uuid:'d0e05de7-6067-454d-beae-c4dc7ad2ed9c',cape:'follower',followers:'543K'},
+  {name:'Wilbur',uuid:'39f6d1b3-6fe2-44cc-8a70-3e5dace3c5d2',cape:'migrator',followers:'498K'},
+  {name:'Quackity',uuid:'5a9a9e45-d9ea-49cf-a23f-a8e27f0e2c26',cape:'earth',followers:'412K'},
+  {name:'Sapnap',uuid:'cdb5b06a-2a89-4fcd-a4bf-63e0b02f8e84',cape:'birthday',followers:'387K'},
+];
+var CHANGES=[
+  {name:'Dream',uuid:'69e76b14',action:'equipped',cape:'MineCon 2016',time:'2 min ago'},
+  {name:'xXNinja360Xx',uuid:'aa92b12c',action:'removed',cape:'Migrator Cape',time:'5 min ago'},
+  {name:'CrafterKing',uuid:'bc441d2e',action:'equipped',cape:'Vanilla Cape',time:'8 min ago'},
+  {name:'Notch',uuid:'069a79f4',action:'equipped',cape:'Mojang Cape',time:'11 min ago'},
+  {name:'SkyMaster9',uuid:'d3fa88e1',action:'removed',cape:'Earth Cape',time:'14 min ago'},
+  {name:'LunaPixel',uuid:'f1e90bca',action:'equipped',cape:'Cherry Blossom',time:'18 min ago'},
+  {name:'BlazeFighter',uuid:'a0c33d91',action:'equipped',cape:'Turtle Cape',time:'21 min ago'},
+  {name:'IronGolem99',uuid:'e7d225f8',action:'removed',cape:'Follower Cape',time:'25 min ago'},
+];
+var EMOJIS={migrator:'🟣',vanilla:'🟡',minecon11:'🏆',minecon12:'🏆',minecon13:'🏆',minecon15:'🏆',minecon16:'🏆',earth:'🌍',birthday:'🎂',follower:'💜',mojang:'🔴',translator:'🟠',cobalt:'🔵',scrolls:'🎲',turtle:'🐢',cherry:'🌸'};
+var UUIDS={dream:'69e76b14-1d14-4b87-9b5b-01b32e9b6f4c',technoblade:'b876ec32-e396-476b-a115-8438d83c67d4',tommyinnit:'e94de2df-60c0-4dea-baa2-e4c29d82cbb8',notch:'069a79f4-44e9-4726-a5be-fca90e38aaf5',ph1lza:'a5704282-91f1-400e-9e8e-e57d29562e70',skeppy:'d0e05de7-6067-454d-beae-c4dc7ad2ed9c',wilbur:'39f6d1b3-6fe2-44cc-8a70-3e5dace3c5d2',quackity:'5a9a9e45-d9ea-49cf-a23f-a8e27f0e2c26',sapnap:'cdb5b06a-2a89-4fcd-a4bf-63e0b02f8e84'};
+
+function fmt(n){return n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(1)+'K':n.toLocaleString()}
+function av(uuid){return'https://crafatar.com/avatars/'+uuid+'?size=64&overlay'}
+function avN(name){return'https://mc-heads.net/avatar/'+encodeURIComponent(name)+'/32'}
+var FB='https://mc-heads.net/avatar/Steve/32';
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function renderFeed(){
+  document.getElementById('feed').innerHTML=CHANGES.slice(0,8).map(function(c){
+    var eq=c.action==='equipped';
+    return '<div class="fi">'+
+      '<img src="'+avN(c.name)+'" onerror="this.src=\''+FB+'\'" alt="'+c.name+'"/>'+
+      '<div class="fi-info"><div class="fi-name"><a href="profile.html?name='+encodeURIComponent(c.name)+'">'+c.name+'</a></div>'+
+      '<div class="fi-detail">'+(eq?'Equipped':'Removed')+' <span class="cn">'+c.cape+'</span></div></div>'+
+      '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">'+
+      '<span class="badge '+(eq?'bg':'br')+'">'+(eq?'+ Equipped':'- Removed')+'</span>'+
+      '<span class="fi-time">'+c.time+'</span></div></div>';
+  }).join('');
+}
+
+function renderPlayers(){
+  document.getElementById('players').innerHTML=PLAYERS.map(function(p){
+    var cape=CAPES.find(function(c){return c.id===p.cape});
+    var clabel=cape?cape.name.replace('MineCon','MC'):'';
+    return '<a href="profile.html?name='+encodeURIComponent(p.name)+'" class="pc">'+
+      '<img src="'+avN(p.name)+'" onerror="this.src=\''+FB+'\'" alt="'+p.name+'"/>'+
+      '<div style="min-width:0;flex:1"><div class="pn">'+p.name+'</div>'+
+      '<div class="pm">👥 '+p.followers+' followers</div></div>'+
+      '<span class="badge bb" style="flex-shrink:0">'+clabel+'</span></a>';
+  }).join('');
+}
+
+function renderCapeGrid(){
+  document.getElementById('capegrid').innerHTML=CAPES.slice(0,8).map(function(c){
+    return '<div class="cc" onclick="location.href=\'capes.html#'+c.id+'\'">'+
+      '<div class="cprev"><div class="cico" style="background:linear-gradient(135deg,'+c.color+'33,'+c.color+'66);border:2px solid '+c.color+'88">'+
+      (EMOJIS[c.id]||'🎭')+'</div>'+
+      (c.rare?'<span class="badge by" style="position:absolute;top:7px;right:7px">Rare</span>':'')+
+      '</div><div class="cbody"><div class="cname">'+c.name+'</div>'+
+      '<div class="cwear">👥 '+fmt(c.wearers)+' wearers</div></div></div>';
+  }).join('');
+}
+
+// ── SEARCH ────────────────────────────────────────────────────────────────────
+function dropItem(name,sub){
+  return '<div class="sri" onclick="location.href=\'profile.html?name='+encodeURIComponent(name)+'\'">'+
+    '<img src="'+avN(name)+'" onerror="this.src=\''+FB+'\'" alt="'+name+'"/>'+
+    '<div><div class="sn">'+name+'</div><div class="ss">'+sub+'</div></div></div>';
+}
+
+var _st=null;
+function setupSearch(qId,dropId){
+  var inp=document.getElementById(qId);
+  var drop=document.getElementById(dropId);
+  if(!inp||!drop)return;
+
+  inp.addEventListener('input',function(){
+    clearTimeout(_st);
+    var q=inp.value.trim();
+    if(q.length<2){drop.classList.remove('show');return}
+    var ql=q.toLowerCase();
+
+    // Show local matches immediately
+    var local=PLAYERS.filter(function(p){return p.name.toLowerCase().indexOf(ql)!==-1}).slice(0,4);
+    var html=local.map(function(p){return dropItem(p.name,p.followers+' followers')}).join('');
+    html+='<div style="padding:.4rem .85rem;font-size:.74rem;color:var(--muted)">🔍 Searching Mojang…</div>';
+    drop.innerHTML=html;
+    drop.classList.add('show');
+
+    // Debounced Mojang API lookup for any real player
+    _st=setTimeout(function(){
+      fetch('https://api.mojang.com/users/profiles/minecraft/'+encodeURIComponent(q))
+        .then(function(r){return r.ok?r.json():null})
+        .then(function(d){
+          var html2=local.map(function(p){return dropItem(p.name,p.followers+' followers')}).join('');
+          if(d&&d.name){
+            var alreadyShown=local.some(function(p){return p.name.toLowerCase()===d.name.toLowerCase()});
+            if(!alreadyShown) html2+=dropItem(d.name,'Found on Mojang ✓');
+          } else if(!local.length){
+            html2='<div style="padding:.75rem 1rem;font-size:.82rem;color:var(--muted)">No player found for "'+q+'"</div>';
+          }
+          drop.innerHTML=html2;
+          drop.classList.toggle('show',!!html2);
+        })
+        .catch(function(){
+          var fb=local.map(function(p){return dropItem(p.name,p.followers+' followers')}).join('');
+          drop.innerHTML=fb||'<div style="padding:.75rem 1rem;font-size:.82rem;color:var(--muted)">Search unavailable offline</div>';
+          drop.classList.add('show');
+        });
+    },400);
+  });
+
+  inp.addEventListener('keydown',function(e){
+    if(e.key==='Enter'&&inp.value.trim()){
+      drop.classList.remove('show');
+      location.href='profile.html?name='+encodeURIComponent(inp.value.trim());
+    }
+  });
+  document.addEventListener('click',function(e){
+    if(!inp.contains(e.target)&&!drop.contains(e.target))drop.classList.remove('show');
+  });
+}
+
+function goSearch(){
+  var q=(document.getElementById('heroQ').value||'').trim();
+  if(q)location.href='profile.html?name='+encodeURIComponent(q);
+}
+document.getElementById('heroQ').addEventListener('keydown',function(e){if(e.key==='Enter')goSearch()});
+
+renderFeed();renderPlayers();renderCapeGrid();
+setupSearch('navQ','navDrop');
+</script>
+</body>
+</html>

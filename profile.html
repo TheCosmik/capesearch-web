@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Player Profile – CapeSearch</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1923;--bg2:#131f2e;--card:#182030;--card2:#1e2b3f;
+  --green:#4ade80;--green2:#22c55e;--gdim:rgba(74,222,128,.13);
+  --txt:#f1f5f9;--txt2:#94a3b8;--muted:#64748b;
+  --bdr:#243347;--bdr2:#2d3f5e;--rad:8px;--rad2:12px;
+  --red:#f87171;--yellow:#fbbf24;--blue:#60a5fa;
+}
+html{font-size:16px}
+body{background:var(--bg);color:var(--txt);font-family:'Segoe UI',system-ui,sans-serif;line-height:1.5;min-height:100vh}
+a{color:var(--green);text-decoration:none}
+a:hover{text-decoration:underline}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg2)}::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:3px}
+
+.nav{background:var(--bg2);border-bottom:1px solid var(--bdr);position:sticky;top:0;z-index:99;padding:0 1rem}
+.nav-in{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:1rem;height:54px}
+.logo{display:flex;align-items:center;gap:.5rem;font-size:1.15rem;font-weight:800;color:var(--txt);text-decoration:none;flex-shrink:0}
+.logo-icon{width:30px;height:30px;background:var(--green);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.logo span{color:var(--green)}
+.nav-s{flex:1;max-width:400px;position:relative}
+.nav-s input{width:100%;background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad);color:var(--txt);padding:.4rem .75rem .4rem 2.2rem;font-size:.875rem;outline:none;transition:border-color .2s}
+.nav-s input:focus{border-color:var(--green)}
+.nav-s input::placeholder{color:var(--muted)}
+.nav-s .si{position:absolute;left:.6rem;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;pointer-events:none}
+.nav-links{display:flex;gap:.15rem;margin-left:auto}
+.nav-links a{color:var(--txt2);font-size:.875rem;font-weight:500;padding:.35rem .7rem;border-radius:var(--rad);transition:all .2s}
+.nav-links a:hover,.nav-links a.on{color:var(--txt);background:var(--card);text-decoration:none}
+.sdrop{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad);box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:200;display:none}
+.sdrop.show{display:block}
+.sri{display:flex;align-items:center;gap:.65rem;padding:.55rem .8rem;cursor:pointer;transition:background .15s}
+.sri:hover{background:var(--card2)}
+.sri img{width:30px;height:30px;image-rendering:pixelated;border-radius:4px;background:var(--bg2)}
+.sri .sn{font-size:.85rem;font-weight:600}
+.sri .ss{font-size:.73rem;color:var(--muted)}
+
+/* PROFILE HEADER */
+.phdr{background:var(--bg2);border-bottom:1px solid var(--bdr);padding:2rem 1rem}
+.phdr-in{max-width:1200px;margin:0 auto;display:flex;align-items:flex-start;gap:2rem}
+.pskin{flex-shrink:0;text-align:center}
+.pskin img{width:96px;image-rendering:pixelated}
+#skinViewer3d{display:block;cursor:grab;border-radius:var(--rad2)}
+.pinfo{flex:1}
+.puser{font-size:1.9rem;font-weight:800;line-height:1.2;margin-bottom:.25rem}
+.puuid{font-size:.74rem;color:var(--muted);font-family:monospace;margin-bottom:.9rem}
+.pbadges{display:flex;gap:.45rem;flex-wrap:wrap;margin-bottom:.9rem}
+.pacts{display:flex;gap:.5rem;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;padding:.12rem .45rem;border-radius:999px;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em}
+.bg{background:var(--gdim);color:var(--green)}
+.br{background:rgba(248,113,113,.14);color:var(--red)}
+.by{background:rgba(251,191,36,.14);color:var(--yellow)}
+.bb{background:rgba(96,165,250,.14);color:var(--blue)}
+.btn{display:inline-flex;align-items:center;gap:.35rem;padding:.55rem 1rem;border-radius:var(--rad);font-size:.82rem;font-weight:600;cursor:pointer;border:none;transition:all .2s}
+.btn-p{background:var(--green);color:#0a1a0a}
+.btn-p:hover{background:var(--green2)}
+.btn-o{background:transparent;border:1px solid var(--bdr);color:var(--txt2)}
+.btn-o:hover{border-color:var(--green);color:var(--green)}
+.btn-sm{padding:.3rem .75rem;font-size:.78rem}
+
+/* MAIN */
+.wrap{max-width:1200px;margin:0 auto;padding:0 1rem}
+
+/* TABS */
+.tabs{display:flex;border-bottom:2px solid var(--bdr);margin-bottom:1.5rem}
+.tab{background:none;border:none;color:var(--txt2);font-size:.875rem;font-weight:600;padding:.7rem 1.1rem;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .2s}
+.tab:hover{color:var(--txt)}
+.tab.on{color:var(--green);border-bottom-color:var(--green)}
+.panel{display:none}
+.panel.on{display:block}
+
+/* CARD */
+.card{background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad2);overflow:hidden}
+.card-body{padding:1.1rem}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.875rem}
+thead th{background:var(--bg2);color:var(--muted);font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:.6rem 1rem;text-align:left;border-bottom:1px solid var(--bdr)}
+tbody td{padding:.7rem 1rem;border-bottom:1px solid var(--bdr);color:var(--txt)}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:var(--card2)}
+
+/* SKIN TAB */
+.skin-wrap{display:flex;gap:1.5rem;flex-wrap:wrap;align-items:flex-start}
+.skin-card{background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad2);padding:1.1rem;text-align:center;flex:0 0 auto}
+.skin-meta{flex:1;min-width:220px;display:flex;flex-direction:column;gap:1rem}
+.meta-card{background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad2);padding:1rem}
+.meta-row{display:flex;justify-content:space-between;padding:.45rem 0;border-bottom:1px solid var(--bdr);font-size:.85rem}
+.meta-row:last-child{border-bottom:none}
+.meta-row .lbl{color:var(--muted)}
+code{font-size:.75rem;color:var(--txt2);word-break:break-all}
+
+/* FRIENDS */
+.friends-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:.65rem}
+.pc{background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad2);padding:.85rem;display:flex;align-items:center;gap:.75rem;transition:all .2s;text-decoration:none;color:inherit}
+.pc:hover{border-color:var(--green);background:var(--card2);text-decoration:none}
+.pc img{width:42px;height:42px;border-radius:5px;image-rendering:pixelated;flex-shrink:0;background:var(--bg2)}
+.pc .pn{font-weight:700;font-size:.875rem;color:var(--txt)}
+.pc .pm{font-size:.73rem;color:var(--muted);margin-top:2px}
+
+footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1rem;margin-top:2.5rem}
+.foot-in{max-width:1200px;margin:0 auto;display:flex;flex-wrap:wrap;gap:2rem;justify-content:space-between}
+.foot-brand .fl{font-size:1rem;font-weight:800;color:var(--txt);margin-bottom:.3rem}
+.foot-brand .fl span{color:var(--green)}
+.foot-brand p{font-size:.76rem;color:var(--muted);max-width:200px}
+.foot-col h4{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.55rem}
+.foot-col ul{list-style:none;display:flex;flex-direction:column;gap:.3rem}
+.foot-col ul a{font-size:.82rem;color:var(--txt2)}
+.foot-col ul a:hover{color:var(--green)}
+.foot-bot{max-width:1200px;margin:1rem auto 0;padding-top:.8rem;border-top:1px solid var(--bdr);font-size:.7rem;color:var(--muted);text-align:center}
+
+.profile-layout{display:flex;gap:1.5rem;align-items:flex-start}
+.profile-sidebar{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:.75rem}
+.profile-main{flex:1;min-width:0}
+.viewer-wrap{position:relative;display:inline-block}
+#skinViewer3d{display:block;cursor:grab;border-radius:var(--rad2);border:1px solid var(--bdr);background:var(--card)}
+.viewer-btns{position:absolute;bottom:10px;right:10px;display:flex;gap:6px;z-index:10}
+.viewer-btn{width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s,border-color .2s;padding:0;line-height:1}
+.viewer-btn:hover{background:rgba(74,222,128,.25);border-color:var(--green)}
+.viewer-btn.active{background:rgba(74,222,128,.2);border-color:var(--green)}
+@media(max-width:768px){.phdr-in{flex-direction:column;align-items:center;text-align:center}.nav-links{display:none}.pacts{justify-content:center}.pbadges{justify-content:center}.profile-layout{flex-direction:column;align-items:center}}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-in">
+    <a href="index.html" class="logo"><div class="logo-icon">⛏</div>Cape<span>Search</span></a>
+    <div class="nav-s">
+      <span class="si">🔍</span>
+      <input id="navQ" type="text" placeholder="Search player…" autocomplete="off"/>
+      <div class="sdrop" id="navDrop"></div>
+    </div>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="capes.html">Capes</a>
+      <a href="#">Servers</a>
+      <a href="#">Skins</a>
+    </div>
+  </div>
+</nav>
+
+<div class="phdr">
+  <div class="phdr-in">
+    <div class="pskin"><img id="bodyImg" src="" alt="skin"/></div>
+    <div class="pinfo">
+      <div class="puser" id="pUser">—</div>
+      <div class="puuid" id="pUUID"></div>
+      <div class="pbadges" id="pBadges"></div>
+      <div class="pacts" id="pActs"></div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap" style="padding-top:1.5rem;padding-bottom:3rem">
+  <div class="profile-layout">
+
+    <!-- LEFT SIDEBAR: 3D skin viewer -->
+    <div class="profile-sidebar">
+      <div class="viewer-wrap">
+        <canvas id="skinViewer3d" width="370" height="550"></canvas>
+        <div class="viewer-btns">
+          <button id="walkBtn" class="viewer-btn" title="Toggle walking">🚶</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: tabs + panels -->
+    <div class="profile-main">
+      <div class="tabs" id="tabBar">
+        <button class="tab on" data-tab="t-names">📋 Names</button>
+        <button class="tab" data-tab="t-capes">🎭 Capes</button>
+        <button class="tab" data-tab="t-skin">🖼 Skin</button>
+        <button class="tab" data-tab="t-friends">👥 Friends</button>
+      </div>
+
+      <!-- NAMES -->
+      <div class="panel on" id="t-names">
+        <div class="card">
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>#</th><th>Username</th><th>Changed</th><th>Status</th></tr></thead>
+              <tbody id="namesTbl"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- CAPES -->
+      <div class="panel" id="t-capes">
+        <div class="card">
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>Cape</th><th>From</th><th>To</th><th>Status</th></tr></thead>
+              <tbody id="capesTbl"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- SKIN -->
+      <div class="panel" id="t-skin">
+        <div class="skin-wrap">
+          <div class="skin-card">
+            <img id="bigBody" src="" alt="body" style="height:210px;image-rendering:pixelated;margin-bottom:.75rem"/>
+            <div><a id="dlSkin" href="#" class="btn btn-o btn-sm" download>⬇ Download Skin</a></div>
+          </div>
+          <div class="skin-meta">
+            <div class="meta-card">
+              <div style="font-size:.75rem;color:var(--muted);margin-bottom:.5rem">SKIN URL</div>
+              <div style="display:flex;gap:.5rem;align-items:flex-start">
+                <code id="skinUrl"></code>
+                <button class="btn btn-o btn-sm" style="flex-shrink:0" onclick="copyText(document.getElementById('skinUrl').textContent,this)">📋</button>
+              </div>
+            </div>
+            <div class="meta-card">
+              <div style="font-size:.75rem;color:var(--muted);margin-bottom:.65rem">SKIN DETAILS</div>
+              <div class="meta-row"><span class="lbl">Model</span><span id="skinModel">Steve (Classic)</span></div>
+              <div class="meta-row"><span class="lbl">Last Changed</span><span id="skinDate">Unknown</span></div>
+              <div class="meta-row"><span class="lbl">Resolution</span><span>64 × 64 px</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FRIENDS -->
+      <div class="panel" id="t-friends">
+        <div class="friends-grid" id="friendsGrid"></div>
+      </div>
+    </div><!-- end profile-main -->
+
+  </div><!-- end profile-layout -->
+</div>
+
+<footer>
+  <div class="foot-in">
+    <div class="foot-brand"><div class="fl">Cape<span>Search</span></div><p>Not affiliated with Mojang or Microsoft.</p></div>
+    <div class="foot-col"><h4>Quick Links</h4><ul><li><a href="index.html">Home</a></li><li><a href="capes.html">Capes</a></li><li><a href="#">API</a></li></ul></div>
+  </div>
+  <div class="foot-bot">&copy; 2025 CapeSearch — Built for educational purposes.</div>
+</footer>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────────
+var CAPES=[
+  {id:'migrator',name:'Migrator Cape',rare:false},{id:'vanilla',name:'Vanilla Cape',rare:false},
+  {id:'minecon11',name:'MineCon 2011',rare:true},{id:'minecon12',name:'MineCon 2012',rare:true},
+  {id:'minecon13',name:'MineCon 2013',rare:true},{id:'minecon15',name:'MineCon 2015',rare:true},
+  {id:'minecon16',name:'MineCon 2016',rare:true},{id:'earth',name:'Minecraft Earth',rare:false},
+  {id:'birthday',name:'Birthday Cape',rare:false},{id:'follower',name:'Follower Cape',rare:false},
+  {id:'mojang',name:'Mojang Cape',rare:true},{id:'translator',name:'Translator Cape',rare:true},
+];
+var PLAYERS=[
+  {name:'Dream',uuid:'69e76b14-1d14-4b87-9b5b-01b32e9b6f4c',cape:'minecon16',followers:'1.2M'},
+  {name:'Technoblade',uuid:'b876ec32-e396-476b-a115-8438d83c67d4',cape:'migrator',followers:'987K'},
+  {name:'TommyInnit',uuid:'e94de2df-60c0-4dea-baa2-e4c29d82cbb8',cape:'vanilla',followers:'876K'},
+  {name:'Ph1LzA',uuid:'a5704282-91f1-400e-9e8e-e57d29562e70',cape:'minecon15',followers:'654K'},
+  {name:'Skeppy',uuid:'d0e05de7-6067-454d-beae-c4dc7ad2ed9c',cape:'follower',followers:'543K'},
+  {name:'Wilbur',uuid:'39f6d1b3-6fe2-44cc-8a70-3e5dace3c5d2',cape:'migrator',followers:'498K'},
+  {name:'Quackity',uuid:'5a9a9e45-d9ea-49cf-a23f-a8e27f0e2c26',cape:'earth',followers:'412K'},
+  {name:'Sapnap',uuid:'cdb5b06a-2a89-4fcd-a4bf-63e0b02f8e84',cape:'birthday',followers:'387K'},
+];
+var NAMES={
+  dream:[{name:'Dream',changed:null},{name:'DreamWasTaken',changed:'Jan 15, 2020'},{name:'Dream_Shorts',changed:'Mar 2, 2019'}],
+  technoblade:[{name:'Technoblade',changed:null},{name:'Techno_Blade',changed:'Aug 7, 2015'}],
+  tommyinnit:[{name:'TommyInnit',changed:null},{name:'TommyOut',changed:'Dec 1, 2020'},{name:'TomsinoB',changed:'Jun 4, 2019'}],
+  notch:[{name:'Notch',changed:null}],
+  ph1lza:[{name:'Ph1LzA',changed:null},{name:'Ph1LzA_',changed:'Apr 12, 2018'}],
+  skeppy:[{name:'Skeppy',changed:null},{name:'SkeppySix',changed:'Sep 3, 2017'}],
+};
+var PCAPES={
+  dream:[{cape:'MineCon 2016',from:'Nov 18, 2016',to:'Present',status:'active'}],
+  technoblade:[{cape:'Migrator Cape',from:'Mar 10, 2022',to:'Present',status:'active'},{cape:'MineCon 2015',from:'Jul 2, 2015',to:'Mar 10, 2022',status:'inactive'}],
+  tommyinnit:[{cape:'Vanilla Cape',from:'Jun 1, 2021',to:'Present',status:'active'}],
+  notch:[{cape:'Mojang Cape',from:'Jan 1, 2012',to:'Present',status:'active'}],
+  ph1lza:[{cape:'MineCon 2015',from:'Jul 2, 2015',to:'Present',status:'active'}],
+  skeppy:[{cape:'Follower Cape',from:'Dec 11, 2020',to:'Present',status:'active'}],
+};
+var UUIDS={dream:'69e76b14-1d14-4b87-9b5b-01b32e9b6f4c',technoblade:'b876ec32-e396-476b-a115-8438d83c67d4',tommyinnit:'e94de2df-60c0-4dea-baa2-e4c29d82cbb8',notch:'069a79f4-44e9-4726-a5be-fca90e38aaf5',ph1lza:'a5704282-91f1-400e-9e8e-e57d29562e70',skeppy:'d0e05de7-6067-454d-beae-c4dc7ad2ed9c',wilbur:'39f6d1b3-6fe2-44cc-8a70-3e5dace3c5d2',quackity:'5a9a9e45-d9ea-49cf-a23f-a8e27f0e2c26',sapnap:'cdb5b06a-2a89-4fcd-a4bf-63e0b02f8e84'};
+
+// Known cape texture hash → display name (only add verified hashes here)
+var CAPE_HASH_NAMES={
+  '2340c0e03dd24a11b15a8b33c2a7e9e32abb2051b2481d0ba7defd635ca7a933':'Migrator Cape',
+};
+var FB='https://mc-heads.net/avatar/Steve/32';
+function av(uuid){return'https://crafatar.com/avatars/'+uuid+'?size=64&overlay'}
+function avN(name){return'https://mc-heads.net/avatar/'+encodeURIComponent(name)+'/32'}
+function body(uuid){return'https://mc-heads.net/player/'+uuid}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+var params=new URLSearchParams(location.search);
+var qn=(params.get('name')||'Dream').trim();
+var key=qn.toLowerCase();
+var player=PLAYERS.find(function(p){return p.name.toLowerCase()===key});
+var dname=player?player.name:qn;
+var resolvedUUID=UUIDS[key]||null;
+
+function applyUUID(uuid,canonName){
+  var displayName=canonName||dname;
+  document.title=displayName+' – CapeSearch';
+  document.getElementById('pUser').textContent=displayName;
+  document.getElementById('pUUID').innerHTML=
+    'UUID: <code style="font-size:.8rem;color:var(--txt2)">'+uuid+'</code>'+
+    ' &nbsp;<button class="btn btn-o" style="padding:2px 8px;font-size:11px" onclick="copyText(\''+uuid+'\',this)">📋</button>';
+  document.getElementById('bodyImg').src='https://mc-heads.net/avatar/'+uuid+'/96';
+  document.getElementById('bodyImg').style.display='block';
+  document.getElementById('bigBody').src=body(uuid);
+  document.getElementById('skinUrl').textContent='https://crafatar.com/skins/'+uuid;
+  document.getElementById('dlSkin').href='https://crafatar.com/skins/'+uuid;
+  document.getElementById('pActs').innerHTML=
+    '<button class="btn btn-p">⭐ Follow</button>'+
+    '<button class="btn btn-o">🔗 Share</button>'+
+    '<button class="btn btn-o" onclick="copyText(\''+uuid+'\',this)">📋 Copy UUID</button>';
+  fetchPlayerData(uuid);
+  initProfileViewer(uuid);
+}
+
+// Set placeholder immediately with local data or loading state
+document.title=dname+' – CapeSearch';
+document.getElementById('pUser').textContent=dname;
+if(resolvedUUID){
+  applyUUID(resolvedUUID,dname);
+}else{
+  document.getElementById('pUUID').innerHTML='<span style="color:var(--muted);font-size:.82rem">Looking up UUID…</span>';
+  document.getElementById('bodyImg').src=avN(dname);
+  document.getElementById('bigBody').src=avN(dname);
+  document.getElementById('skinUrl').textContent='Looking up…';
+}
+
+// badges (local data)
+var cape=CAPES.find(function(c){return c.id===(player?player.cape:'')});
+var badges='';
+if(cape){badges='<span class="badge bg">'+cape.name+'</span>';if(cape.rare)badges+=' <span class="badge by">Rare Cape</span>';}
+document.getElementById('pBadges').innerHTML=badges;
+document.getElementById('pActs').innerHTML=
+  '<button class="btn btn-p">⭐ Follow</button>'+
+  '<button class="btn btn-o">🔗 Share</button>';
+
+// name history – render function (used by both local fallback and live fetch)
+function renderNameHistory(nh){
+  document.getElementById('namesTbl').innerHTML=nh.map(function(e,i){
+    return '<tr><td style="color:var(--muted)">'+(nh.length-i)+'</td>'+
+      '<td><strong>'+e.name+'</strong>'+(i===0?' <span class="badge bg" style="margin-left:5px">Current</span>':'')+
+      '</td><td>'+(e.changed||'<span style="color:var(--muted)">Original</span>')+'</td>'+
+      '<td><span style="color:var(--muted);font-size:.8rem">'+(i===0?'Current name':'Historical')+'</span></td></tr>';
+  }).join('');
+}
+
+// show local data immediately as placeholder
+var nh=NAMES[key]||[{name:dname,changed:null}];
+renderNameHistory(nh);
+
+// cape history – local placeholder while live data loads
+var ch=PCAPES[key]||[];
+document.getElementById('capesTbl').innerHTML=ch.length
+  ?ch.map(function(c){return'<tr><td><strong>'+c.cape+'</strong></td><td>'+c.from+'</td><td>'+c.to+'</td>'+
+    '<td><span class="badge '+(c.status==='active'?'bg':'br')+'">'+(c.status==='active'?'Active':'Inactive')+'</span></td></tr>';}).join('')
+  :'<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:2rem">Loading…</td></tr>';
+
+// single ashcon.app call – handles name history AND cape (no CORS issues)
+function fetchNameHistory(uuid){}  // stub so applyUUID call doesn't break
+function fetchLiveCape(uuid){}     // stub so applyUUID call doesn't break
+
+function fetchPlayerData(uuid){
+  fetch('https://api.ashcon.app/mojang/v2/user/'+uuid)
+    .then(function(r){return r.ok?r.json():null})
+    .then(function(d){
+      if(!d)return;
+
+      // ── name history ──────────────────────────────────────────────────────
+      if(d.username_history&&d.username_history.length){
+        var live=d.username_history.slice().reverse().map(function(e){
+          var dateStr=null;
+          if(e.changed_at){
+            var dt=new Date(e.changed_at);
+            dateStr=dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+          }
+          return{name:e.username,changed:dateStr};
+        });
+        renderNameHistory(live);
+      }
+
+      // ── cape ──────────────────────────────────────────────────────────────
+      var capeUrl=d.textures&&d.textures.cape?d.textures.cape.url:null;
+      var histRows=(PCAPES[key]||[])
+        .filter(function(c){return c.status!=='active';})
+        .map(function(c){
+          return'<tr><td><strong>'+c.cape+'</strong></td><td>'+c.from+'</td><td>'+c.to+'</td>'+
+            '<td><span class="badge br">Inactive</span></td></tr>';
+        }).join('');
+
+      // load cape onto the 3D viewer if it's ready
+      if(capeUrl&&window._profileViewer){
+        window._profileViewer.loadCape(capeUrl).catch(function(){});
+      }
+
+      if(capeUrl){
+        var hash=capeUrl.replace(/https?:\/\/textures\.minecraft\.net\/texture\//,'');
+        var capeName=CAPE_HASH_NAMES[hash]||'Cape';
+        var activeRow=
+          '<tr><td><div style="display:flex;align-items:center;gap:.75rem">'+
+          '<img src="'+capeUrl+'" style="height:38px;image-rendering:pixelated;border-radius:3px;border:1px solid var(--bdr)"/>'+
+          '<strong>'+capeName+'</strong></div></td>'+
+          '<td><span style="color:var(--muted)">—</span></td>'+
+          '<td>Present</td>'+
+          '<td><span class="badge bg">Active</span></td></tr>';
+        document.getElementById('capesTbl').innerHTML=activeRow+histRows;
+      }else{
+        document.getElementById('capesTbl').innerHTML=histRows||
+          '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:2rem">No cape equipped.</td></tr>';
+      }
+    })
+    .catch(function(){
+      // leave local placeholder data as-is
+    });
+}
+
+// friends (local data)
+var friends=PLAYERS.filter(function(p){return p.name.toLowerCase()!==key}).slice(0,8);
+document.getElementById('friendsGrid').innerHTML=friends.map(function(f){
+  return '<a href="profile.html?name='+encodeURIComponent(f.name)+'" class="pc">'+
+    '<img src="'+avN(f.name)+'" onerror="this.src=\''+FB+'\'" alt="'+f.name+'"/>'+
+    '<div><div class="pn">'+f.name+'</div><div class="pm">'+f.followers+' followers</div></div></a>';
+}).join('');
+
+// ── PLAYERDB LOOKUP – get real UUID & skin ────────────────────────────────────
+if(!resolvedUUID){
+  fetch('https://playerdb.co/api/player/minecraft/'+encodeURIComponent(dname))
+    .then(function(r){return r.ok?r.json():null})
+    .then(function(d){
+      if(d&&d.success&&d.data&&d.data.player){
+        var p=d.data.player;
+        applyUUID(p.id,p.username);
+        document.getElementById('skinDate').textContent='Fetched live';
+      } else {
+        document.getElementById('pUUID').innerHTML='<span style="color:var(--muted);font-size:.82rem">Player not found</span>';
+        document.getElementById('skinDate').textContent='Unknown';
+      }
+    })
+    .catch(function(){
+      document.getElementById('pUUID').innerHTML='<span style="color:var(--muted);font-size:.82rem">UUID not found</span>';
+    });
+}
+
+// ── TABS ──────────────────────────────────────────────────────────────────────
+document.getElementById('tabBar').addEventListener('click',function(e){
+  var btn=e.target.closest('.tab');
+  if(!btn)return;
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('on')});
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('on')});
+  btn.classList.add('on');
+  document.getElementById(btn.dataset.tab).classList.add('on');
+});
+
+// ── SEARCH ────────────────────────────────────────────────────────────────────
+(function(){
+  var inp=document.getElementById('navQ');
+  var drop=document.getElementById('navDrop');
+  var _st=null;
+
+  function dropItem(name,sub){
+    return '<div class="sri" onclick="location.href=\'profile.html?name='+encodeURIComponent(name)+'\'">'+
+      '<img src="'+avN(name)+'" onerror="this.src=\''+FB+'\'" alt="'+name+'"/>'+
+      '<div><div class="sn">'+name+'</div><div class="ss">'+sub+'</div></div></div>';
+  }
+
+  inp.addEventListener('input',function(){
+    clearTimeout(_st);
+    var q=inp.value.trim();
+    if(q.length<2){drop.classList.remove('show');return}
+    var ql=q.toLowerCase();
+
+    var local=PLAYERS.filter(function(p){return p.name.toLowerCase().indexOf(ql)!==-1}).slice(0,4);
+    var html=local.map(function(p){return dropItem(p.name,p.followers+' followers')}).join('');
+    html+='<div style="padding:.4rem .85rem;font-size:.74rem;color:var(--muted)">🔍 Searching Mojang…</div>';
+    drop.innerHTML=html;
+    drop.classList.add('show');
+
+    _st=setTimeout(function(){
+      fetch('https://playerdb.co/api/player/minecraft/'+encodeURIComponent(q))
+        .then(function(r){return r.ok?r.json():null})
+        .then(function(d){
+          var html2=local.map(function(p){return dropItem(p.name,p.followers+' followers')}).join('');
+          if(d&&d.success&&d.data&&d.data.player){
+            var found=d.data.player.username;
+            var already=local.some(function(p){return p.name.toLowerCase()===found.toLowerCase()});
+            if(!already) html2+=dropItem(found,'Found on Minecraft ✓');
+          } else if(!local.length){
+            html2='<div style="padding:.75rem 1rem;font-size:.82rem;color:var(--muted)">No player found for "'+q+'"</div>';
+          }
+          drop.innerHTML=html2;
+          drop.classList.toggle('show',!!html2);
+        })
+        .catch(function(){
+          var fb=local.map(function(p){return dropItem(p.name,p.followers+' followers')}).join('');
+          drop.innerHTML=fb||'<div style="padding:.75rem 1rem;font-size:.82rem;color:var(--muted)">Search unavailable offline</div>';
+          drop.classList.add('show');
+        });
+    },400);
+  });
+
+  inp.addEventListener('keydown',function(e){
+    if(e.key==='Enter'&&inp.value.trim()){
+      drop.classList.remove('show');
+      location.href='profile.html?name='+encodeURIComponent(inp.value.trim());
+    }
+  });
+  document.addEventListener('click',function(e){
+    if(!inp.contains(e.target)&&!drop.contains(e.target))drop.classList.remove('show');
+  });
+})();
+
+function copyText(text,btn){
+  navigator.clipboard.writeText(text).then(function(){
+    var o=btn.innerHTML;btn.innerHTML='✅';setTimeout(function(){btn.innerHTML=o},1500);
+  });
+}
+</script>
+<script src="skinview3d.bundle.js"></script>
+<script>
+// ── 3D SKIN VIEWER ────────────────────────────────────────────────────────────
+function initProfileViewer(uuid){
+  if(!window.skinview3d){
+    // fallback: show static body image
+    document.getElementById('skinViewer3d').style.display='none';
+    var fi=document.getElementById('bodyImg');
+    fi.style.display='block';
+    return;
+  }
+
+  // dispose previous instance
+  if(window._profileViewer){
+    try{window._profileViewer.dispose();}catch(e){}
+    window._profileViewer=null;
+  }
+  if(window._profileMoveHandler){
+    document.removeEventListener('mousemove',window._profileMoveHandler);
+    document.removeEventListener('mouseup',window._profileUpHandler);
+    window._profileMoveHandler=null;
+    window._profileUpHandler=null;
+  }
+
+  var canvas=document.getElementById('skinViewer3d');
+  if(!canvas)return;
+
+  try{
+    var viewer=new skinview3d.SkinViewer({
+      canvas:canvas,
+      width:370,
+      height:550,
+      skin:'https://mc-heads.net/skin/'+uuid
+    });
+
+    viewer.animation=null;
+    viewer.autoRotate=false;
+    viewer.zoom=0.9;
+
+    window._profileViewer=viewer;
+
+    // walk button
+    var walking=false;
+    var walkBtn=document.getElementById('walkBtn');
+    walkBtn.addEventListener('click',function(){
+      walking=!walking;
+      viewer.animation=walking?new skinview3d.WalkingAnimation():null;
+      walkBtn.classList.toggle('active',walking);
+    });
+
+    var isDragging=false,prevX=0;
+
+    canvas.addEventListener('mousedown',function(e){
+      isDragging=true;
+      prevX=e.clientX;
+      viewer.autoRotate=false;
+      canvas.style.cursor='grabbing';
+    });
+
+    window._profileMoveHandler=function(e){
+      if(!isDragging)return;
+      var dx=e.clientX-prevX;
+      if(viewer.playerObject)viewer.playerObject.rotation.y+=dx*0.02;
+      prevX=e.clientX;
+    };
+    window._profileUpHandler=function(){
+      isDragging=false;
+      canvas.style.cursor='grab';
+    };
+    document.addEventListener('mousemove',window._profileMoveHandler);
+    document.addEventListener('mouseup',window._profileUpHandler);
+
+  }catch(e){
+    console.error('3D viewer error:',e);
+    document.getElementById('skinViewer3d').style.display='none';
+    var fi2=document.getElementById('bodyImg');
+    fi2.style.display='block';
+  }
+}
+</script>
+</body>
+</html>

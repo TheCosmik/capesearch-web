@@ -55,9 +55,24 @@ async function kvSet(key, value) {
 async function getCapeHistory(uuid) {
   const [result] = await kvPipeline([['ZREVRANGE', `cph:${uuid}`, 0, 49]]);
   if (result === KV_READ_ERROR) return KV_READ_ERROR;
-  if (!Array.isArray(result)) return [];
-  // Reshape into the {url, first_seen, last_seen} format the handler expects
-  return result.map(url => ({ url, first_seen: null, last_seen: null }));
+
+  // New sorted set has data — return it
+  if (Array.isArray(result) && result.length > 0) {
+    return result.map(url => ({ url, first_seen: null, last_seen: null }));
+  }
+
+  // ── Migration: check legacy ph:{uuid} key (JSON array from old format) ────
+  // Old code stored history as GET/SET JSON under ph:{uuid}.  If the new
+  // cph:{uuid} sorted set is empty, migrate any existing legacy data across.
+  const legacy = await kvGet(`ph:${uuid}`);
+  if (Array.isArray(legacy) && legacy.length > 0) {
+    const now = Date.now();
+    const zadd = legacy.map(entry => ['ZADD', `cph:${uuid}`, entry.last_seen || now, entry.url]);
+    await kvPipeline(zadd);
+    return legacy;
+  }
+
+  return [];
 }
 
 async function updateCapeHistory(uuid, capeUrl) {

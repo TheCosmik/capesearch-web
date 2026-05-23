@@ -75,15 +75,21 @@ async function getCapeHistory(uuid) {
   return [];
 }
 
-async function updateCapeHistory(uuid, capeUrl) {
+async function updateCapeHistory(uuid, capeUrl, playerName) {
+  const cleanUuid = uuid.replace(/-/g, '');
+  const hash = capeUrl.replace(/.*\//, '');
   const now = Date.now();
-  // ZADD: if capeUrl already exists, score is updated (last_seen refreshed).
-  //       If it's new, it's added. Either way — atomic, no race condition.
-  const [r] = await kvPipeline([['ZADD', `cph:${uuid}`, now, capeUrl]]);
-  if (r !== KV_READ_ERROR) {
-    // Trim to 50 most-recently-worn capes (remove lowest scores = oldest)
-    await kvPipeline([['ZREMRANGEBYRANK', `cph:${uuid}`, 0, -51]]);
-  }
+
+  // Single pipeline: update cape history + reverse index + name — all atomic
+  // pname stored as plain string (no JSON.stringify) so cape-wearers.js reads it directly
+  const commands = [
+    ['ZADD', `cph:${uuid}`, now, capeUrl],
+    ['ZREMRANGEBYRANK', `cph:${uuid}`, 0, -51],  // keep 50 most recent
+    ['ZADD', `cw:${hash}`, now, cleanUuid],
+    ['ZREMRANGEBYRANK', `cw:${hash}`, 0, -51],   // keep 50 per cape
+  ];
+  if (playerName) commands.push(['SET', `pname:${cleanUuid}`, playerName]);
+  await kvPipeline(commands);
 }
 
 // ── Main handler ──────────────────────────────────────────────────────────────
@@ -160,9 +166,9 @@ module.exports = async function handler(req, res) {
     const slim = !!(textures.SKIN && textures.SKIN.metadata &&
                     textures.SKIN.metadata.model === 'slim');
 
-    // Update KV history in the background — doesn't block the response
+    // Update KV history + reverse index in the background — doesn't block the response
     if (cape) {
-      updateCapeHistory(uuid, cape).catch(() => {});
+      updateCapeHistory(uuid, cape, profile.name).catch(() => {});
     }
 
     // Cache 15 s at the CDN edge; serve stale for 5 s while revalidating

@@ -83,12 +83,21 @@ module.exports = async function handler(req, res) {
         const texProp = profile.properties?.find(p => p.name === 'textures');
 
         if (texProp?.value) {
-          const payload  = JSON.parse(Buffer.from(texProp.value, 'base64').toString('utf8'));
-          const capeUrl  = payload?.textures?.CAPE?.url;
+          const payload    = JSON.parse(Buffer.from(texProp.value, 'base64').toString('utf8'));
+          const capeUrl    = payload?.textures?.CAPE?.url;
+          const playerName = profile.name || null;
 
           if (capeUrl) {
-            await kvPipeline([['ZADD', `cph:${uuid}`, now, capeUrl]]);
-            await kvPipeline([['ZREMRANGEBYRANK', `cph:${uuid}`, 0, -51]]);
+            const hash = capeUrl.replace(/.*\//, '');
+            // Single pipeline: cape history + reverse cape→wearers index + display name
+            const cmds = [
+              ['ZADD', `cph:${uuid}`, now, capeUrl],
+              ['ZREMRANGEBYRANK', `cph:${uuid}`, 0, -51],
+              ['ZADD', `cw:${hash}`, now, uuid],
+              ['ZREMRANGEBYRANK', `cw:${hash}`, 0, -51],
+            ];
+            if (playerName) cmds.push(['SET', `pname:${uuid}`, playerName]);
+            await kvPipeline(cmds);
             capeFound++;
           }
         }

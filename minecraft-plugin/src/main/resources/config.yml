@@ -1,0 +1,8 @@
+# CapeSearch Claim Plugin — Configuration
+# ─────────────────────────────────────────
+# api-url     : Base URL of the CapeSearch website (no trailing slash)
+# plugin-secret: Must match the CLAIM_PLUGIN_SECRET environment variable set
+#                in Vercel. Keep this secret — anyone with it can verify claims.
+
+api-url: "https://capesearch.net"
+plugin-secret: "123123jdsflkjsdflksdfl"

@@ -287,6 +287,39 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
   <div class="foot-bot">Copyright &copy; 2026 NameSearch. All rights reserved.</div>
 </footer>
 
+<!-- CLAIM MODAL -->
+<div class="overlay" id="claimOverlay">
+  <div class="modal" style="max-width:460px;padding:2rem">
+    <button class="mclose" onclick="closeClaimModal()" style="position:absolute;top:1rem;right:1rem">✕</button>
+    <div style="text-align:center;margin-bottom:1.5rem">
+      <div style="font-size:1.2rem;font-weight:800;margin-bottom:.35rem">Claim This Profile</div>
+      <div style="font-size:.875rem;color:var(--txt2)" id="claimModalSub">Verify you own this Minecraft account</div>
+    </div>
+    <!-- Code display -->
+    <div style="background:var(--bg);border:1px solid var(--bdr);border-radius:var(--rad2);padding:1.25rem;text-align:center;margin-bottom:1.5rem">
+      <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.75rem">Your Verification Code</div>
+      <div id="claimCode" style="font-family:monospace;font-size:2.2rem;font-weight:900;letter-spacing:.25em;color:var(--green);margin-bottom:.5rem">——————</div>
+      <div style="font-size:.8rem;color:var(--muted)">Expires in <span id="claimTimer" style="color:var(--txt2);font-weight:600">10:00</span></div>
+    </div>
+    <!-- Steps -->
+    <div style="margin-bottom:1.5rem;display:flex;flex-direction:column;gap:.75rem">
+      <div style="display:flex;gap:.85rem;align-items:flex-start">
+        <div style="background:var(--green);color:#0f1923;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:800;flex-shrink:0;margin-top:1px">1</div>
+        <div style="font-size:.875rem;padding-top:2px">Join our Minecraft server: <strong style="color:var(--txt)">play.capesearch.net</strong></div>
+      </div>
+      <div style="display:flex;gap:.85rem;align-items:flex-start">
+        <div style="background:var(--green);color:#0f1923;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:800;flex-shrink:0;margin-top:1px">2</div>
+        <div style="font-size:.875rem;padding-top:2px">Type in chat: <code id="claimCmdPreview" style="background:var(--bg2);border:1px solid var(--bdr);padding:.2rem .5rem;border-radius:4px;font-size:.875rem;color:var(--green)">/claim ——————</code></div>
+      </div>
+      <div style="display:flex;gap:.85rem;align-items:flex-start">
+        <div style="background:var(--green);color:#0f1923;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:800;flex-shrink:0;margin-top:1px">3</div>
+        <div style="font-size:.875rem;padding-top:2px">This profile will instantly link to your account</div>
+      </div>
+    </div>
+    <button class="btn btn-o" style="width:100%;justify-content:center" onclick="closeClaimModal()">Cancel</button>
+  </div>
+</div>
+
 <!-- CAPE MODAL (same popup as capes.html) -->
 <div class="overlay" id="capeOverlay">
   <div class="modal" id="capeModal">
@@ -600,6 +633,7 @@ function applyUUID(uuid,canonName){
   fetchPlayerData(uuid);   // name history via Ashcon
   fetchTextures(uuid);     // skin + cape via Mojang (authoritative)
   initProfileViewer(uuid);
+  checkClaimStatus(uuid.replace(/-/g,''), displayName);
 }
 
 // Set placeholder immediately with local data or loading state
@@ -1055,6 +1089,118 @@ function initProfileViewer(uuid){
     document.getElementById('bodyImg').style.display='block';
   }
 }
+
+// ── CLAIM FLOW ─────────────────────────────────────────────────────────────────
+var _claimTimer   = null;
+var _claimPoll    = null;
+
+function _renderActsWithClaim(uuid, name, isClaimed, ownerUserId) {
+  var currentUserId = window.Clerk && window.Clerk.user ? window.Clerk.user.id : null;
+  var claimHtml = '';
+  if (isClaimed) {
+    if (currentUserId && currentUserId === ownerUserId) {
+      claimHtml = '<span class="badge bg" style="display:inline-flex;align-items:center;gap:.3rem;padding:.35rem .75rem;font-size:.8rem">✓ Your Profile</span>';
+    } else {
+      claimHtml = '<span class="badge" style="display:inline-flex;align-items:center;gap:.3rem;padding:.35rem .75rem;font-size:.8rem;background:var(--bg2);border:1px solid var(--bdr);color:var(--muted)">🔒 Claimed</span>';
+    }
+  } else {
+    claimHtml = '<button class="btn btn-o" onclick="openClaimModal(\''+uuid+'\',\''+name+'\')">🔗 Claim Profile</button>';
+  }
+  var el = document.getElementById('pActs');
+  if (el) el.innerHTML =
+    '<button class="btn btn-p">⭐ Follow</button>'+
+    '<button class="btn btn-o">🔗 Share</button>'+
+    '<button class="btn btn-o" onclick="copyText(\''+uuid+'\',this)">📋 Copy UUID</button>'+
+    claimHtml;
+}
+
+function checkClaimStatus(uuid, name) {
+  fetch('/api/check-claim?uuid='+encodeURIComponent(uuid))
+    .then(function(r){return r.ok?r.json():null;})
+    .then(function(d){
+      if(!d) return;
+      _renderActsWithClaim(uuid, name, d.claimed, d.clerkUserId||null);
+    })
+    .catch(function(){});
+}
+
+function openClaimModal(uuid, name) {
+  // Require sign-in
+  if (!window.Clerk || !window.Clerk.user) {
+    window.Clerk.openSignIn();
+    return;
+  }
+  var clerkUserId = window.Clerk.user.id;
+  var overlay = document.getElementById('claimOverlay');
+
+  // Reset to loading state
+  document.getElementById('claimCode').textContent = '......';
+  document.getElementById('claimCode').style.color = 'var(--green)';
+  document.getElementById('claimCmdPreview').textContent = '/claim ......';
+  document.getElementById('claimTimer').textContent = '10:00';
+  document.getElementById('claimModalSub').textContent = 'Generating your code…';
+  overlay.classList.add('show');
+  document.body.style.overflow = 'hidden';
+
+  fetch('/api/start-claim', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({clerkUserId:clerkUserId, minecraftUuid:uuid, minecraftName:name}),
+  })
+    .then(function(r){return r.ok?r.json():Promise.reject(r);})
+    .then(function(d) {
+      var code = d.code;
+      document.getElementById('claimCode').textContent = code;
+      document.getElementById('claimCmdPreview').textContent = '/claim '+code;
+      document.getElementById('claimModalSub').textContent = 'Verify you own this Minecraft account';
+
+      // Countdown timer
+      var secsLeft = d.expiresIn || 600;
+      if (_claimTimer) clearInterval(_claimTimer);
+      _claimTimer = setInterval(function() {
+        secsLeft--;
+        if (secsLeft <= 0) {
+          clearInterval(_claimTimer);
+          document.getElementById('claimTimer').textContent = 'Expired';
+          document.getElementById('claimCode').textContent = 'EXPIRED';
+          document.getElementById('claimCode').style.color = 'var(--muted)';
+          return;
+        }
+        var m = Math.floor(secsLeft/60), s = secsLeft%60;
+        document.getElementById('claimTimer').textContent = m+':'+(s<10?'0':'')+s;
+      }, 1000);
+
+      // Poll until claimed
+      if (_claimPoll) clearInterval(_claimPoll);
+      _claimPoll = setInterval(function() {
+        fetch('/api/check-claim?uuid='+encodeURIComponent(uuid))
+          .then(function(r){return r.ok?r.json():null;})
+          .then(function(data) {
+            if (data && data.claimed && data.clerkUserId === clerkUserId) {
+              clearInterval(_claimPoll);
+              clearInterval(_claimTimer);
+              closeClaimModal();
+              _renderActsWithClaim(uuid, name, true, clerkUserId);
+            }
+          })
+          .catch(function(){});
+      }, 3000);
+    })
+    .catch(function() {
+      document.getElementById('claimModalSub').textContent = 'Failed to generate code. Please try again.';
+      document.getElementById('claimCode').textContent = 'ERROR';
+    });
+}
+
+function closeClaimModal() {
+  document.getElementById('claimOverlay').classList.remove('show');
+  document.body.style.overflow = '';
+  if (_claimTimer) { clearInterval(_claimTimer); _claimTimer = null; }
+  if (_claimPoll)  { clearInterval(_claimPoll);  _claimPoll  = null; }
+}
+document.getElementById('claimOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeClaimModal();
+});
 </script>
 <script src="clerk-auth.js"></script>
 </body>

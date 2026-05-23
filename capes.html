@@ -278,8 +278,6 @@ var CAPES=[
   {id:'mojangclassic',name:'Mojang (Classic)',        wearers:520,    color:'#ef4444',rare:true},
   {id:'db',          name:'dB Cape',                 wearers:450,    color:'#10b981',rare:true},
   {id:'mojangoffice',name:'Mojang Office',            wearers:320,    color:'#ef4444',rare:true},
-  {id:'document',    name:'Document Cape',            wearers:380,    color:'#94a3b8',rare:true},
-  {id:'test',        name:'Test Cape',                wearers:5,      color:'#64748b',rare:true},
   {id:'millionth',   name:'Millionth Customer',       wearers:1,      color:'#fbbf24',rare:true},
 ];
 var PLAYERS=[
@@ -310,7 +308,7 @@ var EMOJIS={
   minecon12:'🏆',mojangstudios:'🔴',minecon11:'🏆',translator:'🟠',mcc15:'🏆',
   scrolls:'🎲',realmsmapper:'🗺️',spade:'♠️',mojang:'🔴',cobalt:'🔵',translatorcn:'🌏',
   mojiramod:'🔴',translatorjp:'🌏',mojangclassic:'🔴',db:'🎵',mojangoffice:'🏢',
-  document:'📄',test:'🧪',millionth:'🥇',
+  millionth:'🥇',
 };
 var FB='https://mc-heads.net/avatar/Steve/32';
 function fmt(n){return n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(1)+'K':n.toLocaleString()}
@@ -334,7 +332,7 @@ var CAPE_IMGS={
   prismarine:   W+'Prismarine_Cape.png/150px-Prismarine_Cape.png',
   birthday:     W+'Birthday_Cape.png/150px-Birthday_Cape.png',
   purpleheart:  W+'Purple_Heart_Cape_JE.png/150px-Purple_Heart_Cape_JE.png',
-  oxeye:        W+'Oxeye_Cape.png/150px-Oxeye_Cape.png',
+  oxeye:        W+'OxeyeCape.png/150px-OxeyeCape.png',
   copper:       W+'Copper_Cape_JE.png/150px-Copper_Cape_JE.png',
   experience:   W+'Minecraft_Experience_Cape_JE.png/150px-Minecraft_Experience_Cape_JE.png',
   menace:       W+'Menace_Cape_JE.png/150px-Menace_Cape_JE.png',
@@ -354,14 +352,12 @@ var CAPE_IMGS={
   spade:        W+'MrMessiah%27s_Cape.png/150px-MrMessiah%27s_Cape.png',
   mojang:       W+'Mojang_Cape.png/150px-Mojang_Cape.png',
   cobalt:       W+'Cobalt_Cape_render.png/150px-Cobalt_Cape_render.png',
-  translatorcn: 'https://render.crafty.gg/3d/full/5fef4b103330bcee18ea169f4f6635e793c5b30d752dabb8319f817d2a836448?width=250&height=270&x=20&z=-60&cape=2262fb1d24912209490586ecae98aca8500df3eff91f2a07da37ee524e7e3cb6',
+  translatorcn: W+'ChineseTranslatorCapeInGame.png/150px-ChineseTranslatorCapeInGame.png',
   mojiramod:    W+'Moderator_Cape.png/150px-Moderator_Cape.png',
   translatorjp: 'https://render.crafty.gg/3d/full/5fef4b103330bcee18ea169f4f6635e793c5b30d752dabb8319f817d2a836448?width=250&height=270&x=20&z=-60&cape=ca29f5dd9e94fb1748203b92e36b66fda80750c87ebc18d6eafdb0e28cc1d05f',
   mojangclassic:W+'Classic_Mojang_Cape.png/150px-Classic_Mojang_Cape.png',
   db:           W+'DannyBstyle%27s_Cape.png/150px-DannyBstyle%27s_Cape.png',
   mojangoffice: W+'Mojang_Office_Cape_JE.png/150px-Mojang_Office_Cape_JE.png',
-  document:     null,
-  test:         'https://render.crafty.gg/3d/full/5fef4b103330bcee18ea169f4f6635e793c5b30d752dabb8319f817d2a836448?width=250&height=270&x=20&z=-60&cape=7a93b1867eb599f2b76e6e1c30a0ddb530e6f4c7bce6515d1ba72b206df30e39',
   millionth:    W+'Millionth_Customer_Cape.png/150px-Millionth_Customer_Cape.png',
 };
 
@@ -406,12 +402,9 @@ var CAPE_TEXTURES={
   translatorjp: 'https://textures.minecraft.net/texture/ca29f5dd9e94fb1748203b92e36b66fda80750c87ebc18d6eafdb0e28cc1d05f',
   mojangclassic:'https://textures.minecraft.net/texture/8f120319222a9f4a104e2f5cb97b2cda93199a2ee9e1585cb8d09d6f687cb761',
   db:           'https://textures.minecraft.net/texture/bcfbe84c6542a4a5c213c1cacf8979b5e913dcb4ad783a8b80e3c4a7d5c8bdac',
-  test:         'https://textures.minecraft.net/texture/7a93b1867eb599f2b76e6e1c30a0ddb530e6f4c7bce6515d1ba72b206df30e39',
   millionth:    'https://textures.minecraft.net/texture/70efffaf86fe5bc089608d3cb297d3e276b9eb7a8f9f2fe6659c23a2d8b18edf',
   mojangoffice: 'https://textures.minecraft.net/texture/5c29410057e32abec02d870ecb52ec25fb45ea81e785a7854ae8429d7236ca26',
   mojang:       'https://textures.minecraft.net/texture/5786fe99be377dfb6858859f926c4dbc995751e91cee373468c5fbf4865e7151',
-  // ── unknown hashes — 3D viewer shows character without cape ──
-  document:     null,
 };
 
 function capePreview(c,size){

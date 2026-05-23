@@ -318,7 +318,8 @@ function applyUUID(uuid,canonName){
     '<button class="btn btn-p">⭐ Follow</button>'+
     '<button class="btn btn-o">🔗 Share</button>'+
     '<button class="btn btn-o" onclick="copyText(\''+uuid+'\',this)">📋 Copy UUID</button>';
-  fetchPlayerData(uuid);
+  fetchPlayerData(uuid);   // name history via Ashcon
+  fetchTextures(uuid);     // skin + cape via Mojang (authoritative)
   initProfileViewer(uuid);
 }
 
@@ -368,13 +369,12 @@ document.getElementById('capesTbl').innerHTML=ch.length
 function fetchNameHistory(uuid){}  // stub so applyUUID call doesn't break
 function fetchLiveCape(uuid){}     // stub so applyUUID call doesn't break
 
+// ── NAME HISTORY (Ashcon — good format, used only for this) ──────────────────
 function fetchPlayerData(uuid){
   fetch('https://api.ashcon.app/mojang/v2/user/'+uuid)
     .then(function(r){return r.ok?r.json():null})
     .then(function(d){
       if(!d)return;
-
-      // ── name history ──────────────────────────────────────────────────────
       if(d.username_history&&d.username_history.length){
         var live=d.username_history.slice().reverse().map(function(e){
           var dateStr=null;
@@ -386,51 +386,51 @@ function fetchPlayerData(uuid){
         });
         renderNameHistory(live);
       }
+    })
+    .catch(function(){});
+}
 
-      // ── cape ──────────────────────────────────────────────────────────────
-      var capeUrl=d.textures&&d.textures.cape?d.textures.cape.url:null;
-      var histRows=(PCAPES[key]||[])
-        .filter(function(c){return c.status!=='active';})
-        .map(function(c){
-          return'<tr><td><strong>'+c.cape+'</strong></td><td>'+c.from+'</td><td>'+c.to+'</td>'+
-            '<td><span class="badge br">Inactive</span></td></tr>';
-        }).join('');
+// ── LIVE TEXTURES (Mojang Session API via our proxy — authoritative) ──────────
+function fetchTextures(uuid){
+  fetch('/api/player-textures?uuid='+encodeURIComponent(uuid))
+    .then(function(r){return r.ok?r.json():null})
+    .then(function(data){
+      if(!data)return;
 
-      // load skin + cape onto the 3D viewer via textures.minecraft.net (CORS-safe)
-      var skinTexUrl=d.textures&&d.textures.skin?d.textures.skin.url:null;
-      if(skinTexUrl&&window._profileViewer){
-        window._profileViewer.loadSkin(skinTexUrl).catch(function(){});
+      // 3D viewer: skin
+      if(data.skin&&window._profileViewer){
+        window._profileViewer.loadSkin(data.skin).catch(function(){});
       }
-      if(capeUrl&&window._profileViewer){
-        window._profileViewer.loadCape(capeUrl).catch(function(){});
-      }
-
-      // update skin tab details with the real texture URL
-      if(skinTexUrl){
-        document.getElementById('skinUrl').textContent=skinTexUrl;
-        document.getElementById('dlSkin').href=skinTexUrl;
-        var isSlim=d.textures.skin.metadata&&d.textures.skin.metadata.model==='slim';
-        document.getElementById('skinModel').textContent=isSlim?'Alex (Slim)':'Steve (Classic)';
+      // 3D viewer: cape
+      if(data.cape&&window._profileViewer){
+        window._profileViewer.loadCape(data.cape).catch(function(){});
       }
 
-      if(capeUrl){
-        var hash=capeUrl.replace(/https?:\/\/textures\.minecraft\.net\/texture\//,'');
-        var capeName=CAPE_HASH_NAMES[hash]||'Cape';
-        var activeRow=
+      // Skin tab — real texture URL + model type
+      if(data.skin){
+        document.getElementById('skinUrl').textContent=data.skin;
+        document.getElementById('dlSkin').href=data.skin;
+        document.getElementById('skinModel').textContent=data.slim?'Alex (Slim)':'Steve (Classic)';
+      }
+
+      // Capes tab — show whatever the player is actually wearing right now
+      if(data.cape){
+        var hash=data.cape.replace(/https?:\/\/textures\.minecraft\.net\/texture\//,'');
+        var capeName=CAPE_HASH_NAMES[hash]||'Equipped Cape';
+        document.getElementById('capesTbl').innerHTML=
           '<tr><td><div style="display:flex;align-items:center;gap:.75rem">'+
-          '<img src="'+capeUrl+'" style="height:38px;image-rendering:pixelated;border-radius:3px;border:1px solid var(--bdr)"/>'+
+          '<img src="'+data.cape+'" style="height:38px;image-rendering:pixelated;border-radius:3px;border:1px solid var(--bdr)"/>'+
           '<strong>'+capeName+'</strong></div></td>'+
           '<td><span style="color:var(--muted)">—</span></td>'+
           '<td>Present</td>'+
           '<td><span class="badge bg">Active</span></td></tr>';
-        document.getElementById('capesTbl').innerHTML=activeRow+histRows;
       }else{
-        document.getElementById('capesTbl').innerHTML=histRows||
+        document.getElementById('capesTbl').innerHTML=
           '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:2rem">No cape equipped.</td></tr>';
       }
     })
     .catch(function(){
-      // leave local placeholder data as-is
+      // leave existing placeholder in place
     });
 }
 

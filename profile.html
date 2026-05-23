@@ -807,7 +807,7 @@ document.getElementById('tabBar').addEventListener('click',function(e){
     drop.classList.add('show');
 
     _st=setTimeout(function(){
-      fetch('/api/player-lookup?name='+encodeURIComponent(q))
+      fetch('/api/player-textures?name='+encodeURIComponent(q))
         .then(function(r){return r.ok?r.json():null})
         .then(function(d){
           var html2=local.map(function(p){return dropItem(p.name,p.followers+' followers')}).join('');

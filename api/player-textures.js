@@ -90,6 +90,27 @@ async function updateCapeHistory(uuid, capeUrl) {
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
 
+  // ── Name-only lookup mode (used by nav search on all pages) ───────────────
+  // Called as /api/player-textures?name=SomePlayer
+  // Returns { name, uuid } without fetching full profile or KV history.
+  if (req.query.name && !req.query.uuid) {
+    try {
+      const r = await fetch(
+        `https://api.mojang.com/users/profiles/minecraft/${encodeURIComponent(req.query.name.trim())}`,
+        { signal: AbortSignal.timeout(5000) }
+      );
+      if (r.status === 204 || r.status === 404) {
+        return res.status(404).json({ error: 'Player not found' });
+      }
+      if (!r.ok) return res.status(r.status).json({ error: 'Mojang error' });
+      const d = await r.json();
+      res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=60');
+      return res.status(200).json({ name: d.name, uuid: d.id });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+
   const { uuid } = req.query;
   if (!uuid) return res.status(400).json({ error: 'uuid query param required' });
 

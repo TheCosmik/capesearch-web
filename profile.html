@@ -164,6 +164,10 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
 .mpc .pm{font-size:.72rem;color:var(--muted);margin-top:1px}
 @media(max-width:640px){.mbody{flex-direction:column}.mbody-left{min-width:unset;width:100%}}
 </style>
+<script async crossorigin="anonymous"
+  data-clerk-publishable-key="pk_test_c3RlYWR5LWZpbGx5LTY4LmNsZXJrLmFjY291bnRzLmRldiQ"
+  src="https://steady-filly-68.clerk.accounts.dev/npm/@clerk/clerk-js@5/dist/clerk.browser.js"
+  type="text/javascript"></script>
 </head>
 <body>
 
@@ -180,6 +184,10 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
       <a href="capes.html">Capes</a>
       <a href="#">Servers</a>
       <a href="#">Skins</a>
+    </div>
+    <div style="display:flex;align-items:center;margin-left:.5rem;flex-shrink:0">
+      <button id="clerkSignIn" style="display:none;background:var(--green);color:#0f1923;border:none;border-radius:var(--rad);padding:.35rem .9rem;font-size:.875rem;font-weight:700;cursor:pointer;transition:opacity .15s" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">Log in</button>
+      <div id="clerkUser" style="display:none;align-items:center"></div>
     </div>
   </div>
 </nav>
@@ -1048,5 +1056,6 @@ function initProfileViewer(uuid){
   }
 }
 </script>
+<script src="clerk-auth.js"></script>
 </body>
 </html>

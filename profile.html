@@ -807,14 +807,13 @@ document.getElementById('tabBar').addEventListener('click',function(e){
     drop.classList.add('show');
 
     _st=setTimeout(function(){
-      fetch('https://playerdb.co/api/player/minecraft/'+encodeURIComponent(q))
+      fetch('/api/player-lookup?name='+encodeURIComponent(q))
         .then(function(r){return r.ok?r.json():null})
         .then(function(d){
           var html2=local.map(function(p){return dropItem(p.name,p.followers+' followers')}).join('');
-          if(d&&d.success&&d.data&&d.data.player){
-            var found=d.data.player.username;
-            var already=local.some(function(p){return p.name.toLowerCase()===found.toLowerCase()});
-            if(!already) html2+=dropItem(found,'Found on Minecraft ✓');
+          if(d&&d.name){
+            var already=local.some(function(p){return p.name.toLowerCase()===d.name.toLowerCase()});
+            if(!already) html2+=dropItem(d.name,'Found on Minecraft ✓');
           } else if(!local.length){
             html2='<div style="padding:.75rem 1rem;font-size:.82rem;color:var(--muted)">No player found for "'+q+'"</div>';
           }

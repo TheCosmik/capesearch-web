@@ -75,7 +75,7 @@ select.sort{background:var(--card);border:1px solid var(--bdr);color:var(--txt);
 .cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:.85rem;margin-bottom:2rem}
 .cc{background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad2);overflow:hidden;transition:all .25s;cursor:pointer;display:flex;flex-direction:column}
 .cc:hover{border-color:var(--green);transform:translateY(-4px);box-shadow:0 12px 28px rgba(67,182,128,.2)}
-.cc .cprev{background:var(--bg2);display:flex;align-items:center;justify-content:center;height:200px;position:relative}
+.cc .cprev{background:var(--bg2);display:flex;align-items:center;justify-content:center;height:220px;position:relative}
 .cc .cico{width:80px;height:120px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:48px}
 .cc .cbody{padding:.7rem .85rem;border-top:1px solid var(--bdr)}
 .cc .cname{font-weight:700;font-size:.85rem;line-height:1.3}
@@ -438,7 +438,7 @@ function renderGrid(){
   document.getElementById('cgrid').innerHTML=capes.map(function(c){
     return '<div class="cc" id="cape-'+c.id+'" onclick="openModal(\''+c.id+'\')">'+
       '<div class="cprev">'+
-        capePreview(c,180)+
+        capePreview(c,205)+
         (c.rare?'<span class="badge by" style="position:absolute;top:7px;right:7px">Rare</span>':'')+
       '</div>'+
       '<div class="cbody"><div class="cname">'+c.name+'</div>'+

@@ -6,6 +6,10 @@
 // still works — it just returns an empty history array.
 
 // ── Vercel KV helpers (Upstash REST API, no npm package needed) ───────────────
+// Sentinel returned by kvGet when the READ itself failed (timeout / network error).
+// Distinct from null (key doesn't exist) so callers can skip writes on errors.
+const KV_READ_ERROR = Symbol('KV_READ_ERROR');
+
 async function kvPipeline(commands) {
   // Support both Upstash direct integration and legacy Vercel KV env var names
   const url   = process.env.UPSTASH_REDIS_REST_URL   || process.env.KV_REST_API_URL;
@@ -16,18 +20,20 @@ async function kvPipeline(commands) {
       method:  'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body:    JSON.stringify(commands),
-      signal:  AbortSignal.timeout(3000),
+      signal:  AbortSignal.timeout(5000),
     });
+    if (!res.ok) return commands.map(() => KV_READ_ERROR);
     const data = await res.json();
-    return Array.isArray(data) ? data.map(d => d.result ?? null) : commands.map(() => null);
+    return Array.isArray(data) ? data.map(d => d.result ?? null) : commands.map(() => KV_READ_ERROR);
   } catch {
-    return commands.map(() => null);
+    return commands.map(() => KV_READ_ERROR);
   }
 }
 
 async function kvGet(key) {
   const [result] = await kvPipeline([['GET', key]]);
-  if (!result) return null;
+  if (result === KV_READ_ERROR) return KV_READ_ERROR;
+  if (!result) return null;                           // key doesn't exist
   try { return JSON.parse(result); } catch { return null; }
 }
 
@@ -43,11 +49,17 @@ async function kvSet(key, value) {
 
 async function getCapeHistory(uuid) {
   const data = await kvGet(`ph:${uuid}`);
+  if (data === KV_READ_ERROR) return KV_READ_ERROR;   // propagate so callers can bail
   return Array.isArray(data) ? data : [];
 }
 
 async function updateCapeHistory(uuid, capeUrl) {
   const history = await getCapeHistory(uuid);
+
+  // If the read failed (timeout / network error), bail out rather than
+  // overwriting good KV data with a single-entry history.
+  if (history === KV_READ_ERROR) return;
+
   const now = Date.now();
 
   if (history.length > 0 && history[0].url === capeUrl) {

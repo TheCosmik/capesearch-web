@@ -125,6 +125,16 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
 .viewer-btn:hover{background:rgba(74,222,128,.25);border-color:var(--green)}
 .viewer-btn.active{background:rgba(74,222,128,.2);border-color:var(--green)}
 @media(max-width:768px){.phdr-in{flex-direction:column;align-items:center;text-align:center}.nav-links{display:none}.pacts{justify-content:center}.pbadges{justify-content:center}.profile-layout{flex-direction:column;align-items:center}}
+
+/* CAPES STRIP */
+.capes-section{margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid var(--bdr)}
+.capes-section-hdr{font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.8rem;display:flex;align-items:center;gap:.4rem}
+.capes-row{display:flex;gap:.6rem;flex-wrap:wrap;align-items:flex-start}
+.cape-card{background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad2);padding:.8rem .65rem .7rem;display:flex;flex-direction:column;align-items:center;gap:.45rem;width:110px;text-align:center;transition:border-color .2s,background .2s}
+.cape-card.c-active{border-color:var(--green);background:rgba(74,222,128,.05)}
+.cape-card img{height:60px;width:auto;border-radius:5px;object-fit:contain;border:1px solid var(--bdr)}
+.cape-card .cc-name{font-size:.72rem;font-weight:700;color:var(--txt);line-height:1.25;word-break:break-word}
+.cape-card .cc-date{font-size:.63rem;color:var(--muted);line-height:1.3}
 </style>
 </head>
 <body>
@@ -175,7 +185,6 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
     <div class="profile-main">
       <div class="tabs" id="tabBar">
         <button class="tab on" data-tab="t-names">📋 Names</button>
-        <button class="tab" data-tab="t-capes">🎭 Capes</button>
         <button class="tab" data-tab="t-skin">🖼 Skin</button>
         <button class="tab" data-tab="t-friends">👥 Friends</button>
       </div>
@@ -187,18 +196,6 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
             <table>
               <thead><tr><th>#</th><th>Username</th><th>Changed</th><th>Status</th></tr></thead>
               <tbody id="namesTbl"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- CAPES -->
-      <div class="panel" id="t-capes">
-        <div class="card">
-          <div class="tbl-wrap">
-            <table>
-              <thead><tr><th>Cape</th><th>From</th><th>To</th><th>Status</th></tr></thead>
-              <tbody id="capesTbl"></tbody>
             </table>
           </div>
         </div>
@@ -233,6 +230,14 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
       <div class="panel" id="t-friends">
         <div class="friends-grid" id="friendsGrid"></div>
       </div>
+      <!-- CAPES STRIP — always visible below tabs -->
+      <div class="capes-section" id="capesSection">
+        <div class="capes-section-hdr">🎭 Cape History</div>
+        <div class="capes-row" id="capesRow">
+          <div style="color:var(--muted);font-size:.84rem;padding:.25rem 0">Loading…</div>
+        </div>
+      </div>
+
     </div><!-- end profile-main -->
 
   </div><!-- end profile-layout -->
@@ -421,12 +426,18 @@ function renderNameHistory(nh){
 var nh=NAMES[key]||[{name:dname,changed:null}];
 renderNameHistory(nh);
 
-// cape history – local placeholder while live data loads
+// cape history – local placeholder while live data loads (cards)
 var ch=PCAPES[key]||[];
-document.getElementById('capesTbl').innerHTML=ch.length
-  ?ch.map(function(c){return'<tr><td><strong>'+c.cape+'</strong></td><td>'+c.from+'</td><td>'+c.to+'</td>'+
-    '<td><span class="badge '+(c.status==='active'?'bg':'br')+'">'+(c.status==='active'?'Active':'Inactive')+'</span></td></tr>';}).join('')
-  :'<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:2rem">Loading…</td></tr>';
+if(ch.length){
+  document.getElementById('capesRow').innerHTML=ch.map(function(c){
+    var isActive=c.status==='active';
+    return'<div class="cape-card'+(isActive?' c-active':'')+'">'+
+      '<div class="cc-name">'+c.cape+'</div>'+
+      '<div class="cc-date">'+c.from+'</div>'+
+      '<span class="badge '+(isActive?'bg':'br')+'">'+(isActive?'Active':'Inactive')+'</span>'+
+      '</div>';
+  }).join('');
+}
 
 // single ashcon.app call – handles name history AND cape (no CORS issues)
 function fetchNameHistory(uuid){}  // stub so applyUUID call doesn't break
@@ -476,57 +487,52 @@ function fetchTextures(uuid){
         document.getElementById('skinModel').textContent=data.slim?'Alex (Slim)':'Steve (Classic)';
       }
 
-      // ── Capes tab — current cape + full tracked history ──────────────────
+      // ── Capes strip — current cape + full tracked history ────────────────
       var currentCape=data.cape||null;
       var history=Array.isArray(data.history)?data.history:[];
 
       function fmtTs(ms){
         return new Date(ms).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
       }
-      function capeRow(url,firstSeen,lastSeen,isActive){
+      function capeCard(url,firstSeen,lastSeen,isActive){
         var hash=url.replace(/https?:\/\/textures\.minecraft\.net\/texture\//,'');
         var capeData=CAPE_HASH_DATA[hash]||{};
-        var name=capeData.name||'Equipped Cape';
-        // Use the local render if known, otherwise fall back to the raw Mojang texture
+        var name=capeData.name||'Unknown Cape';
         var imgSrc=capeData.img||url;
-        var imgStyle=capeData.img
-          ?'height:52px;border-radius:6px;border:1px solid var(--bdr)'
-          :'height:38px;image-rendering:pixelated;border-radius:3px;border:1px solid var(--bdr)';
-        var firstStr=firstSeen?fmtTs(firstSeen):'<span style="color:var(--muted)">—</span>';
-        var lastStr=isActive?'Present':(lastSeen?fmtTs(lastSeen):'<span style="color:var(--muted)">—</span>');
-        return'<tr>'+
-          '<td><div style="display:flex;align-items:center;gap:.75rem">'+
-          '<img src="'+imgSrc+'" style="'+imgStyle+'" onerror="this.style.display=\'none\'"/>'+
-          '<strong>'+name+'</strong></div></td>'+
-          '<td>'+firstStr+'</td>'+
-          '<td>'+lastStr+'</td>'+
-          '<td><span class="badge '+(isActive?'bg':'br')+'">'+(isActive?'Active':'Inactive')+'</span></td></tr>';
+        var isKnown=!!capeData.img;
+        var firstStr=firstSeen?fmtTs(firstSeen):'—';
+        var lastStr=isActive?'Present':(lastSeen?fmtTs(lastSeen):'—');
+        return'<div class="cape-card'+(isActive?' c-active':'')+'">'+
+          '<img src="'+imgSrc+'" style="'+(isKnown?'':'image-rendering:pixelated')+'" onerror="this.style.display=\'none\'"/>'+
+          '<div class="cc-name">'+name+'</div>'+
+          '<div class="cc-date">'+(isActive?'<span style="color:var(--green)">Active</span>':firstStr+' – '+lastStr)+'</div>'+
+          '</div>';
       }
 
-      var rows='';
+      var cards='';
       var seenUrls={};
 
-      // Current cape always at top
+      // Current cape always first
       if(currentCape){
         var curEntry=null;
         for(var i=0;i<history.length;i++){
           if(history[i].url===currentCape){curEntry=history[i];break;}
         }
-        rows+=capeRow(currentCape,curEntry?curEntry.first_seen:null,null,true);
+        cards+=capeCard(currentCape,curEntry?curEntry.first_seen:null,null,true);
         seenUrls[currentCape]=true;
       }
 
-      // Past capes from history (not currently equipped)
+      // Past capes from history
       for(var j=0;j<history.length;j++){
         var entry=history[j];
         if(!seenUrls[entry.url]){
-          rows+=capeRow(entry.url,entry.first_seen,entry.last_seen,false);
+          cards+=capeCard(entry.url,entry.first_seen,entry.last_seen,false);
           seenUrls[entry.url]=true;
         }
       }
 
-      document.getElementById('capesTbl').innerHTML=rows||
-        '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:2rem">No cape equipped.</td></tr>';
+      document.getElementById('capesRow').innerHTML=cards||
+        '<div style="color:var(--muted);font-size:.84rem;padding:.25rem 0">No cape history found.</div>';
     })
     .catch(function(){
       // leave existing placeholder in place

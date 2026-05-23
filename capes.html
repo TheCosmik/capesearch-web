@@ -170,7 +170,7 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
 <div class="wrap" style="padding-top:1.5rem;padding-bottom:3rem">
 
   <div class="stats">
-    <div class="stat"><div class="sl">Total Capes</div><div class="sv">43</div><div class="ss">Java Edition</div></div>
+    <div class="stat"><div class="sl">Total Capes</div><div class="sv" id="statTotal">–</div><div class="ss">Java Edition</div></div>
     <div class="stat"><div class="sl">Rarest Cape</div><div class="sv">Millionth</div><div class="ss">~1 wearer ever</div></div>
     <div class="stat"><div class="sl">Most Common</div><div class="sv">Migrator</div><div class="ss">8.4M+ wearers</div></div>
     <div class="stat"><div class="sl">Changes Today</div><div class="sv">3,847</div><div class="ss">Equip / remove events</div></div>
@@ -694,6 +694,7 @@ function loadCapeImageFallback(capeImageUrl){
 // ── INIT ──────────────────────────────────────────────────────────────────────
 renderGrid();
 renderFeed();
+document.getElementById('statTotal').textContent=CAPES.length;
 
 // ── LIVE COUNTS from /api/cape-counts ────────────────────────────────────────
 // Fetches up-to-date wearer counts from crafty.gg via a serverless function.

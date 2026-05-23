@@ -288,23 +288,63 @@ var UUIDS={dream:'69e76b14-1d14-4b87-9b5b-01b32e9b6f4c',technoblade:'b876ec32-e3
 // Maps Mojang texture hash → { name, img (local path) }
 // img uses the locally hosted renders in /capes/ — add new entries as hashes are discovered.
 var CAPE_HASH_DATA={
-  // ── confirmed via live Mojang API lookups ──────────────────────────────────
+  // ── Confirmed via bulk Mojang API lookups + crafty.gg player-count cross-ref ─
   '2340c0e03dd24a11b15a8b33c2a7e9e32abb2051b2481d0ba7defd635ca7a933':
-    {name:'Migrator Cape',        img:'capes/migrator.png'},
+    {name:'Migrator',              img:'capes/migrator.png'},
   '7658c5025c77cfac7574aab3af94a46a8886e3b7722a895255fbf22ab8652434':
-    {name:'Minecraft Experience', img:'capes/Experience.png'},
+    {name:'Minecraft Experience',  img:'capes/Experience.png'},
   'e7dfea16dc83c97df01a12fabbd1216359c0cd0ea42f9999b6e97c584963e980':
-    {name:'Pan Cape',             img:'capes/Pan.png'},
-  // ── Mojang staff capes (hash confirmed, file assignment verified) ──────────
+    {name:'Pan',                   img:'capes/Pan.png'},
   '9e507afc56359978a3eb3e32367042b853cddd0995d17d0da995662913fb00f7':
-    {name:'Mojang Cape',          img:'capes/mojang.png'},
+    {name:'Mojang',                img:'capes/mojang.png'},
   '5786fe99be377dfb6858859f926c4dbc995751e91cee373468c5fbf4865e7151':
-    {name:'Mojang Studios',       img:'capes/Mojang Studios.png'},
+    {name:'Mojang Studios',        img:'capes/Mojang Studios.png'},
   'cb40a92e32b57fd732a00fc325e7afb00a7ca74936ad50d8e860152e482cfbde':
-    {name:'Purple Heart',         img:'capes/Purple Heart.png'},
+    {name:'Purple Heart',          img:'capes/Purple Heart.png'},
   'dbc21e222528e30dc88445314f7be6ff12d3aeebc3c192054fba7e3b3f8c77b1':
-    {name:'Menace Cape',          img:'capes/Menace.png'},
-  // ── add more below as they are identified ─────────────────────────────────
+    {name:'Menace',                img:'capes/Menace.png'},
+  '1bf91499701404e21bd46b0191d63239a4ef76ebde88d27e4d430ac211df681e':
+    {name:'15th Anniversary',      img:'capes/15th Anniversary.png'},
+  '99aba02ef05ec6aa4d42db8ee43796d6cd50e4b2954ab29f0caeb85f96bf52a1':
+    {name:'Common',                img:'capes/Common.png'},
+  'afd553b39358a24edfe3b8a9a939fa5fa4faa4d9a9c3d6af8eafb377fa05c2bb':
+    {name:'Cherry Blossom',        img:'capes/Cherry Blossom.png'},
+  '17912790ff164b93196f08ba71d0e62129304776d0f347334f8a6eae509f8a56':
+    {name:'Zombie Horse',          img:'capes/Zombie Horse.png'},
+  '5ec930cdd2629c8771655c60eebeb867b4b6559b0e6d3bc71c40c96347fa03f0':
+    {name:'Yearn',                 img:'capes/Yearn.png'},
+  'ca29f5dd9e94fb1748203b92e36b66fda80750c87ebc18d6eafdb0e28cc1d05f':
+    {name:'Translator (Japanese)', img:'capes/Translator (Japanese).png'},
+  '23ec737f18bfe4b547c95935fc297dd767bb84ee55bfd855144d279ac9bfd9fe':
+    {name:'Snowman',               img:'capes/Snowman.png'},
+  '5048ea61566353397247d2b7d946034de926b997d5e66c86483dfb1e031aee95':
+    {name:'Turtle',                img:'capes/Turtle.png'},
+  '70efffaf86fe5bc089608d3cb297d3e276b9eb7a8f9f2fe6659c23a2d8b18edf':
+    {name:'Millionth Customer',    img:'capes/Millionth Customer.png'},
+  'd8f8d13a1adf9636a16c31d47f3ecc9bb8d8533108aa5ad2a01b13b1a0c55eac':
+    {name:'Prismarine',            img:'capes/Prismarine.png'},
+  'ae677f7d98ac70a533713518416df4452fe5700365c09cf45d0d156ea9396551':
+    {name:'Mojira Moderator',      img:'capes/Mojira Moderator.png'},
+  '569b7f2a1d00d26f30efe3f9ab9ac817b1e6d35f4f3cfb0324ef2d328223d350':
+    {name:'Followers',             img:'capes/Followers.png'},
+  '2e002d5e1758e79ba51d08d92a0f3a95119f2f435ae7704916507b6c565a7da8':
+    {name:'Spade',                 img:'capes/Spade.png'},
+  // ── MineCon capes — identified by wearer counts vs. historical attendance ───
+  '953cac8b779fe41383e675ee2b86071a71658f2180f56fbce8aa315ea70e2ed6':
+    {name:'MineCon 2011',          img:'capes/Minecon2011png.png'},
+  'a2e8d97ec79100e90a75d369d1b3ba81273c4f82bc1b737e934eed4a854be1b6':
+    {name:'MineCon 2012',          img:'capes/Minecon2012.png'},
+  'b0cc08840700447322d953a02b965f1d65a13a603bf64b17c803c21446fe1635':
+    {name:'MineCon 2015',          img:'capes/Minecon2015.png'},
+  '153b1a0dfcbae953cdeb6f2c2bf6bf79943239b1372780da44bcbb29273131da':
+    {name:'MineCon 2016',          img:'capes/Minecon2016.png'},
+  // ── Vanilla — confirmed 653,298 wearers via Fwhip profile history ───────────
+  '5e6f3193e74cd16cdd6637d9bae5484e3a37ff2a14c2d157c659a07810b1bdca':
+    {name:'Vanilla',               img:'capes/vanilla.png'},
+  // ── Home — confirmed via C0smik live lookup (May 23 2026) ───────────────────
+  '1de21419009db483900da6298a1e6cbf9f1bc1523a0dcdc16263fab150693edd':
+    {name:'Home',                  img:'capes/Home.png'},
+  // ── add more below as they are identified ───────────────────────────────────
 };
 var FB='https://mc-heads.net/avatar/Steve/32';
 function av(uuid){return'https://crafatar.com/avatars/'+uuid+'?size=64&overlay'}

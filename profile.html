@@ -635,6 +635,8 @@ function applyUUID(uuid,canonName){
   fetchTextures(uuid);     // skin + cape via Mojang (authoritative)
   initProfileViewer(uuid);
   checkClaimStatus(uuid.replace(/-/g,''), displayName);
+  // Fire-and-forget view tracking
+  fetch('/api/track-view?uuid='+encodeURIComponent(uuid.replace(/-/g,''))+'&name='+encodeURIComponent(displayName)).catch(function(){});
 }
 
 // Set placeholder immediately with local data or loading state

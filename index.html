@@ -102,14 +102,15 @@ a:hover{text-decoration:underline}
 .pc .pn{font-weight:700;font-size:.9rem;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pc .pm{font-size:.75rem;color:var(--muted);margin-top:2px}
 
-/* CAPE CARD */
-.cc{background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad2);overflow:hidden;transition:all .2s;cursor:pointer}
-.cc:hover{border-color:var(--green);transform:translateY(-2px)}
-.cc .cprev{background:var(--bg2);display:flex;align-items:center;justify-content:center;height:110px;position:relative}
-.cc .cico{width:52px;height:78px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:24px}
-.cc .cbody{padding:.8rem;border-top:1px solid var(--bdr)}
-.cc .cname{font-weight:700;font-size:.875rem}
-.cc .cwear{font-size:.75rem;color:var(--muted);margin-top:2px}
+/* FAQ */
+.faq-list{display:flex;flex-direction:column;gap:.6rem}
+.faq-item{background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad2);overflow:hidden;transition:border-color .2s}
+.faq-item.open{border-color:var(--green)}
+.faq-q{display:flex;align-items:center;justify-content:space-between;padding:.9rem 1.1rem;cursor:pointer;font-weight:600;font-size:.9rem;gap:1rem;user-select:none}
+.faq-q:hover{color:var(--green)}
+.faq-chevron{font-size:.75rem;color:var(--muted);transition:transform .2s;flex-shrink:0}
+.faq-item.open .faq-chevron{transform:rotate(180deg);color:var(--green)}
+.faq-a{display:none;padding:0 1.1rem .9rem;font-size:.875rem;color:var(--txt2);line-height:1.65;border-top:1px solid var(--bdr)}
 
 /* FOOTER */
 footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:2rem 1rem;margin-top:2.5rem}
@@ -194,10 +195,34 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:2rem 1rem;m
 
   <div class="sec">
     <div class="sec-hd">
-      <div class="sec-title"><span class="ic">⭐</span> Notable Capes</div>
-      <a href="capes.html" class="btn btn-sm btn-o">All Capes</a>
+      <div class="sec-title"><span class="ic">❓</span> Frequently Asked Questions</div>
     </div>
-    <div class="g4" id="capegrid"></div>
+    <div class="faq-list">
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">What is CapeSearch? <span class="faq-chevron">▼</span></div>
+        <div class="faq-a">CapeSearch is a comprehensive Minecraft player tracking platform. You can look up any player's current cape, skin, name history, and cape change history in real time. We index millions of players and track cape changes as they happen across Java and Bedrock editions.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">How often is player data updated? <span class="faq-chevron">▼</span></div>
+        <div class="faq-a">Player profiles are updated automatically whenever a player is looked up, and our background polling system continuously checks popular players for cape and skin changes. Most active players have data that is no more than a few minutes old at any given time.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">How do I claim my profile? <span class="faq-chevron">▼</span></div>
+        <div class="faq-a">To claim your Minecraft profile, log in or create a CapeSearch account using the button in the top right. Then search for your Minecraft username and click the "Claim Profile" button. You'll receive a short code to type in-game on our verification server, and your profile will be linked instantly.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">Is CapeSearch affiliated with Mojang or Microsoft? <span class="faq-chevron">▼</span></div>
+        <div class="faq-a">No. CapeSearch is an independent fan project and is not affiliated with, endorsed by, or connected to Mojang Studios or Microsoft in any way. All Minecraft assets and trademarks belong to their respective owners.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">Can I use the CapeSearch API? <span class="faq-chevron">▼</span></div>
+        <div class="faq-a">Yes! CapeSearch offers a public API for developers who want to integrate player and cape data into their own projects. API documentation and rate limit information will be available soon. Stay tuned for updates on the API page.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">Why is my cape not showing up? <span class="faq-chevron">▼</span></div>
+        <div class="faq-a">If your cape isn't showing on your profile, try searching for your username to trigger a fresh data fetch from Mojang's servers. Changes can sometimes take a few minutes to propagate. If the issue persists, it may be that your account's data is restricted or the cape was very recently equipped.</div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -285,16 +310,6 @@ function renderPlayers(){
   }).join('');
 }
 
-function renderCapeGrid(){
-  document.getElementById('capegrid').innerHTML=CAPES.slice(0,8).map(function(c){
-    return '<div class="cc" onclick="location.href=\'capes.html#'+c.id+'\'">'+
-      '<div class="cprev"><div class="cico" style="background:linear-gradient(135deg,'+c.color+'33,'+c.color+'66);border:2px solid '+c.color+'88">'+
-      (EMOJIS[c.id]||'🎭')+'</div>'+
-      (c.rare?'<span class="badge by" style="position:absolute;top:7px;right:7px">Rare</span>':'')+
-      '</div><div class="cbody"><div class="cname">'+c.name+'</div>'+
-      '<div class="cwear">👥 '+fmt(c.wearers)+' wearers</div></div></div>';
-  }).join('');
-}
 
 // ── SEARCH ────────────────────────────────────────────────────────────────────
 function dropItem(name,sub){
@@ -362,7 +377,15 @@ function goSearch(){
 }
 document.getElementById('heroQ').addEventListener('keydown',function(e){if(e.key==='Enter')goSearch()});
 
-renderFeed();renderPlayers();renderCapeGrid();
+function toggleFaq(btn){
+  var item=btn.parentElement;
+  var ans=item.querySelector('.faq-a');
+  var isOpen=item.classList.contains('open');
+  item.classList.toggle('open',!isOpen);
+  ans.style.display=isOpen?'none':'block';
+}
+
+renderFeed();renderPlayers();
 setupSearch('navQ','navDrop');
 </script>
 <script src="clerk-auth.js"></script>

@@ -413,21 +413,51 @@ function fetchTextures(uuid){
         document.getElementById('skinModel').textContent=data.slim?'Alex (Slim)':'Steve (Classic)';
       }
 
-      // Capes tab — show whatever the player is actually wearing right now
-      if(data.cape){
-        var hash=data.cape.replace(/https?:\/\/textures\.minecraft\.net\/texture\//,'');
-        var capeName=CAPE_HASH_NAMES[hash]||'Equipped Cape';
-        document.getElementById('capesTbl').innerHTML=
-          '<tr><td><div style="display:flex;align-items:center;gap:.75rem">'+
-          '<img src="'+data.cape+'" style="height:38px;image-rendering:pixelated;border-radius:3px;border:1px solid var(--bdr)"/>'+
-          '<strong>'+capeName+'</strong></div></td>'+
-          '<td><span style="color:var(--muted)">—</span></td>'+
-          '<td>Present</td>'+
-          '<td><span class="badge bg">Active</span></td></tr>';
-      }else{
-        document.getElementById('capesTbl').innerHTML=
-          '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:2rem">No cape equipped.</td></tr>';
+      // ── Capes tab — current cape + full tracked history ──────────────────
+      var currentCape=data.cape||null;
+      var history=Array.isArray(data.history)?data.history:[];
+
+      function fmtTs(ms){
+        return new Date(ms).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
       }
+      function capeRow(url,firstSeen,lastSeen,isActive){
+        var hash=url.replace(/https?:\/\/textures\.minecraft\.net\/texture\//,'');
+        var name=CAPE_HASH_NAMES[hash]||'Cape';
+        var firstStr=firstSeen?fmtTs(firstSeen):'<span style="color:var(--muted)">—</span>';
+        var lastStr=isActive?'Present':(lastSeen?fmtTs(lastSeen):'<span style="color:var(--muted)">—</span>');
+        return'<tr>'+
+          '<td><div style="display:flex;align-items:center;gap:.75rem">'+
+          '<img src="'+url+'" style="height:38px;image-rendering:pixelated;border-radius:3px;border:1px solid var(--bdr)" onerror="this.style.display=\'none\'"/>'+
+          '<strong>'+name+'</strong></div></td>'+
+          '<td>'+firstStr+'</td>'+
+          '<td>'+lastStr+'</td>'+
+          '<td><span class="badge '+(isActive?'bg':'br')+'">'+(isActive?'Active':'Inactive')+'</span></td></tr>';
+      }
+
+      var rows='';
+      var seenUrls={};
+
+      // Current cape always at top
+      if(currentCape){
+        var curEntry=null;
+        for(var i=0;i<history.length;i++){
+          if(history[i].url===currentCape){curEntry=history[i];break;}
+        }
+        rows+=capeRow(currentCape,curEntry?curEntry.first_seen:null,null,true);
+        seenUrls[currentCape]=true;
+      }
+
+      // Past capes from history (not currently equipped)
+      for(var j=0;j<history.length;j++){
+        var entry=history[j];
+        if(!seenUrls[entry.url]){
+          rows+=capeRow(entry.url,entry.first_seen,entry.last_seen,false);
+          seenUrls[entry.url]=true;
+        }
+      }
+
+      document.getElementById('capesTbl').innerHTML=rows||
+        '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:2rem">No cape equipped.</td></tr>';
     })
     .catch(function(){
       // leave existing placeholder in place

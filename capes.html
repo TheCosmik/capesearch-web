@@ -318,7 +318,7 @@ var EMOJIS={
   millionth:'🥇',
 };
 var FB='https://mc-heads.net/avatar/Steve/32';
-function fmt(n){return n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(1)+'K':n.toLocaleString()}
+function fmt(n){return n.toLocaleString()}
 function av(uuid){return'https://crafatar.com/avatars/'+uuid+'?size=64&overlay'}
 function avN(name){return'https://mc-heads.net/avatar/'+encodeURIComponent(name)+'/32'}
 

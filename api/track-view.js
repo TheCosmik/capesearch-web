@@ -1,7 +1,10 @@
-// Records a profile page view and keeps the player name up to date.
+// Records a profile page view.
 //
 // GET /api/track-view?uuid=&name=
-// Increments profile-views sorted set and refreshes pname:{uuid}.
+// Increments two sorted sets:
+//   profile-views:YYYY-MM  — monthly leaderboard (auto-expires each calendar month)
+//   profile-views-alltime  — permanent all-time counter
+// Also refreshes pname:{uuid} with the current player name.
 // Always returns 200 — callers fire-and-forget.
 
 module.exports = async function handler(req, res) {
@@ -16,9 +19,14 @@ module.exports = async function handler(req, res) {
   const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
   if (!url || !token) return res.status(200).json({ ok: false });
 
+  // Current month key — e.g. "profile-views:2026-05"
+  const now      = new Date();
+  const monthKey = `profile-views:${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
+
   try {
     const commands = [
-      ['ZINCRBY', 'profile-views', '1', cleanUuid],
+      ['ZINCRBY', monthKey,                 '1', cleanUuid],
+      ['ZINCRBY', 'profile-views-alltime',  '1', cleanUuid],
     ];
     if (name) {
       commands.push(['SET', `pname:${cleanUuid}`, name]);

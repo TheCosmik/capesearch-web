@@ -200,6 +200,7 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
       <div class="puser" id="pUser">—</div>
       <div class="puuid" id="pUUID"></div>
       <div class="pbadges" id="pBadges"></div>
+      <div id="pViews" style="font-size:.75rem;color:var(--muted);margin-bottom:.6rem"></div>
       <div class="pacts" id="pActs"></div>
     </div>
   </div>
@@ -637,6 +638,8 @@ function applyUUID(uuid,canonName){
   checkClaimStatus(uuid.replace(/-/g,''), displayName);
   // Fire-and-forget view tracking
   fetch('/api/track-view?uuid='+encodeURIComponent(uuid.replace(/-/g,''))+'&name='+encodeURIComponent(displayName)).catch(function(){});
+  // Fetch and display all-time view count
+  fetchProfileStats(uuid.replace(/-/g,''));
 }
 
 // Set placeholder immediately with local data or loading state
@@ -685,6 +688,21 @@ if(ch.length){
       '<span class="badge '+(isActive?'bg':'br')+'">'+(isActive?'Active':'Inactive')+'</span>'+
       '</div>';
   }).join('');
+}
+
+// Fetch and display all-time profile view count
+function fetchProfileStats(cleanUuid){
+  var el=document.getElementById('pViews');
+  if(!el)return;
+  fetch('/api/profile-stats?uuid='+encodeURIComponent(cleanUuid))
+    .then(function(r){return r.ok?r.json():null})
+    .then(function(d){
+      if(!d||d.views===0){el.textContent='';return;}
+      var n=d.views;
+      var fmt=n>=1000000?(n/1000000).toFixed(1)+'M':n>=1000?(n/1000).toFixed(1)+'K':n.toLocaleString();
+      el.textContent='👁 '+fmt+' all-time views';
+    })
+    .catch(function(){el.textContent='';});
 }
 
 // single ashcon.app call – handles name history AND cape (no CORS issues)

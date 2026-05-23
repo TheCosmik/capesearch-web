@@ -188,6 +188,7 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:2rem 1rem;m
     <div>
       <div class="sec-hd">
         <div class="sec-title"><span class="ic">🔥</span> Popular Accounts</div>
+        <span id="popularMonth" style="font-size:.75rem;color:var(--muted)"></span>
       </div>
       <div style="display:flex;flex-direction:column;gap:.55rem" id="players"></div>
     </div>
@@ -315,7 +316,13 @@ function loadTopProfiles(){
   el.innerHTML='<div style="padding:1.5rem;text-align:center;color:var(--muted);font-size:.85rem">Loading…</div>';
   fetch('/api/top-profiles?limit=8')
     .then(function(r){return r.ok?r.json():null})
-    .then(function(d){renderPlayers(d&&d.profiles);})
+    .then(function(d){
+      if(d&&d.month){
+        var lbl=document.getElementById('popularMonth');
+        if(lbl)lbl.textContent='Resets monthly · '+d.month;
+      }
+      renderPlayers(d&&d.profiles);
+    })
     .catch(function(){renderPlayers([]);});
 }
 

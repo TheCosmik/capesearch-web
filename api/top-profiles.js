@@ -1,10 +1,11 @@
-// Returns the most-viewed player profiles on the site.
+// Returns the most-viewed player profiles for the current calendar month.
 //
 // GET /api/top-profiles?limit=8
-// Reads the profile-views sorted set (highest score first),
-// resolves names via pname:{uuid}, and returns the list.
+// Reads profile-views:YYYY-MM (current month) — highest score first.
+// Because the key changes each month the leaderboard resets automatically.
+// Resolves player names via pname:{uuid}.
 //
-// Returns: { profiles: [{ uuid, name, views }] }
+// Returns: { profiles: [{ uuid, name, views }], month: "May 2026" }
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -13,19 +14,24 @@ module.exports = async function handler(req, res) {
 
   const url   = process.env.UPSTASH_REDIS_REST_URL   || process.env.KV_REST_API_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
-  if (!url || !token) return res.status(200).json({ profiles: [] });
+  if (!url || !token) return res.status(200).json({ profiles: [], month: '' });
+
+  // Build current month key and human-readable label
+  const now      = new Date();
+  const monthKey = `profile-views:${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
+  const monthLabel = now.toLocaleString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
 
   try {
-    // Step 1: get top UUIDs + scores from the sorted set
+    // Step 1: top UUIDs + scores for this month
     const zRes = await fetch(`${url}/pipeline`, {
       method:  'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body:    JSON.stringify([
-        ['ZREVRANGE', 'profile-views', '0', String(limit - 1), 'WITHSCORES'],
+        ['ZREVRANGE', monthKey, '0', String(limit - 1), 'WITHSCORES'],
       ]),
       signal: AbortSignal.timeout(5000),
     });
-    if (!zRes.ok) return res.status(200).json({ profiles: [] });
+    if (!zRes.ok) return res.status(200).json({ profiles: [], month: monthLabel });
 
     const zData = await zRes.json();
     const flat  = Array.isArray(zData) && Array.isArray(zData[0]?.result) ? zData[0].result : [];
@@ -34,7 +40,7 @@ module.exports = async function handler(req, res) {
     for (let i = 0; i < flat.length; i += 2) {
       entries.push({ uuid: flat[i], views: parseInt(flat[i + 1]) || 0 });
     }
-    if (!entries.length) return res.status(200).json({ profiles: [] });
+    if (!entries.length) return res.status(200).json({ profiles: [], month: monthLabel });
 
     // Step 2: batch-fetch player names
     const nameRes = await fetch(`${url}/pipeline`, {
@@ -53,8 +59,8 @@ module.exports = async function handler(req, res) {
     }));
 
     res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=30');
-    return res.status(200).json({ profiles });
+    return res.status(200).json({ profiles, month: monthLabel });
   } catch {
-    return res.status(200).json({ profiles: [] });
+    return res.status(200).json({ profiles: [], month: monthLabel });
   }
 };

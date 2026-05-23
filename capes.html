@@ -109,6 +109,10 @@ select.sort{background:var(--card);border:1px solid var(--bdr);color:var(--txt);
 .mrow:last-child{border-bottom:none}
 .mrow .lbl{color:var(--muted);font-weight:500}
 #capeCanvas{border:1px solid var(--bdr);border-radius:var(--rad2);width:320px;height:400px;margin-bottom:1rem;background:var(--bg2);display:block;image-rendering:pixelated}
+.viewer-btns{position:absolute;bottom:10px;right:10px;display:flex;gap:6px;z-index:10}
+.viewer-btn{width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s,border-color .2s;padding:0;line-height:1}
+.viewer-btn:hover{background:rgba(74,222,128,.25);border-color:var(--green)}
+.viewer-btn.active{background:rgba(74,222,128,.2);border-color:var(--green)}
 #capePreviewImg{max-width:100%;height:auto;border-radius:var(--rad2);display:none;image-rendering:pixelated;padding:1rem;background:var(--bg2)}
 
 /* PLAYER CARD (modal wearers) */
@@ -210,6 +214,9 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
         <div style="position:relative;width:320px;height:400px;border:1px solid var(--bdr);border-radius:var(--rad2);background:linear-gradient(135deg,var(--bg2),var(--card));margin-bottom:1rem;overflow:hidden;display:flex;align-items:center;justify-content:center">
           <canvas id="capeCanvas" width="320" height="400" style="cursor:move;display:block"></canvas>
           <img id="capePreviewImg" style="max-width:280px;max-height:360px;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 8px 16px rgba(0,0,0,.4));transition:transform .3s ease;display:none"/>
+          <div class="viewer-btns">
+            <button id="capeWalkBtn" class="viewer-btn" title="Toggle walking">🚶</button>
+          </div>
         </div>
         <div id="mRare" style="margin-bottom:.8rem"></div>
         <div style="text-align:center;font-size:.75rem;color:var(--txt2)">High-resolution cape texture</div>
@@ -622,6 +629,16 @@ function initSkinView3D(capeImageUrl){
     if(viewer.playerObject){
       viewer.playerObject.rotation.y=2.6;
     }
+
+    // Walk button toggle
+    var walking=false;
+    var walkBtn=document.getElementById('capeWalkBtn');
+    walkBtn.classList.remove('active');
+    walkBtn.onclick=function(){
+      walking=!walking;
+      viewer.animation=walking?new skinview3d.WalkingAnimation():new skinview3d.IdleAnimation();
+      walkBtn.classList.toggle('active',walking);
+    };
 
     // load the cape texture onto the character
     if(capeImageUrl){

@@ -27,13 +27,11 @@ module.exports = async function handler(req, res) {
     const stored = Array.isArray(data) && data[0] ? data[0].result : null;
     if (!stored)  return res.status(200).json({ linked: false });
 
-    const info = JSON.parse(stored);
+    const parsed = JSON.parse(stored);
+    // Normalise legacy single-object format to array
+    const accounts = Array.isArray(parsed) ? parsed : [parsed];
     res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=30');
-    return res.status(200).json({
-      linked:        true,
-      minecraftUuid: info.minecraftUuid,
-      minecraftName: info.minecraftName,
-    });
+    return res.status(200).json({ linked: true, accounts });
   } catch {
     return res.status(200).json({ linked: false });
   }

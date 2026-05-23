@@ -2,7 +2,7 @@
 //
 // DOM hooks expected on each page:
 //   #clerkSignIn  — "Log in" button (shown when signed out)
-//   #clerkUser    — container for custom user avatar button (shown when signed in)
+//   #clerkUser    — container for custom user avatar + dropdown (shown when signed in)
 
 // ── Appearance — matches the site's dark theme ────────────────────────────────
 var CLERK_APPEARANCE = {
@@ -34,45 +34,62 @@ var CLERK_APPEARANCE = {
   },
 };
 
-// ── Custom user menu (replaces Clerk's default UserButton) ────────────────────
-// Rendered inside #clerkUser once signed in.
-var _menuOpen = false;
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function _esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function _mcFace(uuid) {
+  return 'https://mc-heads.net/avatar/' + uuid + '/34';
+}
+function _activeKey(userId) {
+  return 'cs-active-mc:' + userId;
+}
 
-function _buildUserMenu(avatarSrc, displayName) {
-  return ''
-    + '<div style="position:relative">'
-    +   '<button id="_uBtn" onclick="_toggleMenu()" style="background:none;border:2px solid transparent;'
-    +     'border-radius:50%;padding:0;cursor:pointer;width:36px;height:36px;overflow:hidden;'
-    +     'transition:border-color .15s;flex-shrink:0" '
-    +     'onmouseover="this.style.borderColor=\'var(--green)\'" '
-    +     'onmouseout="this.style.borderColor=\'transparent\'">'
-    +     '<img id="_uAvatar" src="' + avatarSrc + '" '
-    +       'style="width:32px;height:32px;border-radius:50%;image-rendering:pixelated;display:block" '
-    +       'onerror="this.style.imageRendering=\'auto\'" />'
-    +   '</button>'
-    +   '<div id="_uDrop" style="display:none;position:absolute;top:calc(100% + 8px);right:0;'
-    +     'background:#131f2e;border:1px solid #1e293b;border-radius:10px;'
-    +     'box-shadow:0 16px 48px rgba(0,0,0,.7);min-width:200px;z-index:500;overflow:hidden">'
-    +     '<div style="padding:.85rem 1rem;border-bottom:1px solid #1e293b">'
-    +       '<div style="font-size:.875rem;font-weight:700;color:#f1f5f9;margin-bottom:.15rem" id="_uName">' + _escHtml(displayName) + '</div>'
-    +       '<div style="font-size:.75rem;color:#64748b" id="_uSub">Signed in</div>'
-    +     '</div>'
-    +     '<button onclick="_goManageAccount()" style="width:100%;background:none;border:none;text-align:left;'
-    +       'padding:.6rem 1rem;font-size:.875rem;color:#94a3b8;cursor:pointer;display:flex;align-items:center;gap:.5rem" '
-    +       'onmouseover="this.style.background=\'#182030\';this.style.color=\'#f1f5f9\'" '
-    +       'onmouseout="this.style.background=\'none\';this.style.color=\'#94a3b8\'">⚙ Manage account</button>'
-    +     '<button onclick="_signOut()" style="width:100%;background:none;border:none;text-align:left;'
-    +       'padding:.6rem 1rem;font-size:.875rem;color:#94a3b8;cursor:pointer;display:flex;align-items:center;gap:.5rem;'
-    +       'border-top:1px solid #1e293b" '
-    +       'onmouseover="this.style.background=\'#182030\';this.style.color=\'#f1f5f9\'" '
-    +       'onmouseout="this.style.background=\'none\';this.style.color=\'#94a3b8\'">↪ Sign out</button>'
+// ── Build dropdown HTML ───────────────────────────────────────────────────────
+function _buildDropdown(displayName, accounts, activeUuid) {
+  var accountRows = '';
+  if (accounts && accounts.length) {
+    accountRows += '<div style="padding:.5rem .75rem .3rem;font-size:.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.07em">Minecraft Accounts</div>';
+    for (var i = 0; i < accounts.length; i++) {
+      var acc  = accounts[i];
+      var isActive = acc.minecraftUuid === activeUuid;
+      accountRows +=
+        '<a href="profile.html?name=' + _esc(acc.minecraftName) + '" '
+        + 'onclick="_setActive(event,\'' + _esc(acc.minecraftUuid) + '\',\'' + _esc(acc.minecraftName) + '\')" '
+        + 'style="display:flex;align-items:center;gap:.6rem;padding:.5rem .75rem;text-decoration:none;'
+        + 'background:' + (isActive ? '#182030' : 'none') + ';transition:background .12s" '
+        + 'onmouseover="this.style.background=\'#182030\'" '
+        + 'onmouseout="this.style.background=\'' + (isActive ? '#182030' : 'none') + '\'">'
+        +   '<img src="' + _mcFace(acc.minecraftUuid) + '" '
+        +     'style="width:26px;height:26px;image-rendering:pixelated;border-radius:3px;flex-shrink:0"/>'
+        +   '<span style="font-size:.875rem;font-weight:600;color:#f1f5f9;flex:1">' + _esc(acc.minecraftName) + '</span>'
+        +   (isActive ? '<span style="font-size:.7rem;color:var(--green)">●</span>' : '')
+        + '</a>';
+    }
+    accountRows += '<div style="height:1px;background:#1e293b;margin:.3rem 0"></div>';
+  }
+
+  return '<div id="_uDrop" style="display:none;position:absolute;top:calc(100% + 8px);right:0;'
+    + 'background:#131f2e;border:1px solid #1e293b;border-radius:10px;'
+    + 'box-shadow:0 16px 48px rgba(0,0,0,.7);min-width:210px;z-index:500;overflow:hidden">'
+    +   '<div style="padding:.75rem .85rem .6rem;border-bottom:1px solid #1e293b">'
+    +     '<div style="font-size:.875rem;font-weight:700;color:#f1f5f9">' + _esc(displayName) + '</div>'
     +   '</div>'
+    +   accountRows
+    +   '<button onclick="_goManage()" style="width:100%;background:none;border:none;text-align:left;'
+    +     'padding:.55rem .85rem;font-size:.85rem;color:#94a3b8;cursor:pointer;display:flex;align-items:center;gap:.5rem" '
+    +     'onmouseover="this.style.background=\'#182030\';this.style.color=\'#f1f5f9\'" '
+    +     'onmouseout="this.style.background=\'none\';this.style.color=\'#94a3b8\'">⚙ Manage account</button>'
+    +   '<button onclick="_doSignOut()" style="width:100%;background:none;border:none;text-align:left;'
+    +     'padding:.55rem .85rem;font-size:.85rem;color:#94a3b8;cursor:pointer;display:flex;align-items:center;gap:.5rem;'
+    +     'border-top:1px solid #1e293b" '
+    +     'onmouseover="this.style.background=\'#182030\';this.style.color=\'#f1f5f9\'" '
+    +     'onmouseout="this.style.background=\'none\';this.style.color=\'#94a3b8\'">↪ Sign out</button>'
     + '</div>';
 }
 
-function _escHtml(s) {
-  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
+// ── Dropdown controls ─────────────────────────────────────────────────────────
+var _menuOpen = false;
 
 function _toggleMenu() {
   var drop = document.getElementById('_uDrop');
@@ -81,51 +98,41 @@ function _toggleMenu() {
   drop.style.display = _menuOpen ? 'block' : 'none';
 }
 
-function _goManageAccount() {
+function _setActive(e, uuid, name) {
+  // Navigating to the profile — also save this account as active
+  var userId = window.Clerk && window.Clerk.user ? window.Clerk.user.id : null;
+  if (userId) localStorage.setItem(_activeKey(userId), uuid);
+  // Update avatar immediately
+  var avatarEl = document.getElementById('_uAvatar');
+  if (avatarEl) avatarEl.src = _mcFace(uuid);
+  // Close menu (navigation will follow the <a> href)
+  _menuOpen = false;
+  var drop = document.getElementById('_uDrop');
+  if (drop) drop.style.display = 'none';
+}
+
+function _goManage() {
   _menuOpen = false;
   var drop = document.getElementById('_uDrop');
   if (drop) drop.style.display = 'none';
   if (window.Clerk) window.Clerk.openUserProfile({ appearance: CLERK_APPEARANCE });
 }
 
-function _signOut() {
+function _doSignOut() {
   _menuOpen = false;
   if (window.Clerk) window.Clerk.signOut();
 }
 
-// Close menu when clicking outside
+// Close when clicking outside
 document.addEventListener('click', function(e) {
   if (!_menuOpen) return;
-  var btn = document.getElementById('_uBtn');
-  var drop = document.getElementById('_uDrop');
-  if (btn && !btn.contains(e.target) && drop && !drop.contains(e.target)) {
+  var wrap = document.getElementById('clerkUser');
+  if (wrap && !wrap.contains(e.target)) {
     _menuOpen = false;
-    drop.style.display = 'none';
+    var drop = document.getElementById('_uDrop');
+    if (drop) drop.style.display = 'none';
   }
 });
-
-// ── Fetch linked Minecraft profile and return best avatar src ─────────────────
-async function _getAvatarSrc(user) {
-  try {
-    var r = await fetch('/api/get-user-minecraft?clerkUserId=' + encodeURIComponent(user.id));
-    if (r.ok) {
-      var d = await r.json();
-      if (d.linked && d.minecraftUuid) {
-        // Update the subtitle in the dropdown to show their Minecraft name
-        var sub = document.getElementById('_uSub');
-        if (sub) sub.textContent = d.minecraftName;
-        // Update avatar to Minecraft face
-        var avatarEl = document.getElementById('_uAvatar');
-        if (avatarEl) {
-          avatarEl.src = 'https://mc-heads.net/avatar/' + d.minecraftUuid + '/32';
-        }
-        return 'https://mc-heads.net/avatar/' + d.minecraftUuid + '/32';
-      }
-    }
-  } catch {}
-  // Fall back to Clerk's OAuth avatar (Discord/Google profile picture)
-  return user.imageUrl || '';
-}
 
 // ── Main init ─────────────────────────────────────────────────────────────────
 window.addEventListener('load', async function initClerkAuth() {
@@ -133,42 +140,83 @@ window.addEventListener('load', async function initClerkAuth() {
 
   await window.Clerk.load({ appearance: CLERK_APPEARANCE });
 
-  var btn  = document.getElementById('clerkSignIn');
-  var wrap = document.getElementById('clerkUser');
+  var signInBtn = document.getElementById('clerkSignIn');
+  var wrap      = document.getElementById('clerkUser');
 
   async function syncUI() {
-    if (window.Clerk.user) {
-      var user = window.Clerk.user;
-
-      // Sign-in button hidden
-      if (btn) btn.style.display = 'none';
-
-      if (wrap) {
-        wrap.style.display = 'flex';
-
-        // Build menu with Clerk avatar first (fast), then swap to Minecraft face
-        var displayName = user.username
-          || user.firstName
-          || (user.emailAddresses && user.emailAddresses[0] && user.emailAddresses[0].emailAddress)
-          || 'Player';
-
-        var initialAvatar = user.imageUrl || '';
-        wrap.innerHTML = _buildUserMenu(initialAvatar, displayName);
-
-        // Async: swap avatar to Minecraft face if they have a linked profile
-        _getAvatarSrc(user);
-      }
-    } else {
-      if (btn)  btn.style.display  = '';
-      if (wrap) { wrap.style.display = 'none'; wrap.innerHTML = ''; }
+    if (!window.Clerk.user) {
+      if (signInBtn) signInBtn.style.display = '';
+      if (wrap)      { wrap.style.display = 'none'; wrap.innerHTML = ''; }
+      return;
     }
+
+    var user = window.Clerk.user;
+    if (signInBtn) signInBtn.style.display = 'none';
+    if (!wrap) return;
+    wrap.style.display = 'flex';
+
+    var displayName = user.username
+      || user.firstName
+      || (user.emailAddresses && user.emailAddresses[0] && user.emailAddresses[0].emailAddress)
+      || 'Player';
+
+    // Determine starting avatar — use saved active account from localStorage if available
+    var savedActive = localStorage.getItem(_activeKey(user.id));
+    var startAvatar = savedActive ? _mcFace(savedActive) : (user.imageUrl || '');
+
+    // Render button + empty dropdown immediately (fast)
+    wrap.innerHTML =
+      '<div style="position:relative">'
+      + '<button id="_uBtn" onclick="_toggleMenu()" title="Account menu" '
+      +   'style="background:#182030;border:2px solid #1e293b;border-radius:6px;padding:0;'
+      +   'cursor:pointer;width:38px;height:38px;overflow:hidden;flex-shrink:0;transition:border-color .15s" '
+      +   'onmouseover="this.style.borderColor=\'var(--green)\'" '
+      +   'onmouseout="this.style.borderColor=\'#1e293b\'">'
+      +   '<img id="_uAvatar" src="' + _esc(startAvatar) + '" '
+      +     'style="width:34px;height:34px;display:block;image-rendering:pixelated;border-radius:3px" '
+      +     'onerror="this.style.imageRendering=\'auto\'" />'
+      + '</button>'
+      + _buildDropdown(displayName, [], savedActive)
+      + '</div>';
+
+    // Async: fetch linked Minecraft accounts and rebuild dropdown
+    try {
+      var r = await fetch('/api/get-user-minecraft?clerkUserId=' + encodeURIComponent(user.id));
+      if (r.ok) {
+        var d = await r.json();
+        if (d.linked && d.accounts && d.accounts.length) {
+          // Determine active account: saved preference → first in list
+          var activeUuid = savedActive || d.accounts[0].minecraftUuid;
+          // If nothing saved yet, persist the first account as default
+          if (!savedActive) localStorage.setItem(_activeKey(user.id), activeUuid);
+
+          // Swap avatar to active Minecraft face
+          var avatarEl = document.getElementById('_uAvatar');
+          if (avatarEl) {
+            avatarEl.src = _mcFace(activeUuid);
+            avatarEl.style.imageRendering = 'pixelated';
+          }
+
+          // Rebuild dropdown with real account list
+          var dropEl = document.getElementById('_uDrop');
+          if (dropEl) {
+            var newDrop = document.createElement('div');
+            newDrop.innerHTML = _buildDropdown(displayName, d.accounts, activeUuid);
+            var built = newDrop.firstChild;
+            built.id    = '_uDrop';
+            built.style.display = _menuOpen ? 'block' : 'none';
+            dropEl.replaceWith(built);
+          }
+        }
+      }
+    } catch {}
   }
 
   await syncUI();
   window.Clerk.addListener(syncUI);
 
-  if (btn) {
-    btn.addEventListener('click', function() {
+  if (signInBtn) {
+    signInBtn.addEventListener('click', function() {
       window.Clerk.openSignIn({ appearance: CLERK_APPEARANCE });
     });
   }

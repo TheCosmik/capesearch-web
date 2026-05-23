@@ -71,6 +71,22 @@ module.exports = async function handler(req, res) {
 
   const now = Date.now();
 
+  // Read existing linked accounts so we can append rather than overwrite
+  const [existingRaw] = await kvPipeline([['GET', `user-minecraft:${payload.clerkUserId}`]]);
+  let accounts = [];
+  if (existingRaw) {
+    try {
+      const parsed = JSON.parse(existingRaw);
+      // Handle legacy single-object format { minecraftUuid, minecraftName }
+      accounts = Array.isArray(parsed) ? parsed : [parsed];
+    } catch { accounts = []; }
+  }
+  // Add new account only if not already in the list
+  const alreadyLinked = accounts.some(a => a.minecraftUuid === payload.minecraftUuid);
+  if (!alreadyLinked) {
+    accounts.push({ minecraftUuid: payload.minecraftUuid, minecraftName: payload.minecraftName });
+  }
+
   // Permanently link the profile
   await kvPipeline([
     ['SET', `claimed:${payload.minecraftUuid}`, JSON.stringify({
@@ -78,10 +94,7 @@ module.exports = async function handler(req, res) {
       minecraftName: payload.minecraftName,
       claimedAt:     now,
     })],
-    ['SET', `user-minecraft:${payload.clerkUserId}`, JSON.stringify({
-      minecraftUuid: payload.minecraftUuid,
-      minecraftName: payload.minecraftName,
-    })],
+    ['SET', `user-minecraft:${payload.clerkUserId}`, JSON.stringify(accounts)],
     // Clean up the used code
     ['DEL', `claimcode:${normalizedCode}`],
     ['DEL', `claimbyuser:${payload.clerkUserId}`],

@@ -7,8 +7,9 @@
 
 // ── Vercel KV helpers (Upstash REST API, no npm package needed) ───────────────
 async function kvPipeline(commands) {
-  const url   = process.env.KV_REST_API_URL;
-  const token = process.env.KV_REST_API_TOKEN;
+  // Support both Upstash direct integration and legacy Vercel KV env var names
+  const url   = process.env.UPSTASH_REDIS_REST_URL   || process.env.KV_REST_API_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
   if (!url || !token) return commands.map(() => null);
   try {
     const res = await fetch(`${url}/pipeline`, {

@@ -527,6 +527,10 @@ document.querySelectorAll('.fbtn').forEach(function(btn){
 });
 document.getElementById('sortSel').addEventListener('change',function(){curS=this.value;renderGrid()});
 
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function avN(name){return'https://mc-heads.net/avatar/'+encodeURIComponent(name)+'/32'}
+var FB='https://mc-heads.net/avatar/Steve/32';
+
 // ── SEARCH ────────────────────────────────────────────────────────────────────
 (function(){
   var inp=document.getElementById('navQ');

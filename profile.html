@@ -246,6 +246,7 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
   <div class="foot-bot">&copy; 2025 CapeSearch — Built for educational purposes.</div>
 </footer>
 
+<script src="skinview3d.bundle.js"></script>
 <script>
 // ── DATA ──────────────────────────────────────────────────────────────────────
 var CAPES=[
@@ -521,16 +522,13 @@ function copyText(text,btn){
     var o=btn.innerHTML;btn.innerHTML='✅';setTimeout(function(){btn.innerHTML=o},1500);
   });
 }
-</script>
-<script src="skinview3d.bundle.js"></script>
-<script>
+
 // ── 3D SKIN VIEWER ────────────────────────────────────────────────────────────
 function initProfileViewer(uuid){
   if(!window.skinview3d){
     // fallback: show static body image
     document.getElementById('skinViewer3d').style.display='none';
-    var fi=document.getElementById('bodyImg');
-    fi.style.display='block';
+    document.getElementById('bodyImg').style.display='block';
     return;
   }
 
@@ -549,12 +547,16 @@ function initProfileViewer(uuid){
   var canvas=document.getElementById('skinViewer3d');
   if(!canvas)return;
 
+  // Make sure the canvas is visible (may have been hidden on a previous failed init)
+  canvas.style.display='block';
+
   try{
     var viewer=new skinview3d.SkinViewer({
       canvas:canvas,
       width:370,
       height:550,
-      skin:'https://mc-heads.net/skin/'+uuid
+      // crafatar.com sends Access-Control-Allow-Origin: * — required for WebGL textures
+      skin:'https://crafatar.com/skins/'+uuid
     });
 
     viewer.animation=null;
@@ -577,7 +579,6 @@ function initProfileViewer(uuid){
     canvas.addEventListener('mousedown',function(e){
       isDragging=true;
       prevX=e.clientX;
-      viewer.autoRotate=false;
       canvas.style.cursor='grabbing';
     });
 
@@ -597,8 +598,7 @@ function initProfileViewer(uuid){
   }catch(e){
     console.error('3D viewer error:',e);
     document.getElementById('skinViewer3d').style.display='none';
-    var fi2=document.getElementById('bodyImg');
-    fi2.style.display='block';
+    document.getElementById('bodyImg').style.display='block';
   }
 }
 </script>

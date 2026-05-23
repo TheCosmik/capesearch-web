@@ -99,6 +99,11 @@ module.exports = async function handler(req, res) {
   }
 
   try {
+    // Register this player for background polling if not already tracked.
+    // NX = only add if the member doesn't exist (preserves existing poll schedule).
+    // Score 0 = never polled → cron will prioritise them immediately.
+    kvPipeline([['ZADD', 'tracked:players', 'NX', 0, cleanUuid]]).catch(() => {});
+
     // Fetch Mojang profile + KV history in parallel to keep latency low
     const [mojangRes, history] = await Promise.all([
       fetch(

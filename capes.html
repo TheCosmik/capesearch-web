@@ -694,6 +694,23 @@ function loadCapeImageFallback(capeImageUrl){
 // ── INIT ──────────────────────────────────────────────────────────────────────
 renderGrid();
 renderFeed();
+
+// ── LIVE COUNTS from /api/cape-counts ────────────────────────────────────────
+// Fetches up-to-date wearer counts from crafty.gg via a serverless function.
+// Falls back silently to the hardcoded values above if the fetch fails.
+fetch('/api/cape-counts')
+  .then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
+  .then(function(counts){
+    var changed=false;
+    CAPES.forEach(function(c){
+      if(typeof counts[c.id]==='number' && counts[c.id]!==c.wearers){
+        c.wearers=counts[c.id];
+        changed=true;
+      }
+    });
+    if(changed) renderGrid();
+  })
+  .catch(function(e){ console.warn('Live cape counts unavailable, using defaults.',e); });
 </script>
 </body>
 </html>

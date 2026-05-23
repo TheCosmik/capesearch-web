@@ -42,36 +42,33 @@ async function kvSet(key, value) {
 }
 
 // ── Cape history helpers ───────────────────────────────────────────────────────
-// Key format: ph:{uuid}  (profile history)
-// Value: JSON array, newest entry first
-//   [ { url, first_seen, last_seen }, … ]
-// Timestamps are Unix ms (Date.now()).
+// Key format: cph:{uuid}  (cape profile history — sorted set)
+// Type: Redis Sorted Set
+//   Member: cape texture URL
+//   Score:  Unix ms of most-recent wear (last_seen)
+//
+// Using ZADD instead of GET→modify→SET eliminates the read-modify-write
+// race condition that caused rapid cape-switching to drop entries.
+// ZADD atomically adds or updates the score for a member — two concurrent
+// requests can never clobber each other.
 
 async function getCapeHistory(uuid) {
-  const data = await kvGet(`ph:${uuid}`);
-  if (data === KV_READ_ERROR) return KV_READ_ERROR;   // propagate so callers can bail
-  return Array.isArray(data) ? data : [];
+  const [result] = await kvPipeline([['ZREVRANGE', `cph:${uuid}`, 0, 49]]);
+  if (result === KV_READ_ERROR) return KV_READ_ERROR;
+  if (!Array.isArray(result)) return [];
+  // Reshape into the {url, first_seen, last_seen} format the handler expects
+  return result.map(url => ({ url, first_seen: null, last_seen: null }));
 }
 
 async function updateCapeHistory(uuid, capeUrl) {
-  const history = await getCapeHistory(uuid);
-
-  // If the read failed (timeout / network error), bail out rather than
-  // overwriting good KV data with a single-entry history.
-  if (history === KV_READ_ERROR) return;
-
   const now = Date.now();
-
-  if (history.length > 0 && history[0].url === capeUrl) {
-    // Same cape — just refresh the last_seen timestamp
-    history[0].last_seen = now;
-  } else {
-    // Cape changed (or first ever record) — prepend new entry
-    history.unshift({ url: capeUrl, first_seen: now, last_seen: now });
+  // ZADD: if capeUrl already exists, score is updated (last_seen refreshed).
+  //       If it's new, it's added. Either way — atomic, no race condition.
+  const [r] = await kvPipeline([['ZADD', `cph:${uuid}`, now, capeUrl]]);
+  if (r !== KV_READ_ERROR) {
+    // Trim to 50 most-recently-worn capes (remove lowest scores = oldest)
+    await kvPipeline([['ZREMRANGEBYRANK', `cph:${uuid}`, 0, -51]]);
   }
-
-  // Keep at most 50 entries per player
-  await kvSet(`ph:${uuid}`, history.slice(0, 50));
 }
 
 // ── Main handler ──────────────────────────────────────────────────────────────
@@ -127,9 +124,9 @@ module.exports = async function handler(req, res) {
       updateCapeHistory(uuid, cape).catch(() => {});
     }
 
-    // Cache 60 s at the CDN edge; serve stale for 30 s while revalidating
-    res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=30');
-    return res.status(200).json({ skin, cape, slim, name: profile.name, history });
+    // Cache 15 s at the CDN edge; serve stale for 5 s while revalidating
+    res.setHeader('Cache-Control', 's-maxage=15, stale-while-revalidate=5');
+    return res.status(200).json({ skin, cape, slim, name: profile.name, history: Array.isArray(history) ? history : [] });
 
   } catch (err) {
     return res.status(500).json({ error: 'Proxy error: ' + err.message });

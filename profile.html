@@ -285,9 +285,22 @@ var PCAPES={
 };
 var UUIDS={dream:'69e76b14-1d14-4b87-9b5b-01b32e9b6f4c',technoblade:'b876ec32-e396-476b-a115-8438d83c67d4',tommyinnit:'e94de2df-60c0-4dea-baa2-e4c29d82cbb8',notch:'069a79f4-44e9-4726-a5be-fca90e38aaf5',ph1lza:'a5704282-91f1-400e-9e8e-e57d29562e70',skeppy:'d0e05de7-6067-454d-beae-c4dc7ad2ed9c',wilbur:'39f6d1b3-6fe2-44cc-8a70-3e5dace3c5d2',quackity:'5a9a9e45-d9ea-49cf-a23f-a8e27f0e2c26',sapnap:'cdb5b06a-2a89-4fcd-a4bf-63e0b02f8e84'};
 
-// Known cape texture hash → display name (only add verified hashes here)
-var CAPE_HASH_NAMES={
-  '2340c0e03dd24a11b15a8b33c2a7e9e32abb2051b2481d0ba7defd635ca7a933':'Migrator Cape',
+// Maps Mojang texture hash → { name, img (local path) }
+// img uses the locally hosted renders in /capes/ — add new entries as hashes are discovered.
+var CAPE_HASH_DATA={
+  // ── confirmed via live Mojang API lookups ──────────────────────────────────
+  '2340c0e03dd24a11b15a8b33c2a7e9e32abb2051b2481d0ba7defd635ca7a933':
+    {name:'Migrator Cape',        img:'capes/migrator.png'},
+  '7658c5025c77cfac7574aab3af94a46a8886e3b7722a895255fbf22ab8652434':
+    {name:'Minecraft Experience', img:'capes/Experience.png'},
+  'e7dfea16dc83c97df01a12fabbd1216359c0cd0ea42f9999b6e97c584963e980':
+    {name:'Pan Cape',             img:'capes/Pan.png'},
+  // ── Mojang staff capes (hash confirmed, file assignment verified) ──────────
+  '9e507afc56359978a3eb3e32367042b853cddd0995d17d0da995662913fb00f7':
+    {name:'Mojang Cape',          img:'capes/mojang.png'},
+  '5786fe99be377dfb6858859f926c4dbc995751e91cee373468c5fbf4865e7151':
+    {name:'Mojang Studios',       img:'capes/Mojang Studios.png'},
+  // ── add more below as they are identified ─────────────────────────────────
 };
 var FB='https://mc-heads.net/avatar/Steve/32';
 function av(uuid){return'https://crafatar.com/avatars/'+uuid+'?size=64&overlay'}
@@ -422,12 +435,18 @@ function fetchTextures(uuid){
       }
       function capeRow(url,firstSeen,lastSeen,isActive){
         var hash=url.replace(/https?:\/\/textures\.minecraft\.net\/texture\//,'');
-        var name=CAPE_HASH_NAMES[hash]||'Cape';
+        var capeData=CAPE_HASH_DATA[hash]||{};
+        var name=capeData.name||'Equipped Cape';
+        // Use the local render if known, otherwise fall back to the raw Mojang texture
+        var imgSrc=capeData.img||url;
+        var imgStyle=capeData.img
+          ?'height:52px;border-radius:6px;border:1px solid var(--bdr)'
+          :'height:38px;image-rendering:pixelated;border-radius:3px;border:1px solid var(--bdr)';
         var firstStr=firstSeen?fmtTs(firstSeen):'<span style="color:var(--muted)">—</span>';
         var lastStr=isActive?'Present':(lastSeen?fmtTs(lastSeen):'<span style="color:var(--muted)">—</span>');
         return'<tr>'+
           '<td><div style="display:flex;align-items:center;gap:.75rem">'+
-          '<img src="'+url+'" style="height:38px;image-rendering:pixelated;border-radius:3px;border:1px solid var(--bdr)" onerror="this.style.display=\'none\'"/>'+
+          '<img src="'+imgSrc+'" style="'+imgStyle+'" onerror="this.style.display=\'none\'"/>'+
           '<strong>'+name+'</strong></div></td>'+
           '<td>'+firstStr+'</td>'+
           '<td>'+lastStr+'</td>'+

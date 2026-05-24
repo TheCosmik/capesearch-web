@@ -92,10 +92,10 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.25rem 1re
   <div class="nav-in">
     <a href="index.html" class="logo"><div class="logo-icon">⛏</div><b>Cape<span>Search</span></b></a>
     <div class="nav-links">
-      <a href="index.html">Home</a>
-      <a href="capes.html">Capes</a>
-      <a href="servers.html">Servers</a>
-      <a href="admin.html" class="on">Admin</a>
+      <a href="index.html" data-i18n="nav.home">Home</a>
+      <a href="capes.html" data-i18n="nav.capes">Capes</a>
+      <a href="servers.html" data-i18n="nav.servers">Servers</a>
+      <a href="admin.html" class="on" data-i18n="nav.admin">Admin</a>
     </div>
     <div style="display:flex;align-items:center;margin-left:.5rem;flex-shrink:0">
       <button id="clerkSignIn" style="display:none;background:var(--green);color:#0f1923;border:none;border-radius:var(--rad);padding:.35rem .9rem;font-size:.875rem;font-weight:700;cursor:pointer" onclick="window.Clerk&&window.Clerk.openSignIn()">Log in</button>
@@ -434,6 +434,7 @@ function showToast(msg) {
   _toastTimer = setTimeout(function(){ t.style.display = 'none'; }, 3000);
 }
 </script>
+<script src="lang.js"></script>
 <script src="clerk-auth.js"></script>
 </body>
 </html>

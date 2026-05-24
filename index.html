@@ -135,18 +135,18 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:2rem 1rem;m
     <a href="index.html" class="logo"><div class="logo-icon">⛏</div><b>Cape<span>Search</span></b></a>
     <div class="nav-s">
       <span class="si">🔍</span>
-      <input id="navQ" type="text" placeholder="Search player..." autocomplete="off"/>
+      <input id="navQ" type="text" placeholder="Search player..." data-i18n-ph="nav.search" autocomplete="off"/>
       <div class="sdrop" id="navDrop"></div>
     </div>
     <div class="nav-links">
-      <a href="index.html" class="on">Home</a>
-      <a href="capes.html">Capes</a>
-      <a href="servers.html">Servers</a>
-      <a href="#">Skins</a>
-      <a href="#faq">FAQ</a>
+      <a href="index.html" class="on" data-i18n="nav.home">Home</a>
+      <a href="capes.html" data-i18n="nav.capes">Capes</a>
+      <a href="servers.html" data-i18n="nav.servers">Servers</a>
+      <a href="#" data-i18n="nav.skins">Skins</a>
+      <a href="#faq" data-i18n="nav.faq">FAQ</a>
     </div>
     <div style="display:flex;align-items:center;margin-left:.5rem;flex-shrink:0">
-      <button id="clerkSignIn" style="display:none;background:var(--green);color:#0f1923;border:none;border-radius:var(--rad);padding:.35rem .9rem;font-size:.875rem;font-weight:700;cursor:pointer;transition:opacity .15s" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">Log in</button>
+      <button id="clerkSignIn" style="display:none;background:var(--green);color:#0f1923;border:none;border-radius:var(--rad);padding:.35rem .9rem;font-size:.875rem;font-weight:700;cursor:pointer;transition:opacity .15s" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'" data-i18n="nav.login">Log in</button>
       <div id="clerkUser" style="display:none;align-items:center"></div>
     </div>
   </div>
@@ -155,7 +155,7 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:2rem 1rem;m
 <div class="hero">
   <div class="wrap">
     <h1>Join <span style="color:var(--txt)">Cape</span><span>Search</span></h1>
-    <p style="font-size:.95rem;margin-bottom:.5rem">Connect to our Minecraft server to claim your profile</p>
+    <p style="font-size:.95rem;margin-bottom:.5rem" data-i18n="index.hero_sub">Connect to our Minecraft server to claim your profile</p>
     <div style="display:inline-flex;align-items:center;gap:.6rem;background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad);padding:.55rem 1.1rem;font-size:.95rem;font-family:monospace;color:var(--txt2)">
       <span style="color:var(--muted);font-size:.8rem;font-weight:600;font-family:sans-serif">IP</span>
       <span id="serverIp" style="color:var(--txt);font-weight:600">play.capesearch.net</span>
@@ -167,24 +167,24 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:2rem 1rem;m
 <div class="wrap">
   <div class="sec">
     <div class="stats">
-      <div class="stat"><div class="sl">Players Tracked</div><div class="sv">48.2M</div><div class="ss">+12,481 today</div></div>
-      <div class="stat"><div class="sl">Cape Changes Today</div><div class="sv">3,847</div><div class="ss">Last updated 2 min ago</div></div>
-      <div class="stat"><div class="sl">Capes Tracked</div><div class="sv">47</div><div class="ss">Including Bedrock capes</div></div>
-      <div class="stat"><div class="sl">Skins Database</div><div class="sv">128M</div><div class="ss">Unique skins indexed</div></div>
+      <div class="stat"><div class="sl" data-i18n="index.stat_players">Players Tracked</div><div class="sv">48.2M</div><div class="ss">+12,481 today</div></div>
+      <div class="stat"><div class="sl" data-i18n="index.stat_changes">Cape Changes Today</div><div class="sv">3,847</div><div class="ss">Last updated 2 min ago</div></div>
+      <div class="stat"><div class="sl" data-i18n="index.stat_capes">Capes Tracked</div><div class="sv">47</div><div class="ss">Including Bedrock capes</div></div>
+      <div class="stat"><div class="sl" data-i18n="index.stat_skins">Skins Database</div><div class="sv">128M</div><div class="ss">Unique skins indexed</div></div>
     </div>
   </div>
 
   <div class="g2" style="margin-bottom:2rem">
     <div>
       <div class="sec-hd">
-        <div class="sec-title"><span class="ic">⚡</span> Recent Cape Changes</div>
-        <a href="capes.html" class="btn btn-sm btn-o">View All</a>
+        <div class="sec-title"><span class="ic">⚡</span> <span data-i18n="index.recent_changes">Recent Cape Changes</span></div>
+        <a href="capes.html" class="btn btn-sm btn-o" data-i18n="index.view_all">View All</a>
       </div>
       <div class="card" id="feed"></div>
     </div>
     <div>
       <div class="sec-hd">
-        <div class="sec-title"><span class="ic">🔥</span> Popular Accounts</div>
+        <div class="sec-title"><span class="ic">🔥</span> <span data-i18n="index.popular_accounts">Popular Accounts</span></div>
         <span id="popularMonth" style="font-size:.75rem;color:var(--muted)"></span>
       </div>
       <div style="display:flex;flex-direction:column;gap:.55rem" id="players"></div>
@@ -193,27 +193,27 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:2rem 1rem;m
 
   <div class="sec" id="faq">
     <div class="sec-hd">
-      <div class="sec-title"><span class="ic">❓</span> Frequently Asked Questions</div>
+      <div class="sec-title"><span class="ic">❓</span> <span data-i18n="faq.title">Frequently Asked Questions</span></div>
     </div>
     <div class="faq-list">
       <div class="faq-item">
-        <div class="faq-q" onclick="toggleFaq(this)">What is CapeSearch? <span class="faq-chevron">▼</span></div>
-        <div class="faq-a">CapeSearch is a comprehensive Minecraft player tracking platform. You can look up any player's current cape, skin, name history, and cape change history in real time. We index millions of players and track cape changes as they happen across Java and Bedrock editions.</div>
+        <div class="faq-q" onclick="toggleFaq(this)"><span data-i18n="faq.q1">What is CapeSearch?</span> <span class="faq-chevron">▼</span></div>
+        <div class="faq-a" data-i18n="faq.a1">CapeSearch is a comprehensive Minecraft player tracking platform. You can look up any player's current cape, skin, name history, and cape change history in real time. We index millions of players and track cape changes as they happen across Java and Bedrock editions.</div>
       </div>
       <div class="faq-item">
-        <div class="faq-q" onclick="toggleFaq(this)">How often is player data updated? <span class="faq-chevron">▼</span></div>
-        <div class="faq-a">Player profiles are updated automatically whenever a player is looked up, and our background polling system continuously checks popular players for cape and skin changes. Most active players have data that is no more than a few minutes old at any given time.</div>
+        <div class="faq-q" onclick="toggleFaq(this)"><span data-i18n="faq.q2">How often is player data updated?</span> <span class="faq-chevron">▼</span></div>
+        <div class="faq-a" data-i18n="faq.a2">Player profiles are updated automatically whenever a player is looked up, and our background polling system continuously checks popular players for cape and skin changes. Most active players have data that is no more than a few minutes old at any given time.</div>
       </div>
       <div class="faq-item">
-        <div class="faq-q" onclick="toggleFaq(this)">How do I claim my profile? <span class="faq-chevron">▼</span></div>
-        <div class="faq-a">To claim your Minecraft profile, log in or create a CapeSearch account using the button in the top right. Then search for your Minecraft username and click the "Claim Profile" button. You'll receive a short code to type in-game on our verification server, and your profile will be linked instantly.</div>
+        <div class="faq-q" onclick="toggleFaq(this)"><span data-i18n="faq.q3">How do I claim my profile?</span> <span class="faq-chevron">▼</span></div>
+        <div class="faq-a" data-i18n="faq.a3">To claim your Minecraft profile, log in or create a CapeSearch account using the button in the top right. Then search for your Minecraft username and click the "Claim Profile" button. You'll receive a short code to type in-game on our verification server, and your profile will be linked instantly.</div>
       </div>
       <div class="faq-item">
-        <div class="faq-q" onclick="toggleFaq(this)">Why is my cape not showing up? <span class="faq-chevron">▼</span></div>
-        <div class="faq-a">If your cape isn't showing on your profile, try searching for your username to trigger a fresh data fetch from Mojang's servers. Changes can sometimes take a few minutes to propagate. If the issue persists, it may be that your account's data is restricted or the cape was very recently equipped.</div>
+        <div class="faq-q" onclick="toggleFaq(this)"><span data-i18n="faq.q4">Why is my cape not showing up?</span> <span class="faq-chevron">▼</span></div>
+        <div class="faq-a" data-i18n="faq.a4">If your cape isn't showing on your profile, try searching for your username to trigger a fresh data fetch from Mojang's servers. Changes can sometimes take a few minutes to propagate. If the issue persists, it may be that your account's data is restricted or the cape was very recently equipped.</div>
       </div>
       <div class="faq-item">
-        <div class="faq-q" onclick="toggleFaq(this)">How do I hide my previous usernames? <span class="faq-chevron">▼</span></div>
+        <div class="faq-q" onclick="toggleFaq(this)"><span data-i18n="faq.q5">How do I hide my previous usernames?</span> <span class="faq-chevron">▼</span></div>
         <div class="faq-a">If you have claimed your profile, you can hide your past usernames from public view. Navigate to your profile page, then click the <strong>⚙</strong> settings icon next to your "Your Profile" badge. Toggle on <strong>Hide previous usernames</strong> and the change saves instantly. Visitors will still see the date each name was used — only the names themselves are replaced with a dash (—). You can turn this off at any time to show your full name history again.</div>
       </div>
     </div>
@@ -222,12 +222,12 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:2rem 1rem;m
 
 <footer>
   <div class="foot-in">
-    <div class="foot-brand"><div class="fl">Cape<span>Search</span></div><p>Most comprehensive Minecraft player tracking. Not affiliated with Mojang or Microsoft.</p></div>
-    <div class="foot-col"><h4>Players</h4><ul><li><a href="#">Search Players</a></li><li><a href="#">Name History</a></li><li><a href="#">UUID Lookup</a></li><li><a href="#">Skin Library</a></li></ul></div>
-    <div class="foot-col"><h4>Capes</h4><ul><li><a href="capes.html">All Capes</a></li><li><a href="#">Recent Changes</a></li><li><a href="#">Rarest Capes</a></li><li><a href="#">Bedrock Capes</a></li></ul></div>
-    <div class="foot-col"><h4>More</h4><ul><li><a href="servers.html">Servers</a></li><li><a href="#">API</a></li><li><a href="#">About</a></li></ul></div>
+    <div class="foot-brand"><div class="fl">Cape<span>Search</span></div><p data-i18n="footer.tagline">Most comprehensive Minecraft player tracking. Not affiliated with Mojang or Microsoft.</p></div>
+    <div class="foot-col"><h4 data-i18n="footer.col_players">Players</h4><ul><li><a href="#" data-i18n="footer.search_players">Search Players</a></li><li><a href="#" data-i18n="footer.name_history">Name History</a></li><li><a href="#" data-i18n="footer.uuid_lookup">UUID Lookup</a></li><li><a href="#" data-i18n="footer.skin_library">Skin Library</a></li></ul></div>
+    <div class="foot-col"><h4 data-i18n="footer.col_capes">Capes</h4><ul><li><a href="capes.html" data-i18n="footer.all_capes">All Capes</a></li><li><a href="#" data-i18n="footer.recent_changes">Recent Changes</a></li><li><a href="#" data-i18n="footer.rarest_capes">Rarest Capes</a></li><li><a href="#" data-i18n="footer.bedrock_capes">Bedrock Capes</a></li></ul></div>
+    <div class="foot-col"><h4 data-i18n="footer.col_more">More</h4><ul><li><a href="servers.html" data-i18n="footer.servers">Servers</a></li><li><a href="#" data-i18n="footer.api">API</a></li><li><a href="#" data-i18n="footer.about">About</a></li></ul></div>
   </div>
-  <div class="foot-bot">Copyright &copy; 2026 NameSearch. All rights reserved.</div>
+  <div class="foot-bot" data-i18n="footer.copyright">Copyright &copy; 2026 NameSearch. All rights reserved.</div>
 </footer>
 
 <script>
@@ -525,6 +525,7 @@ function toggleFaq(btn){
 loadRecentCapes();loadTopProfiles();
 setupSearch('navQ','navDrop');
 </script>
+<script src="lang.js"></script>
 <script src="clerk-auth.js"></script>
 </body>
 </html>

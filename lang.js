@@ -484,10 +484,19 @@
   }
 
   // ── Boot ───────────────────────────────────────────────────────────────────
-  document.addEventListener('DOMContentLoaded', function () {
+  // Guard: scripts at the bottom of <body> may execute after DOMContentLoaded
+  // has already fired (readyState === 'interactive' | 'complete').
+  // Run immediately in that case; otherwise wait for the event.
+  function _boot() {
     storeOriginals();
     injectSwitcher();
     applyTranslations();
-  });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _boot);
+  } else {
+    _boot();
+  }
 
 })();

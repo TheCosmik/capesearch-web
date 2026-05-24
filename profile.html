@@ -659,7 +659,9 @@ var resolvedUUID=UUIDS[key]||null;
 function applyUUID(uuid,canonName){
   var displayName=canonName||dname;
   document.title=displayName+' – CapeSearch';
-  document.getElementById('pUser').textContent=displayName;
+  var _puEl=document.getElementById('pUser');
+  _puEl.textContent=displayName;
+  _puEl.dataset.playerName=displayName; // keep clean name separate from badge markup
   document.getElementById('pUUID').innerHTML=
     'UUID: <code style="font-size:.8rem;color:var(--txt2)">'+uuid+'</code>'+
     ' &nbsp;<button class="btn btn-o" style="padding:2px 8px;font-size:11px" onclick="copyText(\''+uuid+'\',this)">📋</button>';
@@ -687,7 +689,9 @@ function applyUUID(uuid,canonName){
 
 // Set placeholder immediately with local data or loading state
 document.title=dname+' – CapeSearch';
-document.getElementById('pUser').textContent=dname;
+var _puElInit=document.getElementById('pUser');
+_puElInit.textContent=dname;
+_puElInit.dataset.playerName=dname; // keep clean name separate from badge markup
 if(resolvedUUID){
   applyUUID(resolvedUUID,dname);
 }else{
@@ -1457,7 +1461,8 @@ function confirmUnclaim(){
       // Refresh the nav avatar + dropdown to remove the now-unclaimed account
       if(typeof window._refreshUserMcNav === 'function') window._refreshUserMcNav();
       // Refresh the action bar to show the "Claim Profile" button instead
-      _renderActsWithClaim(uuid, document.getElementById('pUser').textContent, false, null);
+      var _puAfterUnclaim = document.getElementById('pUser');
+      _renderActsWithClaim(uuid, _puAfterUnclaim.dataset.playerName || _puAfterUnclaim.textContent, false, null);
       window._profileOwnerClerkId = null;
     } else {
       if(statusEl) statusEl.textContent = 'Something went wrong. Please try again.';

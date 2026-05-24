@@ -95,6 +95,9 @@ async function updateCapeHistory(uuid, capeUrl, playerName) {
 // ── Main handler ──────────────────────────────────────────────────────────────
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') return res.status(200).end();
 
   // ── Name history proxy (laby.net — avoids CORS from the browser) ─────────
   // Called as /api/player-textures?action=names&uuid={hyphenated-uuid}
@@ -115,6 +118,38 @@ module.exports = async function handler(req, res) {
     } catch {
       return res.status(200).json([]);
     }
+  }
+
+  // ── Profile settings GET ──────────────────────────────────────────────────
+  // GET /api/player-textures?action=get-settings&uuid={uuid}
+  if (req.query.action === 'get-settings') {
+    const raw = req.query.uuid || '';
+    const clean = raw.replace(/-/g, '').toLowerCase();
+    if (!/^[0-9a-f]{32}$/.test(clean)) return res.status(200).json({});
+    const val = await kvGet(`profile-settings:${clean}`);
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json((val && typeof val === 'object') ? val : {});
+  }
+
+  // ── Profile settings SET ──────────────────────────────────────────────────
+  // POST /api/player-textures?action=set-settings
+  // Body: { clerkUserId, uuid, settings: { hideOldNames: bool } }
+  if (req.method === 'POST' && req.query.action === 'set-settings') {
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    if (req.method === 'OPTIONS') return res.status(200).end();
+    const { clerkUserId, uuid, settings } = req.body || {};
+    if (!clerkUserId || !uuid || !settings) return res.status(400).json({ error: 'missing fields' });
+    const clean = uuid.replace(/-/g, '').toLowerCase();
+    if (!/^[0-9a-f]{32}$/.test(clean)) return res.status(400).json({ error: 'invalid uuid' });
+    // Verify ownership
+    const claim = await kvGet(`claimed:${clean}`);
+    if (!claim || claim.clerkUserId !== clerkUserId) return res.status(403).json({ error: 'not your profile' });
+    // Only persist known settings keys to avoid storing arbitrary data
+    const safe = { hideOldNames: !!settings.hideOldNames };
+    await kvSet(`profile-settings:${clean}`, safe);
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json({ ok: true });
   }
 
   // ── Name-only lookup mode (used by nav search on all pages) ───────────────

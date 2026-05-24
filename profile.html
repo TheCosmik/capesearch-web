@@ -642,7 +642,8 @@ function applyUUID(uuid,canonName){
     '<button class="btn btn-p" id="followBtn" onclick="toggleFollow()">⭐ Follow</button>'+
     '<button class="btn btn-o">🔗 Share</button>'+
     '<button class="btn btn-o" onclick="copyText(\''+uuid+'\',this)">📋 Copy UUID</button>';
-  fetchPlayerData(uuid, displayName);   // name history via Ashcon
+  loadProfileSettings(uuid.replace(/-/g,''));  // settings (e.g. hideOldNames) for all visitors
+  fetchPlayerData(uuid, displayName);          // name history (laby.net → Ashcon fallback)
   fetchTextures(uuid);     // skin + cape via Mojang (authoritative)
   initProfileViewer(uuid);
   checkClaimStatus(uuid.replace(/-/g,''), displayName);
@@ -676,10 +677,18 @@ document.getElementById('pActs').innerHTML=
   '<button class="btn btn-o">🔗 Share</button>';
 
 // name history – render function (used by both local fallback and live fetch)
+window._profileSettings = {};
+window._lastNameHistory  = null;
+
 function renderNameHistory(nh){
+  window._lastNameHistory = nh;
+  var hideOld = !!(window._profileSettings && window._profileSettings.hideOldNames);
   document.getElementById('namesTbl').innerHTML=nh.map(function(e,i){
+    var nameCell = (hideOld && i > 0)
+      ? '<span style="color:var(--muted);letter-spacing:.15em">—</span>'
+      : '<strong>'+e.name+'</strong>';
     return '<tr><td style="color:var(--muted)">'+(nh.length-i)+'</td>'+
-      '<td><strong>'+e.name+'</strong>'+(i===0?' <span class="badge bg" style="margin-left:5px">Current</span>':'')+
+      '<td>'+nameCell+(i===0?' <span class="badge bg" style="margin-left:5px">Current</span>':'')+
       '</td><td>'+(e.changed||'<span style="color:var(--muted)">Original</span>')+'</td>'+
       '<td><span style="color:var(--muted);font-size:.8rem">'+(i===0?'Current name':'Historical')+'</span></td></tr>';
   }).join('');
@@ -1091,6 +1100,17 @@ document.getElementById('tabBar').addEventListener('click',function(e){
   });
 })();
 
+// Close settings cog when clicking outside it
+document.addEventListener('click',function(e){
+  if(!_cogOpen) return;
+  var wrap = document.getElementById('settingsCogWrap');
+  if(wrap && !wrap.contains(e.target)){
+    _cogOpen = false;
+    var d = document.getElementById('settingsDrop');
+    if(d) d.style.display = 'none';
+  }
+});
+
 // ── CAPE MODAL ────────────────────────────────────────────────────────────────
 function capePreview(c,size){
   var url=CAPE_IMGS[c.id];
@@ -1300,6 +1320,56 @@ function initProfileViewer(uuid){
   }
 }
 
+// ── PROFILE SETTINGS (cog) ────────────────────────────────────────────────────
+var _cogOpen = false;
+
+function loadProfileSettings(cleanUuid){
+  fetch('/api/player-textures?action=get-settings&uuid='+encodeURIComponent(cleanUuid))
+    .then(function(r){return r.ok?r.json():null;})
+    .then(function(d){
+      window._profileSettings = d || {};
+      // Sync checkbox if the panel is already rendered
+      var cb = document.getElementById('settingHideNames');
+      if(cb) cb.checked = !!window._profileSettings.hideOldNames;
+      // Re-render name history with updated settings
+      if(window._lastNameHistory) renderNameHistory(window._lastNameHistory);
+    })
+    .catch(function(){});
+}
+
+function toggleSettingsCog(){
+  _cogOpen = !_cogOpen;
+  var drop = document.getElementById('settingsDrop');
+  if(drop) drop.style.display = _cogOpen ? 'block' : 'none';
+}
+
+function saveSetting(key, value){
+  if(!window._profileSettings) window._profileSettings = {};
+  window._profileSettings[key] = value;
+  if(window._lastNameHistory) renderNameHistory(window._lastNameHistory);
+
+  var uuid       = _currentProfileUuid;
+  var clerkUser  = window.Clerk && window.Clerk.user ? window.Clerk.user.id : null;
+  if(!uuid || !clerkUser) return;
+
+  var status = document.getElementById('settingSaveStatus');
+  if(status) status.textContent = 'Saving…';
+
+  fetch('/api/player-textures?action=set-settings', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({clerkUserId: clerkUser, uuid: uuid, settings: window._profileSettings}),
+  })
+  .then(function(r){return r.ok?r.json():null;})
+  .then(function(d){
+    if(status) status.textContent = (d && d.ok) ? 'Saved ✓' : 'Error saving';
+    setTimeout(function(){ if(status) status.textContent=''; }, 2000);
+  })
+  .catch(function(){
+    if(status) status.textContent = 'Error saving';
+  });
+}
+
 // ── CLAIM FLOW ─────────────────────────────────────────────────────────────────
 var _claimTimer   = null;
 var _claimPoll    = null;
@@ -1316,12 +1386,37 @@ function _renderActsWithClaim(uuid, name, isClaimed, ownerUserId) {
   } else {
     claimHtml = '<button class="btn btn-o" onclick="openClaimModal(\''+uuid+'\',\''+name+'\')">🔗 Claim Profile</button>';
   }
+  var isOwner = isClaimed && currentUserId && currentUserId === ownerUserId;
+  var cogHtml = '';
+  if(isOwner){
+    cogHtml =
+      '<div id="settingsCogWrap" style="position:relative;display:inline-block">'+
+        '<button class="btn btn-o" onclick="toggleSettingsCog()" title="Profile Settings" '+
+          'style="padding:.35rem .55rem;font-size:1.05rem;line-height:1">⚙</button>'+
+        '<div id="settingsDrop" style="display:none;position:absolute;right:0;top:calc(100% + .4rem);'+
+          'background:var(--bg2);border:1px solid var(--bdr);border-radius:.75rem;padding:1rem 1.1rem;'+
+          'min-width:240px;z-index:200;box-shadow:0 4px 24px rgba(0,0,0,.4)">'+
+          '<div style="font-weight:600;font-size:.88rem;margin-bottom:.8rem">⚙ Profile Settings</div>'+
+          '<label style="display:flex;align-items:flex-start;gap:.6rem;cursor:pointer">'+
+            '<input type="checkbox" id="settingHideNames" '+
+              (window._profileSettings && window._profileSettings.hideOldNames ? 'checked' : '')+
+              ' onchange="saveSetting(\'hideOldNames\',this.checked)" style="margin-top:.18rem;accent-color:#7c3aed">'+
+            '<span>'+
+              '<div style="font-size:.84rem;font-weight:500">Hide previous usernames</div>'+
+              '<div style="font-size:.75rem;color:var(--muted);margin-top:.2rem">Replaces past names with — for all visitors</div>'+
+            '</span>'+
+          '</label>'+
+          '<div id="settingSaveStatus" style="font-size:.74rem;color:var(--muted);margin-top:.55rem;min-height:1rem"></div>'+
+        '</div>'+
+      '</div>';
+  }
+
   var el = document.getElementById('pActs');
   if (el) el.innerHTML =
     '<button class="btn btn-p" id="followBtn" onclick="toggleFollow()">⭐ Follow</button>'+
     '<button class="btn btn-o">🔗 Share</button>'+
     '<button class="btn btn-o" onclick="copyText(\''+uuid+'\',this)">📋 Copy UUID</button>'+
-    claimHtml;
+    claimHtml+cogHtml;
   // Re-apply follow button state after pActs was rewritten
   if (_currentProfileUuid) loadFollowStatus(_currentProfileUuid);
 }

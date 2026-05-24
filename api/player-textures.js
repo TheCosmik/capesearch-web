@@ -125,18 +125,24 @@ async function updateCapeHistory(uuid, capeUrl, playerName) {
   const hash = capeUrl.replace(/.*\//, '');
   const now = Date.now();
 
-  // Single pipeline: update cape history + reverse index + name + global recent feed
-  // pname stored as plain string (no JSON.stringify) so cape-wearers.js reads it directly
+  // Check if this exact cape URL is already in this player's history.
+  // Only write to the global recent-capes feed on first-time caches.
+  const [existingScore] = await kvPipeline([['ZSCORE', `cph:${uuid}`, capeUrl]]);
+  const isNewCape = existingScore === null;
+
   const capeId = CAPE_HASH_IDS[hash] || null;
-  const recentEntry = JSON.stringify({ uuid: cleanUuid, name: playerName || cleanUuid.slice(0, 8), capeHash: hash, capeId });
   const commands = [
     ['ZADD', `cph:${uuid}`, now, capeUrl],
     ['ZREMRANGEBYRANK', `cph:${uuid}`, 0, -51],       // keep 50 per player
     ['ZADD', `cw:${hash}`, now, cleanUuid],
     ['ZREMRANGEBYRANK', `cw:${hash}`, 0, -51],         // keep 50 per cape
-    ['ZADD', 'recent-capes', String(now), recentEntry],
-    ['ZREMRANGEBYRANK', 'recent-capes', '0', '-51'],   // keep global 50 most recent
   ];
+  if (isNewCape) {
+    // Only add to the global homepage feed when this is a brand-new cape for the player
+    const recentEntry = JSON.stringify({ uuid: cleanUuid, name: playerName || cleanUuid.slice(0, 8), capeHash: hash, capeId });
+    commands.push(['ZADD', 'recent-capes', String(now), recentEntry]);
+    commands.push(['ZREMRANGEBYRANK', 'recent-capes', '0', '-51']);   // keep global 50 most recent
+  }
   if (playerName) commands.push(['SET', `pname:${cleanUuid}`, playerName]);
   await kvPipeline(commands);
 }

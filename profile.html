@@ -882,8 +882,8 @@ function fetchPlayerData(uuid, canonName){
     return dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
   }
 
-  // 1. Try laby.net (has post-2022 names Mojang stopped tracking)
-  fetch('https://laby.net/api/v3/user/'+hUuid+'/names')
+  // 1. Try laby.net via our server-side proxy (avoids CORS; has post-2022 names)
+  fetch('/api/player-textures?action=names&uuid='+encodeURIComponent(hUuid))
     .then(function(r){return r.ok?r.json():null})
     .then(function(d){
       if(Array.isArray(d)&&d.length){
@@ -907,7 +907,7 @@ function fetchPlayerData(uuid, canonName){
       }
     })
     .catch(function(){
-      // laby failed entirely — try Ashcon
+      // proxy failed entirely — try Ashcon
       fetch('https://api.ashcon.app/mojang/v2/user/'+uuid)
         .then(function(r){return r.ok?r.json():null})
         .then(function(a){

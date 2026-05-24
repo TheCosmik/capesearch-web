@@ -96,6 +96,27 @@ async function updateCapeHistory(uuid, capeUrl, playerName) {
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
 
+  // ── Name history proxy (laby.net — avoids CORS from the browser) ─────────
+  // Called as /api/player-textures?action=names&uuid={hyphenated-uuid}
+  if (req.query.action === 'names') {
+    const raw = req.query.uuid || '';
+    const clean = raw.replace(/-/g, '').toLowerCase();
+    if (!/^[0-9a-f]{32}$/.test(clean)) return res.status(400).json({ error: 'invalid uuid' });
+    const hUuid = clean.replace(/^([0-9a-f]{8})([0-9a-f]{4})([0-9a-f]{4})([0-9a-f]{4})([0-9a-f]{12})$/, '$1-$2-$3-$4-$5');
+    try {
+      const r = await fetch(`https://laby.net/api/v3/user/${hUuid}/names`, {
+        headers: { 'User-Agent': 'CapeSearch/1.0' },
+        signal: AbortSignal.timeout(6000),
+      });
+      if (!r.ok) return res.status(200).json([]);
+      const data = await r.json();
+      res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=60');
+      return res.status(200).json(Array.isArray(data) ? data : []);
+    } catch {
+      return res.status(200).json([]);
+    }
+  }
+
   // ── Name-only lookup mode (used by nav search on all pages) ───────────────
   // Called as /api/player-textures?name=SomePlayer
   // Returns { name, uuid } without fetching full profile or KV history.

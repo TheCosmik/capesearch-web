@@ -1426,11 +1426,21 @@ function checkClaimStatus(uuid, name) {
     .then(function(r){return r.ok?r.json():null;})
     .then(function(d){
       if(!d) return;
-      // Store owner clerkUserId globally so follow tabs can use it
       window._profileOwnerClerkId = d.claimed ? (d.clerkUserId || null) : null;
-      _renderActsWithClaim(uuid, name, d.claimed, d.clerkUserId||null);
-      // Refresh follow button now we know the owner
-      loadFollowStatus(uuid);
+
+      // Always wait for Clerk.load() before checking window.Clerk.user.
+      // Clerk.load() is idempotent — resolves immediately if already done,
+      // otherwise waits until Clerk has finished identifying the user.
+      // This eliminates the race condition that made the cog appear inconsistently.
+      var render = function(){
+        _renderActsWithClaim(uuid, name, d.claimed, d.clerkUserId||null);
+        loadFollowStatus(uuid);
+      };
+      if(window.Clerk && typeof window.Clerk.load === 'function'){
+        window.Clerk.load().then(render).catch(render);
+      } else {
+        render();
+      }
     })
     .catch(function(){});
 }

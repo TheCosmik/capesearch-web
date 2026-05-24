@@ -118,16 +118,35 @@ module.exports = async function handler(req, res) {
     const { clerkUserId, targetUuid } = req.query;
     if (!targetUuid) return res.status(400).json({ error: 'targetUuid required' });
     const cleanTarget = targetUuid.replace(/-/g, '').toLowerCase();
-    if (!url || !token) return res.status(200).json({ following: false, followersCount: 0 });
+    if (!url || !token) return res.status(200).json({ following: false, followersCount: 0, followingCount: 0 });
 
-    const commands = [['ZCARD', `followers:${cleanTarget}`]];
+    const commands = [
+      ['ZCARD', `followers:${cleanTarget}`],
+      ['GET',   `claimed:${cleanTarget}`],
+    ];
     if (clerkUserId) commands.push(['ZSCORE', `following:${clerkUserId}`, cleanTarget]);
 
-    const results = await kvPipeline(url, token, commands);
+    const results  = await kvPipeline(url, token, commands);
     const followersCount = parseInt(results[0]) || 0;
-    const isFollowing    = clerkUserId ? results[1] !== null : false;
+    const claimRaw       = results[1];
+    const isFollowing    = clerkUserId ? results[2] !== null : false;
+
+    // Get following count for the profile owner
+    let followingCount = 0;
+    if (claimRaw) {
+      try {
+        const claim = JSON.parse(claimRaw);
+        if (claim && claim.clerkUserId) {
+          const [fCount] = await kvPipeline(url, token, [
+            ['ZCARD', `following:${claim.clerkUserId}`],
+          ]);
+          followingCount = parseInt(fCount) || 0;
+        }
+      } catch {}
+    }
+
     res.setHeader('Cache-Control', 'no-store');
-    return res.status(200).json({ following: isFollowing, followersCount });
+    return res.status(200).json({ following: isFollowing, followersCount, followingCount });
   }
 
   // action=following

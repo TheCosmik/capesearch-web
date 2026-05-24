@@ -224,8 +224,8 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
       <div class="tabs" id="tabBar">
         <button class="tab on" data-tab="t-names">📋 Names</button>
         <button class="tab" data-tab="t-skin">🖼 Skin</button>
-        <button class="tab" data-tab="t-following">➕ Following</button>
-        <button class="tab" data-tab="t-followers">👥 Followers</button>
+        <button class="tab" data-tab="t-following">➕ Following<span id="tabFollowingCount" style="color:var(--muted);font-weight:400"></span></button>
+        <button class="tab" data-tab="t-followers">👥 Followers<span id="tabFollowersCount" style="color:var(--muted);font-weight:400"></span></button>
       </div>
 
       <!-- NAMES -->
@@ -717,6 +717,11 @@ function loadFollowStatus(cleanUuid) {
       if (!d) return;
       _isFollowing = d.following;
       updateFollowBtn(d.following, d.followersCount);
+      // Update tab labels with counts
+      var frsTab = document.getElementById('tabFollowersCount');
+      var fngTab = document.getElementById('tabFollowingCount');
+      if (frsTab) frsTab.textContent = d.followersCount > 0 ? ' (' + d.followersCount + ')' : '';
+      if (fngTab) fngTab.textContent = (d.followingCount > 0) ? ' (' + d.followingCount + ')' : '';
     })
     .catch(function(){});
 }
@@ -730,7 +735,7 @@ function updateFollowBtn(following, count) {
     btn.style.display = 'none';
     return;
   }
-  btn.textContent = (following ? '✓ Following' : '⭐ Follow') + (count ? ' · ' + fmtCount(count) : '');
+  btn.textContent = following ? '✓ Following' : '⭐ Follow';
   btn.className = following ? 'btn btn-o' : 'btn btn-p';
 }
 

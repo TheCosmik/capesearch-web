@@ -709,7 +709,7 @@ var _isFollowing = false;
 function loadFollowStatus(cleanUuid) {
   _currentProfileUuid = cleanUuid;
   var clerkUserId = window.Clerk && window.Clerk.user ? window.Clerk.user.id : null;
-  var url = '/api/follow-status?targetUuid=' + encodeURIComponent(cleanUuid);
+  var url = '/api/follow?action=status&targetUuid=' + encodeURIComponent(cleanUuid);
   if (clerkUserId) url += '&clerkUserId=' + encodeURIComponent(clerkUserId);
   fetch(url)
     .then(function(r){ return r.ok ? r.json() : null; })
@@ -789,7 +789,7 @@ function loadFollowing(ownerClerkId) {
     return;
   }
   grid.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:.5rem 0">Loading…</div>';
-  fetch('/api/following?clerkUserId=' + encodeURIComponent(ownerClerkId))
+  fetch('/api/follow?action=following&clerkUserId=' + encodeURIComponent(ownerClerkId))
     .then(function(r){ return r.ok ? r.json() : null; })
     .then(function(d) {
       var list = d && d.following ? d.following : [];
@@ -813,7 +813,7 @@ function loadFollowers(cleanUuid) {
   var grid = document.getElementById('followersGrid');
   if (!grid) return;
   grid.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:.5rem 0">Loading…</div>';
-  fetch('/api/followers?uuid=' + encodeURIComponent(cleanUuid))
+  fetch('/api/follow?action=followers&uuid=' + encodeURIComponent(cleanUuid))
     .then(function(r){ return r.ok ? r.json() : null; })
     .then(function(d) {
       var list = d && d.followers ? d.followers : [];

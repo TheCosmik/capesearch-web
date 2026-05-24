@@ -1,18 +1,23 @@
-// Toggles a follow relationship between a Clerk user and a Minecraft profile.
+// Unified follow API — all four follow endpoints merged into one to stay
+// within Vercel Hobby plan's 12-function limit.
 //
 // POST /api/follow
-// Body: { clerkUserId, targetUuid, displayName, mcUuid }
-//   clerkUserId  — the logged-in user doing the follow/unfollow
-//   targetUuid   — the Minecraft UUID (clean, no dashes) being followed
-//   displayName  — follower's display name (for followers list on target profile)
-//   mcUuid       — follower's active Minecraft UUID (for avatar, optional)
+//   Body: { clerkUserId, targetUuid, displayName, mcUuid }
+//   Returns: { following: bool, followersCount: number }
+//
+// GET /api/follow?action=status&targetUuid=&clerkUserId=
+//   Returns: { following: bool, followersCount: N }
+//
+// GET /api/follow?action=following&clerkUserId=&limit=50
+//   Returns: { following: [{uuid, name}] }
+//
+// GET /api/follow?action=followers&uuid=&limit=50
+//   Returns: { followers: [{clerkUserId, name, mcUuid}] }
 //
 // KV keys:
-//   following:{clerkUserId}                    ZSET  score=timestamp, member=targetUuid
-//   followers:{targetUuid}                     ZSET  score=timestamp, member=clerkUserId
+//   following:{clerkUserId}                     ZSET  score=timestamp, member=targetUuid
+//   followers:{targetUuid}                      ZSET  score=timestamp, member=clerkUserId
 //   follower-display:{targetUuid}:{clerkUserId} STRING JSON {name, mcUuid}
-//
-// Returns: { following: bool, followersCount: number }
 
 async function kvPipeline(url, token, commands) {
   try {
@@ -32,51 +37,114 @@ async function kvPipeline(url, token, commands) {
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).end();
-
-  const { clerkUserId, targetUuid, displayName, mcUuid } = req.body || {};
-  if (!clerkUserId || !targetUuid) return res.status(400).json({ error: 'clerkUserId and targetUuid required' });
-
-  const cleanTarget = targetUuid.replace(/-/g, '').toLowerCase();
 
   const url   = process.env.UPSTASH_REDIS_REST_URL   || process.env.KV_REST_API_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
-  if (!url || !token) return res.status(500).json({ error: 'KV not configured' });
 
-  // Check if already following
-  const [score] = await kvPipeline(url, token, [
-    ['ZSCORE', `following:${clerkUserId}`, cleanTarget],
-  ]);
-  const isFollowing = score !== null;
-  const now = Date.now();
+  // ── POST — toggle follow ───────────────────────────────────────────────────
+  if (req.method === 'POST') {
+    const { clerkUserId, targetUuid, displayName, mcUuid } = req.body || {};
+    if (!clerkUserId || !targetUuid) return res.status(400).json({ error: 'clerkUserId and targetUuid required' });
+    if (!url || !token) return res.status(500).json({ error: 'KV not configured' });
 
-  if (isFollowing) {
-    // Unfollow
-    await kvPipeline(url, token, [
-      ['ZREM', `following:${clerkUserId}`, cleanTarget],
-      ['ZREM', `followers:${cleanTarget}`, clerkUserId],
-      ['DEL',  `follower-display:${cleanTarget}:${clerkUserId}`],
+    const cleanTarget = targetUuid.replace(/-/g, '').toLowerCase();
+    const [score] = await kvPipeline(url, token, [
+      ['ZSCORE', `following:${clerkUserId}`, cleanTarget],
     ]);
-  } else {
-    // Follow
-    const displayInfo = JSON.stringify({ name: displayName || 'Unknown', mcUuid: mcUuid || '' });
-    await kvPipeline(url, token, [
-      ['ZADD', `following:${clerkUserId}`, String(now), cleanTarget],
-      ['ZADD', `followers:${cleanTarget}`, String(now), clerkUserId],
-      ['SET',  `follower-display:${cleanTarget}:${clerkUserId}`, displayInfo],
-    ]);
+    const isFollowing = score !== null;
+    const now = Date.now();
+
+    if (isFollowing) {
+      await kvPipeline(url, token, [
+        ['ZREM', `following:${clerkUserId}`, cleanTarget],
+        ['ZREM', `followers:${cleanTarget}`, clerkUserId],
+        ['DEL',  `follower-display:${cleanTarget}:${clerkUserId}`],
+      ]);
+    } else {
+      const displayInfo = JSON.stringify({ name: displayName || 'Unknown', mcUuid: mcUuid || '' });
+      await kvPipeline(url, token, [
+        ['ZADD', `following:${clerkUserId}`, String(now), cleanTarget],
+        ['ZADD', `followers:${cleanTarget}`, String(now), clerkUserId],
+        ['SET',  `follower-display:${cleanTarget}:${clerkUserId}`, displayInfo],
+      ]);
+    }
+
+    const [count] = await kvPipeline(url, token, [['ZCARD', `followers:${cleanTarget}`]]);
+    return res.status(200).json({ following: !isFollowing, followersCount: parseInt(count) || 0 });
   }
 
-  // Get updated follower count
-  const [count] = await kvPipeline(url, token, [
-    ['ZCARD', `followers:${cleanTarget}`],
-  ]);
+  // ── GET — route by action param ────────────────────────────────────────────
+  if (req.method !== 'GET') return res.status(405).end();
 
-  return res.status(200).json({
-    following:      !isFollowing,
-    followersCount: parseInt(count) || 0,
-  });
+  const { action } = req.query;
+
+  // action=status — follow status + follower count
+  if (action === 'status') {
+    const { clerkUserId, targetUuid } = req.query;
+    if (!targetUuid) return res.status(400).json({ error: 'targetUuid required' });
+    const cleanTarget = targetUuid.replace(/-/g, '').toLowerCase();
+    if (!url || !token) return res.status(200).json({ following: false, followersCount: 0 });
+
+    const commands = [['ZCARD', `followers:${cleanTarget}`]];
+    if (clerkUserId) commands.push(['ZSCORE', `following:${clerkUserId}`, cleanTarget]);
+
+    const results = await kvPipeline(url, token, commands);
+    const followersCount = parseInt(results[0]) || 0;
+    const isFollowing    = clerkUserId ? results[1] !== null : false;
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json({ following: isFollowing, followersCount });
+  }
+
+  // action=following — list of profiles a user follows
+  if (action === 'following') {
+    const { clerkUserId } = req.query;
+    if (!clerkUserId) return res.status(400).json({ error: 'clerkUserId required' });
+    if (!url || !token) return res.status(200).json({ following: [] });
+
+    const limit = Math.min(parseInt(req.query.limit) || 50, 100);
+    const [uuids] = await kvPipeline(url, token, [
+      ['ZREVRANGE', `following:${clerkUserId}`, '0', String(limit - 1)],
+    ]);
+    if (!Array.isArray(uuids) || !uuids.length) return res.status(200).json({ following: [] });
+
+    const names = await kvPipeline(url, token, uuids.map(u => ['GET', `pname:${u}`]));
+    const following = uuids.map((uuid, i) => ({ uuid, name: names[i] || uuid.slice(0, 8) }));
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json({ following });
+  }
+
+  // action=followers — list of users who follow a Minecraft profile
+  if (action === 'followers') {
+    const { uuid } = req.query;
+    if (!uuid) return res.status(400).json({ error: 'uuid required' });
+    if (!url || !token) return res.status(200).json({ followers: [] });
+
+    const cleanUuid = uuid.replace(/-/g, '').toLowerCase();
+    const limit = Math.min(parseInt(req.query.limit) || 50, 100);
+
+    const [clerkIds] = await kvPipeline(url, token, [
+      ['ZREVRANGE', `followers:${cleanUuid}`, '0', String(limit - 1)],
+    ]);
+    if (!Array.isArray(clerkIds) || !clerkIds.length) return res.status(200).json({ followers: [] });
+
+    const displayResults = await kvPipeline(url, token,
+      clerkIds.map(id => ['GET', `follower-display:${cleanUuid}:${id}`])
+    );
+    const followers = clerkIds.map((clerkUserId, i) => {
+      let name = 'Unknown', mcUuid = '';
+      try {
+        const parsed = displayResults[i] ? JSON.parse(displayResults[i]) : null;
+        if (parsed) { name = parsed.name || name; mcUuid = parsed.mcUuid || ''; }
+      } catch {}
+      return { clerkUserId, name, mcUuid };
+    });
+
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json({ followers });
+  }
+
+  return res.status(400).json({ error: 'action must be status, following, or followers' });
 };

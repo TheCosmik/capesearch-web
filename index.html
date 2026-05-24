@@ -46,10 +46,6 @@ a:hover{text-decoration:underline}
 .hero h1{font-size:2.4rem;font-weight:800;margin-bottom:.4rem;line-height:1.2}
 .hero h1 span{color:var(--green)}
 .hero p{color:var(--txt2);margin-bottom:1.75rem;font-size:1rem}
-.hsearch{display:flex;max-width:500px;margin:0 auto}
-.hsearch input{flex:1;background:var(--card);border:2px solid var(--bdr);border-right:none;border-radius:var(--rad) 0 0 var(--rad);color:var(--txt);padding:.7rem 1rem;font-size:1rem;outline:none;transition:border-color .2s}
-.hsearch input:focus{border-color:var(--green)}
-.hsearch input::placeholder{color:var(--muted)}
 .btn{display:inline-flex;align-items:center;gap:.35rem;padding:.7rem 1.1rem;border-radius:var(--rad);font-size:.875rem;font-weight:600;cursor:pointer;border:none;transition:all .2s;text-decoration:none}
 .btn-p{background:var(--green);color:#0a1a0a}
 .btn-p:hover{background:var(--green2);text-decoration:none}
@@ -158,11 +154,12 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:2rem 1rem;m
 
 <div class="hero">
   <div class="wrap">
-    <h1>Search <span>Minecraft</span> Players</h1>
-    <p>Look up players, capes, skins, name history and more.</p>
-    <div class="hsearch">
-      <input id="heroQ" type="text" placeholder="Enter username or UUID…"/>
-      <button class="btn btn-p btn-search" onclick="goSearch()">🔍 Search</button>
+    <h1>Join <span style="color:var(--txt)">Cape</span><span>Search</span></h1>
+    <p style="font-size:.95rem;margin-bottom:.5rem">Connect to our Minecraft server to claim your profile</p>
+    <div style="display:inline-flex;align-items:center;gap:.6rem;background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad);padding:.55rem 1.1rem;font-size:.95rem;font-family:monospace;color:var(--txt2)">
+      <span style="color:var(--muted);font-size:.8rem;font-weight:600;font-family:sans-serif">IP</span>
+      <span id="serverIp" style="color:var(--txt);font-weight:600">play.capesearch.net</span>
+      <button onclick="copyIp(this)" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.85rem;padding:0;transition:color .15s" title="Copy IP" onmouseover="this.style.color='var(--green)'" onmouseout="this.style.color='var(--muted)'">📋</button>
     </div>
   </div>
 </div>
@@ -383,11 +380,12 @@ function setupSearch(qId,dropId){
   });
 }
 
-function goSearch(){
-  var q=(document.getElementById('heroQ').value||'').trim();
-  if(q)location.href='profile.html?name='+encodeURIComponent(q);
+function copyIp(btn){
+  navigator.clipboard.writeText('play.capesearch.net').then(function(){
+    btn.textContent='✅';
+    setTimeout(function(){btn.textContent='📋';},2000);
+  });
 }
-document.getElementById('heroQ').addEventListener('keydown',function(e){if(e.key==='Enter')goSearch()});
 
 function toggleFaq(btn){
   var item=btn.parentElement;

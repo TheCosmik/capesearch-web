@@ -860,32 +860,65 @@ function fetchProfileStats(cleanUuid){
 function fetchNameHistory(uuid){}
 function fetchLiveCape(uuid){}
 
-// ── NAME HISTORY (laby.net — has complete history where Mojang API is stale) ────
+// ── NAME HISTORY (laby.net primary, Ashcon fallback) ─────────────────────────
 function fetchPlayerData(uuid, canonName){
   // Format: hyphenated UUID (laby.net requires it)
   var hUuid=uuid.replace(/^([0-9a-f]{8})([0-9a-f]{4})([0-9a-f]{4})([0-9a-f]{4})([0-9a-f]{12})$/i,
     '$1-$2-$3-$4-$5');
+
+  function applyHistory(live){
+    if(!live||!live.length)return;
+    // Ensure the known current name (from playerdb) is always at index 0
+    if(canonName && live[0].name.toLowerCase()!==canonName.toLowerCase()){
+      live=live.filter(function(e){return e.name.toLowerCase()!==canonName.toLowerCase();});
+      live.unshift({name:canonName,changed:null});
+    }
+    renderNameHistory(live);
+  }
+
+  function fmtDate(iso){
+    if(!iso)return null;
+    var dt=new Date(iso);
+    return dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  }
+
+  // 1. Try laby.net (has post-2022 names Mojang stopped tracking)
   fetch('https://laby.net/api/v3/user/'+hUuid+'/names')
     .then(function(r){return r.ok?r.json():null})
     .then(function(d){
-      if(!Array.isArray(d)||!d.length)return;
-      // laby returns oldest→newest; reverse so index 0 = current name
-      var live=d.slice().reverse().map(function(e){
-        var dateStr=null;
-        if(e.changed_at){
-          var dt=new Date(e.changed_at);
-          dateStr=dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-        }
-        return{name:e.name,changed:dateStr};
-      });
-      // Ensure the known current name (from playerdb) is always at index 0
-      if(canonName && live[0].name.toLowerCase()!==canonName.toLowerCase()){
-        live=live.filter(function(e){return e.name.toLowerCase()!==canonName.toLowerCase();});
-        live.unshift({name:canonName,changed:null});
+      if(Array.isArray(d)&&d.length){
+        // laby returns oldest→newest; reverse so index 0 = current name
+        var live=d.slice().reverse().map(function(e){
+          return{name:e.name,changed:fmtDate(e.changed_at)};
+        });
+        applyHistory(live);
+      } else {
+        // 2. Fallback: Ashcon (solid pre-2022 Mojang data)
+        fetch('https://api.ashcon.app/mojang/v2/user/'+uuid)
+          .then(function(r){return r.ok?r.json():null})
+          .then(function(a){
+            if(!a||!a.username_history||!a.username_history.length)return;
+            var live=a.username_history.slice().map(function(e){
+              return{name:e.username,changed:fmtDate(e.changed_at)};
+            });
+            applyHistory(live);
+          })
+          .catch(function(){});
       }
-      renderNameHistory(live);
     })
-    .catch(function(){});
+    .catch(function(){
+      // laby failed entirely — try Ashcon
+      fetch('https://api.ashcon.app/mojang/v2/user/'+uuid)
+        .then(function(r){return r.ok?r.json():null})
+        .then(function(a){
+          if(!a||!a.username_history||!a.username_history.length)return;
+          var live=a.username_history.slice().map(function(e){
+            return{name:e.username,changed:fmtDate(e.changed_at)};
+          });
+          applyHistory(live);
+        })
+        .catch(function(){});
+    });
 }
 
 // ── LIVE TEXTURES (Mojang Session API via our proxy — authoritative) ──────────

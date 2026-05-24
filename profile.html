@@ -224,7 +224,8 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
       <div class="tabs" id="tabBar">
         <button class="tab on" data-tab="t-names">📋 Names</button>
         <button class="tab" data-tab="t-skin">🖼 Skin</button>
-        <button class="tab" data-tab="t-friends">👥 Friends</button>
+        <button class="tab" data-tab="t-following">➕ Following</button>
+        <button class="tab" data-tab="t-followers">👥 Followers</button>
       </div>
 
       <!-- NAMES -->
@@ -264,9 +265,18 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
         </div>
       </div>
 
-      <!-- FRIENDS -->
-      <div class="panel" id="t-friends">
-        <div class="friends-grid" id="friendsGrid"></div>
+      <!-- FOLLOWING -->
+      <div class="panel" id="t-following">
+        <div class="friends-grid" id="followingGrid">
+          <div style="color:var(--muted);font-size:.85rem;padding:.5rem 0">Loading…</div>
+        </div>
+      </div>
+
+      <!-- FOLLOWERS -->
+      <div class="panel" id="t-followers">
+        <div class="friends-grid" id="followersGrid">
+          <div style="color:var(--muted);font-size:.85rem;padding:.5rem 0">Loading…</div>
+        </div>
       </div>
       <!-- CAPES STRIP — always visible below tabs -->
       <div class="capes-section" id="capesSection">
@@ -629,7 +639,7 @@ function applyUUID(uuid,canonName){
   document.getElementById('skinUrl').textContent='https://crafatar.com/skins/'+uuid;
   document.getElementById('dlSkin').href='https://crafatar.com/skins/'+uuid;
   document.getElementById('pActs').innerHTML=
-    '<button class="btn btn-p">⭐ Follow</button>'+
+    '<button class="btn btn-p" id="followBtn" onclick="toggleFollow()">⭐ Follow</button>'+
     '<button class="btn btn-o">🔗 Share</button>'+
     '<button class="btn btn-o" onclick="copyText(\''+uuid+'\',this)">📋 Copy UUID</button>';
   fetchPlayerData(uuid);   // name history via Ashcon
@@ -640,6 +650,8 @@ function applyUUID(uuid,canonName){
   fetch('/api/track-view?uuid='+encodeURIComponent(uuid.replace(/-/g,''))+'&name='+encodeURIComponent(displayName)).catch(function(){});
   // Fetch and display all-time view count
   fetchProfileStats(uuid.replace(/-/g,''));
+  // Load follow status
+  loadFollowStatus(uuid.replace(/-/g,''));
 }
 
 // Set placeholder immediately with local data or loading state
@@ -688,6 +700,140 @@ if(ch.length){
       '<span class="badge '+(isActive?'bg':'br')+'">'+(isActive?'Active':'Inactive')+'</span>'+
       '</div>';
   }).join('');
+}
+
+// ── FOLLOW SYSTEM ─────────────────────────────────────────────────────────────
+var _currentProfileUuid = '';   // set in applyUUID
+var _isFollowing = false;
+
+function loadFollowStatus(cleanUuid) {
+  _currentProfileUuid = cleanUuid;
+  var clerkUserId = window.Clerk && window.Clerk.user ? window.Clerk.user.id : null;
+  var url = '/api/follow-status?targetUuid=' + encodeURIComponent(cleanUuid);
+  if (clerkUserId) url += '&clerkUserId=' + encodeURIComponent(clerkUserId);
+  fetch(url)
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(d) {
+      if (!d) return;
+      _isFollowing = d.following;
+      updateFollowBtn(d.following, d.followersCount);
+    })
+    .catch(function(){});
+}
+
+function updateFollowBtn(following, count) {
+  var btn = document.getElementById('followBtn');
+  if (!btn) return;
+  // Hide follow button if viewing your own claimed profile
+  var clerkUserId = window.Clerk && window.Clerk.user ? window.Clerk.user.id : null;
+  if (clerkUserId && window._profileOwnerClerkId && clerkUserId === window._profileOwnerClerkId) {
+    btn.style.display = 'none';
+    return;
+  }
+  btn.textContent = (following ? '✓ Following' : '⭐ Follow') + (count ? ' · ' + fmtCount(count) : '');
+  btn.className = following ? 'btn btn-o' : 'btn btn-p';
+}
+
+function fmtCount(n) {
+  return n >= 1000000 ? (n/1000000).toFixed(1)+'M' : n >= 1000 ? (n/1000).toFixed(1)+'K' : String(n);
+}
+
+function toggleFollow() {
+  if (!window.Clerk || !window.Clerk.user) {
+    window.Clerk.openSignIn({ appearance: window.CLERK_APPEARANCE });
+    return;
+  }
+  var clerkUserId = window.Clerk.user.id;
+  var user = window.Clerk.user;
+  // Build display name and MC UUID for follower-display storage
+  var displayName = user.username || user.firstName
+    || (user.emailAddresses && user.emailAddresses[0] && user.emailAddresses[0].emailAddress)
+    || 'Player';
+  var mcUuid = localStorage.getItem('cs-active-mc:' + clerkUserId) || '';
+
+  var btn = document.getElementById('followBtn');
+  if (btn) { btn.disabled = true; btn.style.opacity = '.6'; }
+
+  fetch('/api/follow', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      clerkUserId: clerkUserId,
+      targetUuid:  _currentProfileUuid,
+      displayName: displayName,
+      mcUuid:      mcUuid,
+    }),
+  })
+  .then(function(r){ return r.ok ? r.json() : null; })
+  .then(function(d) {
+    if (!d) return;
+    _isFollowing = d.following;
+    updateFollowBtn(d.following, d.followersCount);
+    // Refresh followers tab if open
+    var fTab = document.getElementById('t-followers');
+    if (fTab && fTab.classList.contains('on')) loadFollowers(_currentProfileUuid);
+  })
+  .catch(function(){})
+  .finally(function(){
+    var b = document.getElementById('followBtn');
+    if (b) { b.disabled = false; b.style.opacity = '1'; }
+  });
+}
+
+// Load following list for a profile (needs the profile owner's clerkUserId)
+function loadFollowing(ownerClerkId) {
+  var grid = document.getElementById('followingGrid');
+  if (!grid) return;
+  if (!ownerClerkId) {
+    grid.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:.5rem 0">This profile hasn\'t been claimed yet.</div>';
+    return;
+  }
+  grid.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:.5rem 0">Loading…</div>';
+  fetch('/api/following?clerkUserId=' + encodeURIComponent(ownerClerkId))
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(d) {
+      var list = d && d.following ? d.following : [];
+      if (!list.length) {
+        grid.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:.5rem 0">Not following anyone yet.</div>';
+        return;
+      }
+      grid.innerHTML = list.map(function(p) {
+        return '<a href="profile.html?name=' + encodeURIComponent(p.name) + '" class="pc">' +
+          '<img src="' + avN(p.name) + '" onerror="this.src=\'' + FB + '\'" alt="' + p.name + '"/>' +
+          '<div><div class="pn">' + p.name + '</div></div></a>';
+      }).join('');
+    })
+    .catch(function(){
+      grid.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:.5rem 0">Could not load following list.</div>';
+    });
+}
+
+// Load followers list for a profile UUID
+function loadFollowers(cleanUuid) {
+  var grid = document.getElementById('followersGrid');
+  if (!grid) return;
+  grid.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:.5rem 0">Loading…</div>';
+  fetch('/api/followers?uuid=' + encodeURIComponent(cleanUuid))
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(d) {
+      var list = d && d.followers ? d.followers : [];
+      if (!list.length) {
+        grid.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:.5rem 0">No followers yet.</div>';
+        return;
+      }
+      grid.innerHTML = list.map(function(f) {
+        var href = f.mcUuid ? 'profile.html?name=' + encodeURIComponent(f.name) : '#';
+        var avatar = f.mcUuid
+          ? 'https://mc-heads.net/avatar/' + f.mcUuid + '/42'
+          : FB;
+        return '<a href="' + href + '" class="pc">' +
+          '<img src="' + avatar + '" onerror="this.src=\'' + FB + '\'" alt="' + f.name + '" style="image-rendering:pixelated"/>' +
+          '<div><div class="pn">' + f.name + '</div></div></a>';
+      }).join('');
+    })
+    .catch(function(){
+      grid.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:.5rem 0">Could not load followers.</div>';
+    });
 }
 
 // Fetch and display all-time profile view count
@@ -842,7 +988,11 @@ document.getElementById('tabBar').addEventListener('click',function(e){
   document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('on')});
   document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('on')});
   btn.classList.add('on');
-  document.getElementById(btn.dataset.tab).classList.add('on');
+  var tabId=btn.dataset.tab;
+  document.getElementById(tabId).classList.add('on');
+  // Lazy-load follow tabs on first open
+  if(tabId==='t-following') loadFollowing(window._profileOwnerClerkId||null);
+  if(tabId==='t-followers' && _currentProfileUuid) loadFollowers(_currentProfileUuid);
 });
 
 // ── SEARCH ────────────────────────────────────────────────────────────────────
@@ -1140,7 +1290,11 @@ function checkClaimStatus(uuid, name) {
     .then(function(r){return r.ok?r.json():null;})
     .then(function(d){
       if(!d) return;
+      // Store owner clerkUserId globally so follow tabs can use it
+      window._profileOwnerClerkId = d.claimed ? (d.clerkUserId || null) : null;
       _renderActsWithClaim(uuid, name, d.claimed, d.clerkUserId||null);
+      // Refresh follow button now we know the owner
+      loadFollowStatus(uuid);
     })
     .catch(function(){});
 }

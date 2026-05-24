@@ -53,11 +53,32 @@ module.exports = async function handler(req, res) {
 
   // ── POST — toggle follow ───────────────────────────────────────────────────
   if (req.method === 'POST') {
-    const { clerkUserId, targetUuid, displayName, mcUuid } = req.body || {};
+    const { clerkUserId, targetUuid, mcUuid } = req.body || {};
     if (!clerkUserId || !targetUuid) return res.status(400).json({ error: 'clerkUserId and targetUuid required' });
     if (!url || !token) return res.status(500).json({ error: 'KV not configured' });
 
     const cleanTarget = targetUuid.replace(/-/g, '').toLowerCase();
+    const cleanMcUuid = (mcUuid || '').replace(/-/g, '').toLowerCase();
+
+    // Resolve the follower's Minecraft name server-side from their linked accounts.
+    // This ensures notifications always show the MC username, never the Clerk account name.
+    let mcName = 'Unknown';
+    let resolvedMcUuid = cleanMcUuid;
+    try {
+      const [userMcRaw] = await kvPipeline(url, token, [['GET', `user-minecraft:${clerkUserId}`]]);
+      if (userMcRaw) {
+        const parsed   = JSON.parse(userMcRaw);
+        const accounts = Array.isArray(parsed) ? parsed : [parsed];
+        // Prefer the account matching the active mcUuid; fall back to first linked account
+        const acc = (cleanMcUuid && accounts.find(a => a.minecraftUuid === cleanMcUuid))
+                    || accounts[0];
+        if (acc) {
+          mcName        = acc.minecraftName || mcName;
+          resolvedMcUuid = acc.minecraftUuid || resolvedMcUuid;
+        }
+      }
+    } catch {}
+
     const [score] = await kvPipeline(url, token, [
       ['ZSCORE', `following:${clerkUserId}`, cleanTarget],
     ]);
@@ -73,7 +94,7 @@ module.exports = async function handler(req, res) {
       ]);
     } else {
       // Follow
-      const displayInfo = JSON.stringify({ name: displayName || 'Unknown', mcUuid: mcUuid || '' });
+      const displayInfo = JSON.stringify({ name: mcName, mcUuid: resolvedMcUuid });
       await kvPipeline(url, token, [
         ['ZADD', `following:${clerkUserId}`, String(now), cleanTarget],
         ['ZADD', `followers:${cleanTarget}`, String(now), clerkUserId],
@@ -89,11 +110,11 @@ module.exports = async function handler(req, res) {
           // Don't notify if following your own claimed profile
           if (ownerClerkId && ownerClerkId !== clerkUserId) {
             const notif = JSON.stringify({
-              type:       'new_follower',
-              fromName:   displayName || 'Unknown',
-              fromMcUuid: mcUuid || '',
+              type:        'new_follower',
+              fromName:    mcName,
+              fromMcUuid:  resolvedMcUuid,
               profileUuid: cleanTarget,
-              ts:         now,
+              ts:          now,
             });
             await kvPipeline(url, token, [
               ['ZADD',             `notifs:${ownerClerkId}`, String(now), notif],

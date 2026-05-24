@@ -203,10 +203,6 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
 
   <div class="cgrid" id="cgrid"></div>
 
-  <div class="sh">
-    <div class="sh-title"><span class="ic">⚡</span> Recent Cape Changes</div>
-  </div>
-  <div class="card" id="feed"></div>
 
 </div>
 
@@ -726,7 +722,6 @@ function loadCapeImageFallback(capeImageUrl){
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 renderGrid();
-renderFeed();
 document.getElementById('statTotal').textContent=CAPES.length;
 
 // ── LIVE COUNTS from /api/cape-counts ────────────────────────────────────────

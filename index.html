@@ -261,6 +261,50 @@ var PLAYERS=[
   {name:'Sapnap',uuid:'cdb5b06a-2a89-4fcd-a4bf-63e0b02f8e84',cape:'birthday',followers:'387K'},
 ];
 var EMOJIS={migrator:'🟣',vanilla:'🟡',minecon11:'🏆',minecon12:'🏆',minecon13:'🏆',minecon15:'🏆',minecon16:'🏆',earth:'🌍',birthday:'🎂',follower:'💜',mojang:'🔴',translator:'🟠',cobalt:'🔵',scrolls:'🎲',turtle:'🐢',cherry:'🌸'};
+var _W='https://minecraft.wiki/images/thumb/';
+var CAPE_IMGS={
+  migrator:     _W+'Migrator_Cape.png/256px-Migrator_Cape.png',
+  vanilla:      _W+'Vanilla_Cape.png/256px-Vanilla_Cape.png',
+  common:       _W+'Common_Cape_JE.png/256px-Common_Cape_JE.png',
+  turtle:       _W+'Turtle_Cape.png/256px-Turtle_Cape.png',
+  follower:     _W+'Follower%27s_Cape_JE.png/256px-Follower%27s_Cape_JE.png',
+  founders:     _W+'Founder%27s_Cape.png/256px-Founder%27s_Cape.png',
+  cherry:       _W+'Cherry_Blossom_Cape_JE.png/256px-Cherry_Blossom_Cape_JE.png',
+  snowman:      _W+'JulianClark%27s_Cape.png/256px-JulianClark%27s_Cape.png',
+  pan:          _W+'Pan_Cape_JE.png/256px-Pan_Cape_JE.png',
+  valentine:    _W+'Valentine_Cape.png/256px-Valentine_Cape.png',
+  anniversary15:_W+'15th_Anniversary_Cape_JE.png/256px-15th_Anniversary_Cape_JE.png',
+  prismarine:   _W+'Prismarine_Cape.png/256px-Prismarine_Cape.png',
+  birthday:     _W+'Birthday_Cape.png/256px-Birthday_Cape.png',
+  purpleheart:  _W+'Purple_Heart_Cape_JE.png/256px-Purple_Heart_Cape_JE.png',
+  oxeye:        _W+'OxeyeCape.png/256px-OxeyeCape.png',
+  copper:       _W+'Copper_Cape_JE.png/256px-Copper_Cape_JE.png',
+  experience:   _W+'Minecraft_Experience_Cape_JE.png/256px-Minecraft_Experience_Cape_JE.png',
+  menace:       _W+'Menace_Cape_JE.png/256px-Menace_Cape_JE.png',
+  home:         _W+'Home_Cape_JE.png/256px-Home_Cape_JE.png',
+  yearn:        _W+'Yearn_Cape_JE.png/256px-Yearn_Cape_JE.png',
+  minecon16:    _W+'MINECON_2016_Cape.png/256px-MINECON_2016_Cape.png',
+  minecon15:    _W+'MINECON_2015_Cape.png/256px-MINECON_2015_Cape.png',
+  minecon13:    _W+'MINECON_2013_Cape.png/256px-MINECON_2013_Cape.png',
+  minecon12:    _W+'MINECON_2012_Cape.png/256px-MINECON_2012_Cape.png',
+  minecon11:    _W+'MINECON_2011_Cape.png/256px-MINECON_2011_Cape.png',
+  zombiehorse:  _W+'Zombie_Horse_Cape_JE.png/256px-Zombie_Horse_Cape_JE.png',
+  mojangstudios:_W+'Mojang_Studios_Cape.png/256px-Mojang_Studios_Cape.png',
+  translator:   _W+'Translator_Cape.png/256px-Translator_Cape.png',
+  mcc15:        _W+'MCC_15th_Year_Cape_JE.png/256px-MCC_15th_Year_Cape_JE.png',
+  scrolls:      _W+'Scrolls_Champion_Cape.png/256px-Scrolls_Champion_Cape.png',
+  realmsmapper: _W+'Realms_MapMaker_Cape.png/256px-Realms_MapMaker_Cape.png',
+  spade:        _W+'MrMessiah%27s_Cape.png/256px-MrMessiah%27s_Cape.png',
+  mojang:       _W+'Mojang_Cape.png/256px-Mojang_Cape.png',
+  cobalt:       _W+'Cobalt_Cape_render.png/256px-Cobalt_Cape_render.png',
+  translatorcn: _W+'Translator_Cape.png/256px-Translator_Cape.png',
+  mojiramod:    _W+'Moderator_Cape.png/256px-Moderator_Cape.png',
+  translatorjp: _W+'Translator_Cape.png/256px-Translator_Cape.png',
+  mojangclassic:_W+'Classic_Mojang_Cape.png/256px-Classic_Mojang_Cape.png',
+  db:           _W+'DannyBstyle%27s_Cape.png/256px-DannyBstyle%27s_Cape.png',
+  mojangoffice: _W+'Mojang_Office_Cape_JE.png/256px-Mojang_Office_Cape_JE.png',
+  millionth:    _W+'Millionth_Customer_Cape.png/256px-Millionth_Customer_Cape.png',
+};
 var UUIDS={dream:'69e76b14-1d14-4b87-9b5b-01b32e9b6f4c',technoblade:'b876ec32-e396-476b-a115-8438d83c67d4',tommyinnit:'e94de2df-60c0-4dea-baa2-e4c29d82cbb8',notch:'069a79f4-44e9-4726-a5be-fca90e38aaf5',ph1lza:'a5704282-91f1-400e-9e8e-e57d29562e70',skeppy:'d0e05de7-6067-454d-beae-c4dc7ad2ed9c',wilbur:'39f6d1b3-6fe2-44cc-8a70-3e5dace3c5d2',quackity:'5a9a9e45-d9ea-49cf-a23f-a8e27f0e2c26',sapnap:'cdb5b06a-2a89-4fcd-a4bf-63e0b02f8e84'};
 
 function fmt(n){return n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(1)+'K':n.toLocaleString()}
@@ -285,19 +329,34 @@ function renderFeed(changes){
     return;
   }
   el.innerHTML=changes.map(function(c){
-    var capeImg=c.capeHash
-      ?'<img src="https://textures.minecraft.net/texture/'+c.capeHash+'" '
-        +'style="height:28px;width:auto;image-rendering:pixelated;border-radius:2px;flex-shrink:0" '
-        +'onerror="this.style.display=\'none\'" alt="cape"/>'
-      :'';
+    var imgSrc = c.capeId && CAPE_IMGS[c.capeId] ? CAPE_IMGS[c.capeId] : null;
+    // Fallback to raw texture if we have the hash but no wiki image
+    var fallbackSrc = c.capeHash ? 'https://textures.minecraft.net/texture/'+c.capeHash : null;
+    var capeEl = '';
+    if(imgSrc){
+      capeEl = '<a href="capes.html" title="View capes" style="display:block;flex-shrink:0">'
+        +'<img src="'+imgSrc+'" '
+        +'style="height:44px;width:auto;image-rendering:auto;border-radius:5px;'
+        +'border:1px solid var(--bdr);background:var(--bg2);transition:border-color .15s;display:block" '
+        +'onmouseover="this.style.borderColor=\'var(--green)\'" '
+        +'onmouseout="this.style.borderColor=\'var(--bdr)\'" '
+        +(fallbackSrc?'onerror="this.src=\''+fallbackSrc+'\'" ':'')
+        +'alt="cape"/></a>';
+    } else if(fallbackSrc){
+      capeEl = '<a href="capes.html" title="View capes" style="display:block;flex-shrink:0">'
+        +'<img src="'+fallbackSrc+'" '
+        +'style="height:44px;width:auto;image-rendering:pixelated;border-radius:5px;'
+        +'border:1px solid var(--bdr);background:var(--bg2);display:block" '
+        +'alt="cape"/></a>';
+    }
     return'<div class="fi">'+
       '<img src="https://mc-heads.net/avatar/'+c.uuid+'/32" onerror="this.src=\''+FB+'\'" alt="'+c.name+'"/>'+
       '<div class="fi-info">'+
         '<div class="fi-name"><a href="profile.html?name='+encodeURIComponent(c.name)+'">'+c.name+'</a></div>'+
-        '<div class="fi-detail">Cape cached on CapeSearch</div>'+
+        '<div class="fi-detail">Cached on CapeSearch</div>'+
       '</div>'+
-      '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">'+
-        capeImg+
+      '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">'+
+        capeEl+
         '<span class="fi-time">'+fmtAgo(c.ts)+'</span>'+
       '</div>'+
     '</div>';

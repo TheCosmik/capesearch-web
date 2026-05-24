@@ -53,7 +53,7 @@ module.exports = async function handler(req, res) {
 
   try {
     const r = await fetch(
-      'https://laby.net/api/v3/search/textures/cape?order=most_used&size=50',
+      'https://laby.net/api/v3/search/textures/cape?order=most_used&size=50&page=0',
       {
         headers: { 'User-Agent': 'CapeSearch/1.0' },
         signal: AbortSignal.timeout(8000),

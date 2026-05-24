@@ -332,6 +332,36 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
   </div>
 </div>
 
+<!-- UNCLAIM CONFIRM MODAL -->
+<div class="overlay" id="unclaimOverlay">
+  <div class="modal" style="max-width:420px;padding:2rem;position:relative">
+    <button class="mclose" onclick="closeUnclaimConfirm()" style="position:absolute;top:1rem;right:1rem">✕</button>
+    <div style="text-align:center;margin-bottom:1.5rem">
+      <div style="font-size:2.5rem;margin-bottom:.75rem">🔓</div>
+      <div style="font-size:1.1rem;font-weight:800;margin-bottom:.4rem">Unclaim This Profile?</div>
+      <div style="font-size:.875rem;color:var(--txt2);line-height:1.5">
+        This will remove your ownership of this profile.<br/>
+        Anyone will be able to claim it again afterwards.
+      </div>
+    </div>
+    <div style="background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);border-radius:.75rem;padding:.85rem 1rem;margin-bottom:1.5rem;font-size:.82rem;color:var(--red)">
+      ⚠ Your profile settings (like hidden usernames) will also be cleared.
+    </div>
+    <div style="display:flex;gap:.75rem">
+      <button class="btn btn-o" style="flex:1;justify-content:center" onclick="closeUnclaimConfirm()">Cancel</button>
+      <button id="unclaimConfirmBtn" onclick="confirmUnclaim()"
+        style="flex:1;justify-content:center;background:rgba(248,113,113,.15);border:1px solid rgba(248,113,113,.4);
+               color:var(--red);border-radius:var(--rad);padding:.55rem 1rem;font-size:.82rem;font-weight:600;
+               cursor:pointer;transition:background .2s;display:flex;align-items:center;gap:.4rem"
+        onmouseover="this.style.background='rgba(248,113,113,.28)'"
+        onmouseout="this.style.background='rgba(248,113,113,.15)'">
+        🔓 Yes, Unclaim
+      </button>
+    </div>
+    <div id="unclaimStatus" style="font-size:.78rem;color:var(--muted);text-align:center;margin-top:.75rem;min-height:1.2rem"></div>
+  </div>
+</div>
+
 <!-- CAPE MODAL (same popup as capes.html) -->
 <div class="overlay" id="capeOverlay">
   <div class="modal" id="capeModal">
@@ -1370,6 +1400,63 @@ function saveSetting(key, value){
   });
 }
 
+// ── UNCLAIM FLOW ──────────────────────────────────────────────────────────────
+function openUnclaimConfirm(){
+  // Close the settings dropdown first
+  _cogOpen = false;
+  var drop = document.getElementById('settingsDrop');
+  if(drop) drop.style.display = 'none';
+  // Reset modal state
+  var statusEl = document.getElementById('unclaimStatus');
+  var btn = document.getElementById('unclaimConfirmBtn');
+  if(statusEl) statusEl.textContent = '';
+  if(btn){ btn.disabled = false; btn.style.opacity = '1'; }
+  document.getElementById('unclaimOverlay').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeUnclaimConfirm(){
+  document.getElementById('unclaimOverlay').classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+function confirmUnclaim(){
+  var uuid = _currentProfileUuid;
+  var clerkUser = window.Clerk && window.Clerk.user ? window.Clerk.user.id : null;
+  if(!uuid || !clerkUser) return;
+
+  var btn = document.getElementById('unclaimConfirmBtn');
+  var statusEl = document.getElementById('unclaimStatus');
+  if(btn){ btn.disabled = true; btn.style.opacity = '.55'; }
+  if(statusEl) statusEl.textContent = 'Removing claim…';
+
+  fetch('/api/player-textures?action=unclaim', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ clerkUserId: clerkUser, uuid: uuid }),
+  })
+  .then(function(r){ return r.ok ? r.json() : null; })
+  .then(function(d){
+    if(d && d.ok){
+      closeUnclaimConfirm();
+      // Refresh the action bar to show the "Claim Profile" button instead
+      _renderActsWithClaim(uuid, document.getElementById('pUser').textContent, false, null);
+      window._profileOwnerClerkId = null;
+    } else {
+      if(statusEl) statusEl.textContent = 'Something went wrong. Please try again.';
+      if(btn){ btn.disabled = false; btn.style.opacity = '1'; }
+    }
+  })
+  .catch(function(){
+    if(statusEl) statusEl.textContent = 'Network error. Please try again.';
+    if(btn){ btn.disabled = false; btn.style.opacity = '1'; }
+  });
+}
+
+document.getElementById('unclaimOverlay').addEventListener('click', function(e){
+  if(e.target === this) closeUnclaimConfirm();
+});
+
 // ── CLAIM FLOW ─────────────────────────────────────────────────────────────────
 var _claimTimer   = null;
 var _claimPoll    = null;
@@ -1407,6 +1494,15 @@ function _renderActsWithClaim(uuid, name, isClaimed, ownerUserId) {
             '</span>'+
           '</label>'+
           '<div id="settingSaveStatus" style="font-size:.74rem;color:var(--muted);margin-top:.55rem;min-height:1rem"></div>'+
+          '<hr style="border:none;border-top:1px solid var(--bdr);margin:.85rem 0"/>'+
+          '<button onclick="openUnclaimConfirm()" '+
+            'style="width:100%;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.25);'+
+            'color:var(--red);border-radius:.5rem;padding:.45rem .75rem;font-size:.82rem;font-weight:600;'+
+            'cursor:pointer;text-align:left;transition:background .15s" '+
+            'onmouseover="this.style.background=\'rgba(248,113,113,.18)\'" '+
+            'onmouseout="this.style.background=\'rgba(248,113,113,.08)\'">'+
+            '🔓 Unclaim Profile'+
+          '</button>'+
         '</div>'+
       '</div>';
   }

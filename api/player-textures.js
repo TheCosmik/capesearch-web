@@ -186,6 +186,23 @@ module.exports = async function handler(req, res) {
     return res.status(200).json((val && typeof val === 'object') ? val : {});
   }
 
+  // ── Unclaim profile ───────────────────────────────────────────────────────
+  // POST /api/player-textures?action=unclaim
+  // Body: { clerkUserId, uuid }
+  if (req.method === 'POST' && req.query.action === 'unclaim') {
+    const { clerkUserId, uuid: unclaimUuid } = req.body || {};
+    if (!clerkUserId || !unclaimUuid) return res.status(400).json({ error: 'missing fields' });
+    const unclaimClean = unclaimUuid.replace(/-/g, '').toLowerCase();
+    if (!/^[0-9a-f]{32}$/.test(unclaimClean)) return res.status(400).json({ error: 'invalid uuid' });
+    const unclaimData = await kvGet(`claimed:${unclaimClean}`);
+    if (!unclaimData || unclaimData.clerkUserId !== clerkUserId) {
+      return res.status(403).json({ error: 'not your profile' });
+    }
+    await kvPipeline([['DEL', `claimed:${unclaimClean}`]]);
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json({ ok: true });
+  }
+
   // ── Profile settings SET ──────────────────────────────────────────────────
   // POST /api/player-textures?action=set-settings
   // Body: { clerkUserId, uuid, settings: { hideOldNames: bool } }

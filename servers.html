@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Servers – CapeSearch</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1923;--bg2:#131f2e;--card:#182030;--card2:#1e2b3f;
+  --green:#4ade80;--green2:#22c55e;--gdim:rgba(74,222,128,.13);
+  --txt:#f1f5f9;--txt2:#94a3b8;--muted:#64748b;
+  --bdr:#243347;--bdr2:#2d3f5e;--rad:8px;--rad2:12px;
+  --red:#f87171;--yellow:#fbbf24;--blue:#60a5fa;
+  --discord:#5865f2;
+}
+html{font-size:16px}
+body{background:var(--bg);color:var(--txt);font-family:'Segoe UI',system-ui,sans-serif;line-height:1.5;min-height:100vh;display:flex;flex-direction:column}
+a{color:var(--green);text-decoration:none}
+a:hover{text-decoration:underline}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg2)}::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:3px}
+
+/* NAV */
+.nav{background:var(--bg2);border-bottom:1px solid var(--bdr);position:sticky;top:0;z-index:99;padding:0 1rem}
+.nav-in{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:1rem;height:54px}
+.logo{display:flex;align-items:center;gap:.5rem;font-size:1.15rem;font-weight:800;color:var(--txt);text-decoration:none;flex-shrink:0}
+.logo-icon{width:30px;height:30px;background:var(--green);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.logo span{color:var(--green)}
+.nav-s{flex:1;max-width:400px;position:relative}
+.nav-s input{width:100%;background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad);color:var(--txt);padding:.4rem .75rem .4rem 2.2rem;font-size:.875rem;outline:none;transition:border-color .2s}
+.nav-s input:focus{border-color:var(--green)}
+.nav-s input::placeholder{color:var(--muted)}
+.nav-s .si{position:absolute;left:.6rem;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;pointer-events:none}
+.nav-links{display:flex;gap:.15rem;margin-left:auto}
+.nav-links a{color:var(--txt2);font-size:.875rem;font-weight:500;padding:.35rem .7rem;border-radius:var(--rad);transition:all .2s}
+.nav-links a:hover,.nav-links a.on{color:var(--txt);background:var(--card);text-decoration:none}
+.sdrop{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad);box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:200;display:none}
+.sdrop.show{display:block}
+.sri{display:flex;align-items:center;gap:.65rem;padding:.55rem .8rem;cursor:pointer;transition:background .15s}
+.sri:hover{background:var(--card2)}
+.sri img{width:30px;height:30px;image-rendering:pixelated;border-radius:4px;background:var(--bg2)}
+.sri .sn{font-size:.85rem;font-weight:600}
+.sri .ss{font-size:.73rem;color:var(--muted)}
+
+/* PAGE HEADER */
+.phdr{background:var(--bg2);border-bottom:1px solid var(--bdr);padding:1.75rem 1rem}
+.phdr-in{max-width:1200px;margin:0 auto}
+.phdr h1{font-size:1.65rem;font-weight:800;margin-bottom:.2rem}
+.phdr p{color:var(--txt2);font-size:.875rem}
+
+/* MAIN */
+.wrap{max-width:1200px;margin:0 auto;padding:0 1rem;flex:1}
+
+footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1rem;margin-top:2.5rem}
+.foot-in{max-width:1200px;margin:0 auto;display:flex;flex-wrap:wrap;gap:2rem;justify-content:space-between}
+.foot-brand .fl{font-size:1rem;font-weight:800;color:var(--txt);margin-bottom:.3rem}
+.foot-brand .fl span{color:var(--green)}
+.foot-brand p{font-size:.76rem;color:var(--muted);max-width:200px}
+.foot-col h4{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.55rem}
+.foot-col ul{list-style:none;display:flex;flex-direction:column;gap:.3rem}
+.foot-col ul a{font-size:.82rem;color:var(--txt2)}
+.foot-col ul a:hover{color:var(--green)}
+.foot-bot{max-width:1200px;margin:1rem auto 0;padding-top:.8rem;border-top:1px solid var(--bdr);font-size:.7rem;color:var(--muted);text-align:center}
+</style>
+<script async crossorigin="anonymous"
+  data-clerk-publishable-key="pk_test_c3RlYWR5LWZpbGx5LTY4LmNsZXJrLmFjY291bnRzLmRldiQ"
+  src="https://steady-filly-68.clerk.accounts.dev/npm/@clerk/clerk-js@5/dist/clerk.browser.js"
+  type="text/javascript"></script>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-in">
+    <a href="index.html" class="logo"><div class="logo-icon">⛏</div><b>Cape<span>Search</span></b></a>
+    <div class="nav-s">
+      <span class="si">🔍</span>
+      <input id="navQ" type="text" placeholder="Search player…" autocomplete="off"/>
+      <div class="sdrop" id="navDrop"></div>
+    </div>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="capes.html">Capes</a>
+      <a href="servers.html" class="on">Servers</a>
+      <a href="#">Skins</a>
+      <a href="index.html#faq">FAQ</a>
+    </div>
+    <div style="display:flex;align-items:center;margin-left:.5rem;flex-shrink:0">
+      <button id="clerkSignIn" style="display:none;background:var(--green);color:#0f1923;border:none;border-radius:var(--rad);padding:.35rem .9rem;font-size:.875rem;font-weight:700;cursor:pointer;transition:opacity .15s" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">Log in</button>
+      <div id="clerkUser" style="display:none;align-items:center"></div>
+    </div>
+  </div>
+</nav>
+
+<div class="phdr">
+  <div class="phdr-in">
+    <h1>🖥 Servers</h1>
+    <p>Discover and promote Minecraft servers on CapeSearch.</p>
+  </div>
+</div>
+
+<div class="wrap" style="padding-top:4rem;padding-bottom:4rem;display:flex;align-items:center;justify-content:center">
+  <div style="background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad2);padding:2.5rem 2rem;max-width:480px;width:100%;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.35)">
+
+    <!-- Discord logo -->
+    <div style="width:64px;height:64px;background:rgba(88,101,242,.15);border:1px solid rgba(88,101,242,.3);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;font-size:30px">
+      🖥
+    </div>
+
+    <div style="font-size:1.2rem;font-weight:800;margin-bottom:.6rem">Promote Your Server</div>
+    <div style="font-size:.9rem;color:var(--txt2);line-height:1.65;margin-bottom:1.75rem">
+      Interested in featuring your Minecraft server on CapeSearch?<br/>
+      Open a ticket in our Discord and our team will get back to you.
+    </div>
+
+    <!-- Discord button -->
+    <button
+      style="display:inline-flex;align-items:center;gap:.6rem;background:#5865f2;color:#fff;border:none;
+             border-radius:var(--rad);padding:.65rem 1.4rem;font-size:.9rem;font-weight:700;cursor:pointer;
+             transition:background .2s;letter-spacing:.01em"
+      onmouseover="this.style.background='#4752c4'"
+      onmouseout="this.style.background='#5865f2'">
+      <!-- Discord icon SVG -->
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+        <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/>
+      </svg>
+      Open a Discord Ticket
+    </button>
+
+    <div style="margin-top:1.25rem;font-size:.75rem;color:var(--muted)">
+      Server listings coming soon — stay tuned!
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="foot-in">
+    <div class="foot-brand"><div class="fl">Cape<span>Search</span></div><p>Not affiliated with Mojang or Microsoft.</p></div>
+    <div class="foot-col"><h4>Quick Links</h4><ul><li><a href="index.html">Home</a></li><li><a href="capes.html">Capes</a></li><li><a href="#">API</a></li></ul></div>
+  </div>
+  <div class="foot-bot">Copyright &copy; 2026 NameSearch. All rights reserved.</div>
+</footer>
+
+<script>
+var FB='https://mc-heads.net/avatar/Steve/32';
+function avN(name){return'https://mc-heads.net/avatar/'+encodeURIComponent(name)+'/32'}
+
+// ── SEARCH ────────────────────────────────────────────────────────────────────
+(function(){
+  var inp=document.getElementById('navQ');
+  var drop=document.getElementById('navDrop');
+  var _st=null;
+
+  function dropItem(name,sub){
+    return '<div class="sri" onclick="location.href=\'profile.html?name='+encodeURIComponent(name)+'\'">'+
+      '<img src="'+avN(name)+'" onerror="this.src=\''+FB+'\'" alt="'+name+'"/>'+
+      '<div><div class="sn">'+name+'</div><div class="ss">'+sub+'</div></div></div>';
+  }
+
+  inp.addEventListener('input',function(){
+    clearTimeout(_st);
+    var q=inp.value.trim();
+    if(q.length<2){drop.classList.remove('show');return}
+
+    drop.innerHTML='<div style="padding:.4rem .85rem;font-size:.74rem;color:var(--muted)">🔍 Searching…</div>';
+    drop.classList.add('show');
+
+    _st=setTimeout(function(){
+      fetch('/api/player-textures?name='+encodeURIComponent(q))
+        .then(function(r){return r.ok?r.json():null})
+        .then(function(d){
+          if(d&&d.name){
+            drop.innerHTML=dropItem(d.name,'Found on Minecraft ✓');
+          } else {
+            drop.innerHTML='<div style="padding:.75rem 1rem;font-size:.82rem;color:var(--muted)">No player found for "'+q+'"</div>';
+          }
+          drop.classList.add('show');
+        })
+        .catch(function(){
+          drop.innerHTML='<div style="padding:.75rem 1rem;font-size:.82rem;color:var(--muted)">Search unavailable</div>';
+        });
+    },400);
+  });
+
+  inp.addEventListener('keydown',function(e){
+    if(e.key==='Enter'&&inp.value.trim()){
+      drop.classList.remove('show');
+      location.href='profile.html?name='+encodeURIComponent(inp.value.trim());
+    }
+  });
+  document.addEventListener('click',function(e){
+    if(!inp.contains(e.target)&&!drop.contains(e.target))drop.classList.remove('show');
+  });
+})();
+</script>
+<script src="clerk-auth.js"></script>
+</body>
+</html>

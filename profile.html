@@ -867,7 +867,7 @@ function fetchPlayerData(uuid){
     .then(function(d){
       if(!d)return;
       if(d.username_history&&d.username_history.length){
-        var live=d.username_history.slice().reverse().map(function(e){
+        var live=d.username_history.slice().map(function(e){
           var dateStr=null;
           if(e.changed_at){
             var dt=new Date(e.changed_at);

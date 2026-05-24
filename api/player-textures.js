@@ -198,7 +198,22 @@ module.exports = async function handler(req, res) {
     if (!unclaimData || unclaimData.clerkUserId !== clerkUserId) {
       return res.status(403).json({ error: 'not your profile' });
     }
-    await kvPipeline([['DEL', `claimed:${unclaimClean}`]]);
+    // Build commands: delete the claim + remove from user's linked accounts list
+    const cmds = [['DEL', `claimed:${unclaimClean}`]];
+    const [userMcRaw] = await kvPipeline([['GET', `user-minecraft:${clerkUserId}`]]);
+    if (userMcRaw) {
+      try {
+        const allParsed  = JSON.parse(userMcRaw);
+        const allAccounts = Array.isArray(allParsed) ? allParsed : [allParsed];
+        const filtered   = allAccounts.filter(a => a.minecraftUuid !== unclaimClean);
+        if (filtered.length === 0) {
+          cmds.push(['DEL', `user-minecraft:${clerkUserId}`]);
+        } else {
+          cmds.push(['SET', `user-minecraft:${clerkUserId}`, JSON.stringify(filtered)]);
+        }
+      } catch {}
+    }
+    await kvPipeline(cmds);
     res.setHeader('Cache-Control', 'no-store');
     return res.status(200).json({ ok: true });
   }

@@ -263,6 +263,52 @@ function _doSignOut() {
   if (window.Clerk) window.Clerk.signOut();
 }
 
+// ── Exposed nav refresh (called after unclaim) ───────────────────────────────
+// Re-fetches the user's linked Minecraft accounts and updates the avatar + dropdown.
+window._refreshUserMcNav = async function() {
+  if (!window.Clerk || !window.Clerk.user) return;
+  var user   = window.Clerk.user;
+  var userId = user.id;
+  var displayName = user.username
+    || user.firstName
+    || (user.emailAddresses && user.emailAddresses[0] && user.emailAddresses[0].emailAddress)
+    || 'Player';
+
+  try {
+    var r = await fetch('/api/get-user-minecraft?clerkUserId=' + encodeURIComponent(userId));
+    if (!r.ok) return;
+    var d = await r.json();
+
+    var savedActive = localStorage.getItem(_activeKey(userId));
+    var avatarEl    = document.getElementById('_uAvatar');
+    var dropEl      = document.getElementById('_uDrop');
+
+    if (!d.linked || !d.accounts || !d.accounts.length) {
+      // No accounts left — reset to Clerk profile image
+      localStorage.removeItem(_activeKey(userId));
+      if (avatarEl) { avatarEl.src = user.imageUrl || ''; avatarEl.style.imageRendering = 'auto'; }
+      if (dropEl) {
+        var nd = document.createElement('div');
+        nd.innerHTML = _buildDropdown(displayName, [], null);
+        var built = nd.firstChild; built.id = '_uDrop'; built.style.display = _menuOpen ? 'block' : 'none';
+        dropEl.replaceWith(built);
+      }
+    } else {
+      // Pick an active UUID that still exists in the list
+      var validActive = d.accounts.some(function(a){ return a.minecraftUuid === savedActive; })
+        ? savedActive : d.accounts[0].minecraftUuid;
+      localStorage.setItem(_activeKey(userId), validActive);
+      if (avatarEl) { avatarEl.src = _mcFace(validActive); avatarEl.style.imageRendering = 'pixelated'; }
+      if (dropEl) {
+        var nd = document.createElement('div');
+        nd.innerHTML = _buildDropdown(displayName, d.accounts, validActive);
+        var built = nd.firstChild; built.id = '_uDrop'; built.style.display = _menuOpen ? 'block' : 'none';
+        dropEl.replaceWith(built);
+      }
+    }
+  } catch {}
+};
+
 // Close both dropdowns when clicking outside
 document.addEventListener('click', function(e) {
   var wrap = document.getElementById('clerkUser');

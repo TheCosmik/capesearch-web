@@ -1439,6 +1439,11 @@ function confirmUnclaim(){
   .then(function(d){
     if(d && d.ok){
       closeUnclaimConfirm();
+      // Clear this MC UUID from localStorage if it was the active account
+      var activeKey = 'cs-active-mc:' + clerkUser;
+      if(localStorage.getItem(activeKey) === uuid) localStorage.removeItem(activeKey);
+      // Refresh the nav avatar + dropdown to remove the now-unclaimed account
+      if(typeof window._refreshUserMcNav === 'function') window._refreshUserMcNav();
       // Refresh the action bar to show the "Claim Profile" button instead
       _renderActsWithClaim(uuid, document.getElementById('pUser').textContent, false, null);
       window._profileOwnerClerkId = null;

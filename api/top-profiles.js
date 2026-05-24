@@ -7,13 +7,58 @@
 //
 // Returns: { profiles: [{ uuid, name, views }], month: "May 2026" }
 
+async function kvPipeline(url, token, commands) {
+  try {
+    const res = await fetch(`${url}/pipeline`, {
+      method:  'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body:    JSON.stringify(commands),
+      signal:  AbortSignal.timeout(5000),
+    });
+    if (!res.ok) return commands.map(() => null);
+    const data = await res.json();
+    return Array.isArray(data) ? data.map(d => d.result ?? null) : commands.map(() => null);
+  } catch {
+    return commands.map(() => null);
+  }
+}
+
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
 
-  const limit = Math.min(parseInt(req.query.limit) || 8, 20);
-
   const url   = process.env.UPSTASH_REDIS_REST_URL   || process.env.KV_REST_API_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+
+  // ── GET recent cape caches (homepage feed) ────────────────────────────────
+  // GET /api/top-profiles?action=recent-capes&limit=8
+  // Returns: { changes: [{uuid, name, capeHash, ts}] }
+  if (req.query.action === 'recent-capes') {
+    const limit = Math.min(parseInt(req.query.limit) || 8, 20);
+    if (!url || !token) return res.status(200).json({ changes: [] });
+    // Fetch extra entries to allow for per-player deduplication
+    const [raw] = await kvPipeline(url, token, [
+      ['ZREVRANGEBYSCORE', 'recent-capes', '+inf', '-inf', 'WITHSCORES', 'LIMIT', '0', '80'],
+    ]);
+    const seen    = new Set();
+    const changes = [];
+    if (Array.isArray(raw)) {
+      for (let i = 0; i < raw.length && changes.length < limit; i += 2) {
+        try {
+          const entry = JSON.parse(raw[i]);
+          const ts    = parseInt(raw[i + 1]) || 0;
+          if (!seen.has(entry.uuid)) {
+            seen.add(entry.uuid);
+            changes.push({ uuid: entry.uuid, name: entry.name, capeHash: entry.capeHash, ts });
+          }
+        } catch {}
+      }
+    }
+    res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=10');
+    return res.status(200).json({ changes });
+  }
+
+  const limit = Math.min(parseInt(req.query.limit) || 8, 20);
+
   if (!url || !token) return res.status(200).json({ profiles: [], month: '' });
 
   // Build current month key and human-readable label

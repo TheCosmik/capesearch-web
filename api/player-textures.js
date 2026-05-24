@@ -80,13 +80,16 @@ async function updateCapeHistory(uuid, capeUrl, playerName) {
   const hash = capeUrl.replace(/.*\//, '');
   const now = Date.now();
 
-  // Single pipeline: update cape history + reverse index + name — all atomic
+  // Single pipeline: update cape history + reverse index + name + global recent feed
   // pname stored as plain string (no JSON.stringify) so cape-wearers.js reads it directly
+  const recentEntry = JSON.stringify({ uuid: cleanUuid, name: playerName || cleanUuid.slice(0, 8), capeHash: hash });
   const commands = [
     ['ZADD', `cph:${uuid}`, now, capeUrl],
-    ['ZREMRANGEBYRANK', `cph:${uuid}`, 0, -51],  // keep 50 most recent
+    ['ZREMRANGEBYRANK', `cph:${uuid}`, 0, -51],       // keep 50 per player
     ['ZADD', `cw:${hash}`, now, cleanUuid],
-    ['ZREMRANGEBYRANK', `cw:${hash}`, 0, -51],   // keep 50 per cape
+    ['ZREMRANGEBYRANK', `cw:${hash}`, 0, -51],         // keep 50 per cape
+    ['ZADD', 'recent-capes', String(now), recentEntry],
+    ['ZREMRANGEBYRANK', 'recent-capes', '0', '-51'],   // keep global 50 most recent
   ];
   if (playerName) commands.push(['SET', `pname:${cleanUuid}`, playerName]);
   await kvPipeline(commands);

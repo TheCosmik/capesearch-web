@@ -260,16 +260,6 @@ var PLAYERS=[
   {name:'Quackity',uuid:'5a9a9e45-d9ea-49cf-a23f-a8e27f0e2c26',cape:'earth',followers:'412K'},
   {name:'Sapnap',uuid:'cdb5b06a-2a89-4fcd-a4bf-63e0b02f8e84',cape:'birthday',followers:'387K'},
 ];
-var CHANGES=[
-  {name:'Dream',uuid:'69e76b14',action:'equipped',cape:'MineCon 2016',time:'2 min ago'},
-  {name:'xXNinja360Xx',uuid:'aa92b12c',action:'removed',cape:'Migrator Cape',time:'5 min ago'},
-  {name:'CrafterKing',uuid:'bc441d2e',action:'equipped',cape:'Vanilla Cape',time:'8 min ago'},
-  {name:'Notch',uuid:'069a79f4',action:'equipped',cape:'Mojang Cape',time:'11 min ago'},
-  {name:'SkyMaster9',uuid:'d3fa88e1',action:'removed',cape:'Earth Cape',time:'14 min ago'},
-  {name:'LunaPixel',uuid:'f1e90bca',action:'equipped',cape:'Cherry Blossom',time:'18 min ago'},
-  {name:'BlazeFighter',uuid:'a0c33d91',action:'equipped',cape:'Turtle Cape',time:'21 min ago'},
-  {name:'IronGolem99',uuid:'e7d225f8',action:'removed',cape:'Follower Cape',time:'25 min ago'},
-];
 var EMOJIS={migrator:'🟣',vanilla:'🟡',minecon11:'🏆',minecon12:'🏆',minecon13:'🏆',minecon15:'🏆',minecon16:'🏆',earth:'🌍',birthday:'🎂',follower:'💜',mojang:'🔴',translator:'🟠',cobalt:'🔵',scrolls:'🎲',turtle:'🐢',cherry:'🌸'};
 var UUIDS={dream:'69e76b14-1d14-4b87-9b5b-01b32e9b6f4c',technoblade:'b876ec32-e396-476b-a115-8438d83c67d4',tommyinnit:'e94de2df-60c0-4dea-baa2-e4c29d82cbb8',notch:'069a79f4-44e9-4726-a5be-fca90e38aaf5',ph1lza:'a5704282-91f1-400e-9e8e-e57d29562e70',skeppy:'d0e05de7-6067-454d-beae-c4dc7ad2ed9c',wilbur:'39f6d1b3-6fe2-44cc-8a70-3e5dace3c5d2',quackity:'5a9a9e45-d9ea-49cf-a23f-a8e27f0e2c26',sapnap:'cdb5b06a-2a89-4fcd-a4bf-63e0b02f8e84'};
 
@@ -279,17 +269,48 @@ function avN(name){return'https://mc-heads.net/avatar/'+encodeURIComponent(name)
 var FB='https://mc-heads.net/avatar/Steve/32';
 
 // ── RENDER ────────────────────────────────────────────────────────────────────
-function renderFeed(){
-  document.getElementById('feed').innerHTML=CHANGES.slice(0,8).map(function(c){
-    var eq=c.action==='equipped';
-    return '<div class="fi">'+
-      '<img src="'+avN(c.name)+'" onerror="this.src=\''+FB+'\'" alt="'+c.name+'"/>'+
-      '<div class="fi-info"><div class="fi-name"><a href="profile.html?name='+encodeURIComponent(c.name)+'">'+c.name+'</a></div>'+
-      '<div class="fi-detail">'+(eq?'Equipped':'Removed')+' <span class="cn">'+c.cape+'</span></div></div>'+
-      '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">'+
-      '<span class="badge '+(eq?'bg':'br')+'">'+(eq?'+ Equipped':'- Removed')+'</span>'+
-      '<span class="fi-time">'+c.time+'</span></div></div>';
+function fmtAgo(ts){
+  var m=Math.floor((Date.now()-ts)/60000);
+  if(m<1)return'just now';
+  if(m<60)return m+'m ago';
+  var h=Math.floor(m/60);
+  if(h<24)return h+'h ago';
+  return Math.floor(h/24)+'d ago';
+}
+
+function renderFeed(changes){
+  var el=document.getElementById('feed');
+  if(!changes||!changes.length){
+    el.innerHTML='<div style="padding:1.5rem;text-align:center;color:var(--muted);font-size:.85rem">No recent cape data yet — check back soon.</div>';
+    return;
+  }
+  el.innerHTML=changes.map(function(c){
+    var capeImg=c.capeHash
+      ?'<img src="https://textures.minecraft.net/texture/'+c.capeHash+'" '
+        +'style="height:28px;width:auto;image-rendering:pixelated;border-radius:2px;flex-shrink:0" '
+        +'onerror="this.style.display=\'none\'" alt="cape"/>'
+      :'';
+    return'<div class="fi">'+
+      '<img src="https://mc-heads.net/avatar/'+c.uuid+'/32" onerror="this.src=\''+FB+'\'" alt="'+c.name+'"/>'+
+      '<div class="fi-info">'+
+        '<div class="fi-name"><a href="profile.html?name='+encodeURIComponent(c.name)+'">'+c.name+'</a></div>'+
+        '<div class="fi-detail">Cape cached on CapeSearch</div>'+
+      '</div>'+
+      '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">'+
+        capeImg+
+        '<span class="fi-time">'+fmtAgo(c.ts)+'</span>'+
+      '</div>'+
+    '</div>';
   }).join('');
+}
+
+function loadRecentCapes(){
+  var el=document.getElementById('feed');
+  el.innerHTML='<div style="padding:1.5rem;text-align:center;color:var(--muted);font-size:.85rem">Loading…</div>';
+  fetch('/api/top-profiles?action=recent-capes&limit=8')
+    .then(function(r){return r.ok?r.json():null})
+    .then(function(d){renderFeed(d&&d.changes);})
+    .catch(function(){renderFeed(null);});
 }
 
 function renderPlayers(profiles){
@@ -399,7 +420,7 @@ function toggleFaq(btn){
   ans.style.display=isOpen?'none':'block';
 }
 
-renderFeed();loadTopProfiles();
+loadRecentCapes();loadTopProfiles();
 setupSearch('navQ','navDrop');
 </script>
 <script src="clerk-auth.js"></script>

@@ -95,6 +95,8 @@ module.exports = async function handler(req, res) {
       claimedAt:     now,
     })],
     ['SET', `user-minecraft:${payload.clerkUserId}`, JSON.stringify(accounts)],
+    // Track in admin panel index
+    ['ZADD', 'claimed-profiles', 'NX', String(now), payload.minecraftUuid],
     // Clean up the used code
     ['DEL', `claimcode:${normalizedCode}`],
     ['DEL', `claimbyuser:${payload.clerkUserId}`],

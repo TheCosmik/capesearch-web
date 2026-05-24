@@ -44,6 +44,9 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ claimed: false });
   }
 
+  // Keep claimed-profiles index up-to-date (fires-and-forgets, doesn't block response)
+  kvPipeline([['ZADD', 'claimed-profiles', 'NX', String(info.claimedAt || Date.now()), cleanUuid]]).catch(() => {});
+
   res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=10');
   return res.status(200).json({
     claimed:      true,

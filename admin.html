@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Admin Panel – CapeSearch</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1923;--bg2:#131f2e;--card:#182030;--card2:#1e2b3f;
+  --green:#4ade80;--green2:#22c55e;--gdim:rgba(74,222,128,.13);
+  --txt:#f1f5f9;--txt2:#94a3b8;--muted:#64748b;
+  --bdr:#243347;--bdr2:#2d3f5e;--rad:8px;--rad2:12px;
+  --red:#f87171;--yellow:#fbbf24;--blue:#60a5fa;
+}
+html{font-size:16px}
+body{background:var(--bg);color:var(--txt);font-family:'Segoe UI',system-ui,sans-serif;line-height:1.5;min-height:100vh}
+a{color:var(--green);text-decoration:none}
+a:hover{text-decoration:underline}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg2)}::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:3px}
+
+.nav{background:var(--bg2);border-bottom:1px solid var(--bdr);position:sticky;top:0;z-index:99;padding:0 1rem}
+.nav-in{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:1rem;height:54px}
+.logo{display:flex;align-items:center;gap:.5rem;font-size:1.15rem;font-weight:800;color:var(--txt);text-decoration:none;flex-shrink:0}
+.logo-icon{width:30px;height:30px;background:var(--green);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.logo span{color:var(--green)}
+.nav-links{display:flex;gap:.15rem;margin-left:auto}
+.nav-links a{color:var(--txt2);font-size:.875rem;font-weight:500;padding:.35rem .7rem;border-radius:var(--rad);transition:all .2s}
+.nav-links a:hover,.nav-links a.on{color:var(--txt);background:var(--card);text-decoration:none}
+
+.phdr{background:var(--bg2);border-bottom:1px solid var(--bdr);padding:1.75rem 1rem}
+.phdr-in{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:1rem;justify-content:space-between;flex-wrap:wrap}
+.phdr h1{font-size:1.5rem;font-weight:800}
+.phdr p{color:var(--txt2);font-size:.875rem;margin-top:.15rem}
+
+.wrap{max-width:1200px;margin:0 auto;padding:1.5rem 1rem 3rem}
+
+.badge{display:inline-flex;align-items:center;padding:.12rem .5rem;border-radius:999px;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap}
+.bg{background:var(--gdim);color:var(--green)}
+.br{background:rgba(248,113,113,.14);color:var(--red)}
+.by{background:rgba(251,191,36,.14);color:var(--yellow)}
+.bb{background:rgba(96,165,250,.14);color:var(--blue)}
+.btn{display:inline-flex;align-items:center;gap:.35rem;padding:.45rem .9rem;border-radius:var(--rad);font-size:.8rem;font-weight:600;cursor:pointer;border:none;transition:all .2s}
+.btn-p{background:var(--green);color:#0a1a0a}
+.btn-p:hover{background:var(--green2)}
+.btn-o{background:transparent;border:1px solid var(--bdr);color:var(--txt2)}
+.btn-o:hover{border-color:var(--green);color:var(--green)}
+.btn-sm{padding:.25rem .65rem;font-size:.75rem}
+
+/* SEARCH */
+.search-wrap{position:relative;max-width:320px}
+.search-wrap input{width:100%;background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad);color:var(--txt);padding:.4rem .75rem .4rem 2.1rem;font-size:.85rem;outline:none;transition:border-color .2s}
+.search-wrap input:focus{border-color:var(--green)}
+.search-wrap input::placeholder{color:var(--muted)}
+.search-wrap .si{position:absolute;left:.6rem;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px}
+
+/* TABLE */
+.tbl-card{background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad2);overflow:hidden}
+.tbl-head{display:flex;align-items:center;justify-content:space-between;padding:.9rem 1.1rem;border-bottom:1px solid var(--bdr);gap:1rem;flex-wrap:wrap}
+.tbl-title{font-size:.85rem;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.05em}
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.875rem}
+thead th{background:var(--bg2);color:var(--muted);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:.6rem 1rem;text-align:left;border-bottom:1px solid var(--bdr);white-space:nowrap}
+tbody td{padding:.75rem 1rem;border-bottom:1px solid var(--bdr);vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:rgba(255,255,255,.02)}
+
+/* ROLE SELECT */
+select.role-sel{background:var(--bg2);border:1px solid var(--bdr);color:var(--txt);border-radius:var(--rad);padding:.3rem .55rem;font-size:.8rem;outline:none;cursor:pointer;transition:border-color .2s}
+select.role-sel:focus{border-color:var(--green)}
+
+/* TOAST */
+#toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--card2);border:1px solid var(--bdr);border-radius:var(--rad);padding:.65rem 1.1rem;font-size:.85rem;font-weight:600;z-index:999;display:none;box-shadow:0 8px 24px rgba(0,0,0,.5);max-width:260px}
+
+footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.25rem 1rem;margin-top:2rem}
+.foot-bot{max-width:1200px;margin:0 auto;font-size:.7rem;color:var(--muted);text-align:center}
+</style>
+<script async crossorigin="anonymous"
+  data-clerk-publishable-key="pk_test_c3RlYWR5LWZpbGx5LTY4LmNsZXJrLmFjY291bnRzLmRldiQ"
+  src="https://steady-filly-68.clerk.accounts.dev/npm/@clerk/clerk-js@5/dist/clerk.browser.js"
+  type="text/javascript"></script>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-in">
+    <a href="index.html" class="logo"><div class="logo-icon">⛏</div><b>Cape<span>Search</span></b></a>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="capes.html">Capes</a>
+      <a href="servers.html">Servers</a>
+      <a href="admin.html" class="on">Admin</a>
+    </div>
+    <div style="display:flex;align-items:center;margin-left:.5rem;flex-shrink:0">
+      <button id="clerkSignIn" style="display:none;background:var(--green);color:#0f1923;border:none;border-radius:var(--rad);padding:.35rem .9rem;font-size:.875rem;font-weight:700;cursor:pointer" onclick="window.Clerk&&window.Clerk.openSignIn()">Log in</button>
+      <div id="clerkUser" style="display:none;align-items:center"></div>
+    </div>
+  </div>
+</nav>
+
+<div class="phdr">
+  <div class="phdr-in">
+    <div>
+      <h1>⚡ Admin Panel</h1>
+      <p>Manage claimed profiles and assign staff roles.</p>
+    </div>
+    <span class="badge by">👑 Owner</span>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- Access states -->
+  <div id="stateLoading" style="text-align:center;padding:4rem 1rem;color:var(--muted)">
+    <div style="font-size:2rem;margin-bottom:.75rem">⏳</div>
+    <div style="font-size:.9rem">Checking access…</div>
+  </div>
+
+  <div id="stateDenied" style="display:none;text-align:center;padding:4rem 1rem">
+    <div style="font-size:3rem;margin-bottom:1rem">🚫</div>
+    <div style="font-size:1.1rem;font-weight:700;margin-bottom:.5rem">Access Denied</div>
+    <div style="font-size:.875rem;color:var(--txt2);margin-bottom:1.5rem">This panel is restricted to the site Owner.</div>
+    <a href="index.html" class="btn btn-o">← Back to Home</a>
+  </div>
+
+  <div id="stateNotLoggedIn" style="display:none;text-align:center;padding:4rem 1rem">
+    <div style="font-size:3rem;margin-bottom:1rem">🔐</div>
+    <div style="font-size:1.1rem;font-weight:700;margin-bottom:.5rem">Sign In Required</div>
+    <div style="font-size:.875rem;color:var(--txt2);margin-bottom:1.5rem">You need to be signed in to access this panel.</div>
+    <button class="btn btn-p" onclick="window.Clerk&&window.Clerk.openSignIn()">Sign In</button>
+  </div>
+
+  <!-- Panel content (owner only) -->
+  <div id="panelContent" style="display:none">
+
+    <!-- Stats row -->
+    <div id="statsRow" style="display:flex;gap:.85rem;margin-bottom:1.5rem;flex-wrap:wrap"></div>
+
+    <!-- Claimed profiles table -->
+    <div class="tbl-card">
+      <div class="tbl-head">
+        <span class="tbl-title">Claimed Profiles</span>
+        <div class="search-wrap">
+          <span class="si">🔍</span>
+          <input id="searchInput" type="text" placeholder="Filter by name or UUID…" oninput="filterTable()"/>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table id="profilesTable">
+          <thead>
+            <tr>
+              <th></th>
+              <th>Player</th>
+              <th>UUID</th>
+              <th>Role</th>
+              <th>Claimed</th>
+              <th>Assign Role</th>
+            </tr>
+          </thead>
+          <tbody id="profilesTbody">
+            <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:2rem">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<footer><div class="foot-bot">CapeSearch Admin Panel</div></footer>
+
+<script>
+var _clerkUserId = null;
+var _allProfiles = [];
+
+// ── Access check ──────────────────────────────────────────────────────────────
+window.addEventListener('load', async function() {
+  if (!window.Clerk) { showState('denied'); return; }
+  await window.Clerk.load();
+
+  if (!window.Clerk.user) {
+    showState('notLoggedIn');
+    window.Clerk.addListener(function(state) {
+      if (state.user) { _clerkUserId = state.user.id; checkOwnerAccess(); }
+    });
+    return;
+  }
+
+  _clerkUserId = window.Clerk.user.id;
+  checkOwnerAccess();
+});
+
+function showState(s) {
+  document.getElementById('stateLoading').style.display    = s === 'loading'      ? '' : 'none';
+  document.getElementById('stateDenied').style.display     = s === 'denied'       ? '' : 'none';
+  document.getElementById('stateNotLoggedIn').style.display= s === 'notLoggedIn'  ? '' : 'none';
+  document.getElementById('panelContent').style.display    = s === 'panel'        ? '' : 'none';
+}
+
+async function checkOwnerAccess() {
+  try {
+    var r = await fetch('/api/player-textures?action=list-claimed&clerkUserId=' + encodeURIComponent(_clerkUserId));
+    if (r.status === 403) { showState('denied'); return; }
+    if (!r.ok) { showState('denied'); return; }
+    var d = await r.json();
+    showState('panel');
+    loadPanel(d.profiles || []);
+  } catch {
+    showState('denied');
+  }
+}
+
+// ── Panel rendering ───────────────────────────────────────────────────────────
+function loadPanel(profiles) {
+  _allProfiles = profiles;
+
+  // Stats
+  var total  = profiles.length;
+  var admins = profiles.filter(function(p){ return p.role === 'admin'; }).length;
+  var owners = profiles.filter(function(p){ return p.role === 'owner'; }).length;
+  document.getElementById('statsRow').innerHTML =
+    statCard('👥', 'Claimed Profiles', total) +
+    statCard('👑', 'Owners', owners) +
+    statCard('🛡', 'Admins', admins);
+
+  renderTable(profiles);
+}
+
+function statCard(icon, label, val) {
+  return '<div style="background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad2);padding:.8rem 1.1rem;min-width:130px;flex:1">' +
+    '<div style="font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.2rem">' + icon + ' ' + label + '</div>' +
+    '<div style="font-size:1.4rem;font-weight:800">' + val + '</div>' +
+    '</div>';
+}
+
+function fmtDate(ts) {
+  if (!ts) return '—';
+  return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function roleBadge(role) {
+  if (role === 'owner') return '<span class="badge by">👑 Owner</span>';
+  if (role === 'admin') return '<span class="badge bb">🛡 Admin</span>';
+  return '<span style="color:var(--muted);font-size:.8rem">—</span>';
+}
+
+function renderTable(profiles) {
+  var tbody = document.getElementById('profilesTbody');
+  if (!profiles.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:2rem">No claimed profiles found.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = profiles.map(function(p) {
+    var shortUuid = p.uuid.replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/, '$1-$2-$3-$4-$5');
+    var dispUuid  = shortUuid.slice(0, 13) + '…';
+    var isOwner   = p.role === 'owner';
+
+    var roleSelector = isOwner
+      ? '<span class="badge by" style="font-size:.68rem">👑 Owner</span>'
+      : '<select class="role-sel" data-uuid="' + p.uuid + '" onchange="onRoleChange(this)">' +
+          '<option value=""' + (!p.role ? ' selected' : '') + '>No Role</option>' +
+          '<option value="admin"' + (p.role === 'admin' ? ' selected' : '') + '>🛡 Admin</option>' +
+        '</select>' +
+        ' <button class="btn btn-sm btn-p" data-uuid="' + p.uuid + '" onclick="saveRole(this)" style="display:none">Save</button>';
+
+    return '<tr data-name="' + (p.name||'').toLowerCase() + '" data-uuid="' + p.uuid + '">' +
+      '<td style="width:42px"><img src="https://mc-heads.net/avatar/' + p.uuid + '/36" style="width:36px;height:36px;border-radius:5px;image-rendering:pixelated;display:block" onerror="this.style.opacity=\'.3\'"/></td>' +
+      '<td><a href="profile.html?name=' + encodeURIComponent(p.name||p.uuid) + '" style="font-weight:700;font-size:.875rem">' + (p.name||p.uuid.slice(0,8)) + '</a></td>' +
+      '<td style="font-family:monospace;font-size:.75rem;color:var(--txt2)">' +
+        '<span title="' + shortUuid + '">' + dispUuid + '</span>' +
+        ' <button class="btn btn-sm btn-o" onclick="copyUuid(\'' + p.uuid + '\',this)" style="padding:.15rem .45rem;font-size:.7rem">📋</button>' +
+      '</td>' +
+      '<td>' + roleBadge(p.role) + '</td>' +
+      '<td style="font-size:.78rem;color:var(--txt2)">' + fmtDate(p.claimedAt) + '</td>' +
+      '<td>' + roleSelector + '</td>' +
+      '</tr>';
+  }).join('');
+}
+
+function onRoleChange(sel) {
+  var row  = sel.closest('tr');
+  var btn  = row.querySelector('button[data-uuid]');
+  if (btn) btn.style.display = '';
+}
+
+function saveRole(btn) {
+  var uuid    = btn.dataset.uuid;
+  var row     = btn.closest('tr');
+  var sel     = row.querySelector('select.role-sel');
+  var newRole = sel ? sel.value : null;
+
+  btn.disabled = true;
+  btn.textContent = '…';
+
+  fetch('/api/player-textures?action=set-role', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ clerkUserId: _clerkUserId, targetUuid: uuid, role: newRole || null }),
+  })
+  .then(function(r){ return r.ok ? r.json() : null; })
+  .then(function(d) {
+    if (d && d.ok) {
+      // Update local data
+      var p = _allProfiles.find(function(x){ return x.uuid === uuid; });
+      if (p) p.role = newRole || null;
+
+      // Update the current-role badge cell
+      var cells = row.querySelectorAll('td');
+      if (cells[3]) cells[3].innerHTML = roleBadge(newRole || null);
+
+      btn.style.display = 'none';
+      btn.textContent = 'Save';
+      btn.disabled = false;
+
+      // Refresh stats
+      var admins = _allProfiles.filter(function(x){ return x.role === 'admin'; }).length;
+      var owners = _allProfiles.filter(function(x){ return x.role === 'owner'; }).length;
+      document.getElementById('statsRow').innerHTML =
+        statCard('👥', 'Claimed Profiles', _allProfiles.length) +
+        statCard('👑', 'Owners', owners) +
+        statCard('🛡', 'Admins', admins);
+
+      showToast('✅ Role updated for ' + (row.querySelector('a') ? row.querySelector('a').textContent : uuid));
+    } else {
+      showToast('❌ Failed to update role.');
+      btn.textContent = 'Save';
+      btn.disabled = false;
+    }
+  })
+  .catch(function() {
+    showToast('❌ Network error.');
+    btn.textContent = 'Save';
+    btn.disabled = false;
+  });
+}
+
+function filterTable() {
+  var q = document.getElementById('searchInput').value.trim().toLowerCase();
+  var rows = document.querySelectorAll('#profilesTbody tr[data-uuid]');
+  rows.forEach(function(row) {
+    var name = row.dataset.name || '';
+    var uuid = row.dataset.uuid || '';
+    row.style.display = (!q || name.includes(q) || uuid.includes(q)) ? '' : 'none';
+  });
+}
+
+function copyUuid(uuid, btn) {
+  var formatted = uuid.replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/, '$1-$2-$3-$4-$5');
+  navigator.clipboard.writeText(formatted).then(function() {
+    var orig = btn.textContent;
+    btn.textContent = '✅';
+    setTimeout(function(){ btn.textContent = orig; }, 1500);
+  });
+}
+
+var _toastTimer = null;
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(function(){ t.style.display = 'none'; }, 3000);
+}
+</script>
+<script src="clerk-auth.js"></script>
+</body>
+</html>

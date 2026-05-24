@@ -50,6 +50,9 @@ const CAPE_HASH_IDS = {
   'bcfbe84c6542a4a5c213c1cacf8979b5e913dcb4ad783a8b80e3c4a7d5c8bdac': 'db',
 };
 
+// ── Hardcoded site owner (C0smik) — always has Owner role regardless of KV ───
+const OWNER_UUID = '97a449ca635d44da9e021fe62eef5bda';
+
 // ── Vercel KV helpers (Upstash REST API, no npm package needed) ───────────────
 // Sentinel returned by kvGet when the READ itself failed (timeout / network error).
 // Distinct from null (key doesn't exist) so callers can skip writes on errors.
@@ -84,6 +87,30 @@ async function kvGet(key) {
 
 async function kvSet(key, value) {
   await kvPipeline([['SET', key, JSON.stringify(value)]]);
+}
+
+// ── Role helpers ──────────────────────────────────────────────────────────────
+// Returns 'owner' | 'admin' | null for a clean (no-dash) UUID.
+// C0smik is always owner — no KV write needed.
+async function getRole(cleanUuid) {
+  if (cleanUuid === OWNER_UUID) return 'owner';
+  const [stored] = await kvPipeline([['GET', `role:${cleanUuid}`]]);
+  return (stored && stored !== KV_READ_ERROR) ? stored : null;
+}
+
+// Returns true if ANY Minecraft account linked to clerkUserId has owner role.
+async function isOwnerByClerkId(clerkUserId) {
+  const [raw] = await kvPipeline([['GET', `user-minecraft:${clerkUserId}`]]);
+  if (!raw || raw === KV_READ_ERROR) return false;
+  try {
+    const parsed   = JSON.parse(raw);
+    const accounts = Array.isArray(parsed) ? parsed : [parsed];
+    // Fast path: hardcoded owner needs no KV lookup
+    if (accounts.some(a => a.minecraftUuid === OWNER_UUID)) return true;
+    // Check KV roles for all linked accounts in one pipeline
+    const roles = await kvPipeline(accounts.map(a => ['GET', `role:${a.minecraftUuid}`]));
+    return roles.some(r => r === 'owner');
+  } catch { return false; }
 }
 
 // ── Cape history helpers ───────────────────────────────────────────────────────
@@ -198,8 +225,8 @@ module.exports = async function handler(req, res) {
     if (!unclaimData || unclaimData.clerkUserId !== clerkUserId) {
       return res.status(403).json({ error: 'not your profile' });
     }
-    // Build commands: delete the claim + remove from user's linked accounts list
-    const cmds = [['DEL', `claimed:${unclaimClean}`]];
+    // Build commands: delete the claim + remove from user's linked accounts list + remove from panel index
+    const cmds = [['DEL', `claimed:${unclaimClean}`], ['ZREM', 'claimed-profiles', unclaimClean]];
     const [userMcRaw] = await kvPipeline([['GET', `user-minecraft:${clerkUserId}`]]);
     if (userMcRaw) {
       try {
@@ -216,6 +243,72 @@ module.exports = async function handler(req, res) {
     await kvPipeline(cmds);
     res.setHeader('Cache-Control', 'no-store');
     return res.status(200).json({ ok: true });
+  }
+
+  // ── Get role ─────────────────────────────────────────────────────────────
+  // GET /api/player-textures?action=get-role&uuid={uuid}
+  if (req.query.action === 'get-role') {
+    const raw = (req.query.uuid || '').replace(/-/g, '').toLowerCase();
+    if (!/^[0-9a-f]{32}$/.test(raw)) return res.status(400).json({ role: null });
+    const role = await getRole(raw);
+    res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=30');
+    return res.status(200).json({ role });
+  }
+
+  // ── Set role (owner only) ─────────────────────────────────────────────────
+  // POST /api/player-textures?action=set-role
+  // Body: { clerkUserId, targetUuid, role: 'admin' | null }
+  if (req.method === 'POST' && req.query.action === 'set-role') {
+    const { clerkUserId, targetUuid, role: newRole } = req.body || {};
+    if (!clerkUserId || !targetUuid) return res.status(400).json({ error: 'missing fields' });
+    if (!(await isOwnerByClerkId(clerkUserId))) return res.status(403).json({ error: 'Owner access required' });
+    const targetClean = targetUuid.replace(/-/g, '').toLowerCase();
+    if (!/^[0-9a-f]{32}$/.test(targetClean)) return res.status(400).json({ error: 'invalid uuid' });
+    if (targetClean === OWNER_UUID) return res.status(400).json({ error: 'Cannot change owner role' });
+    const allowed = ['admin'];
+    if (newRole && !allowed.includes(newRole)) return res.status(400).json({ error: 'invalid role' });
+    await kvPipeline(newRole
+      ? [['SET', `role:${targetClean}`, newRole]]
+      : [['DEL', `role:${targetClean}`]]);
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json({ ok: true });
+  }
+
+  // ── List claimed profiles (owner only) ────────────────────────────────────
+  // GET /api/player-textures?action=list-claimed&clerkUserId={id}
+  if (req.query.action === 'list-claimed') {
+    const clerkUserId = req.query.clerkUserId || '';
+    if (!clerkUserId) return res.status(400).json({ error: 'clerkUserId required' });
+    if (!(await isOwnerByClerkId(clerkUserId))) return res.status(403).json({ error: 'Owner access required' });
+    const [raw] = await kvPipeline([
+      ['ZREVRANGEBYSCORE', 'claimed-profiles', '+inf', '-inf', 'WITHSCORES', 'LIMIT', '0', '200'],
+    ]);
+    const uuids = [];
+    if (Array.isArray(raw)) {
+      for (let i = 0; i < raw.length; i += 2) {
+        uuids.push({ uuid: raw[i], ts: parseInt(raw[i + 1]) || 0 });
+      }
+    }
+    if (!uuids.length) {
+      res.setHeader('Cache-Control', 'no-store');
+      return res.status(200).json({ profiles: [] });
+    }
+    // Batch-fetch names and KV roles in one pipeline
+    const allCmds = [
+      ...uuids.map(u => ['GET', `pname:${u.uuid}`]),
+      ...uuids.map(u => ['GET', `role:${u.uuid}`]),
+    ];
+    const allResults = await kvPipeline(allCmds);
+    const names = allResults.slice(0, uuids.length);
+    const roles = allResults.slice(uuids.length);
+    const profiles = uuids.map((u, i) => ({
+      uuid:      u.uuid,
+      name:      names[i] || u.uuid.slice(0, 8),
+      role:      u.uuid === OWNER_UUID ? 'owner' : (roles[i] || null),
+      claimedAt: u.ts,
+    }));
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json({ profiles });
   }
 
   // ── Profile settings SET ──────────────────────────────────────────────────
@@ -274,13 +367,14 @@ module.exports = async function handler(req, res) {
     // Score 0 = never polled → cron will prioritise them immediately.
     kvPipeline([['ZADD', 'tracked:players', 'NX', 0, cleanUuid]]).catch(() => {});
 
-    // Fetch Mojang profile + KV history in parallel to keep latency low
-    const [mojangRes, history] = await Promise.all([
+    // Fetch Mojang profile + KV history + role in parallel to keep latency low
+    const [mojangRes, history, role] = await Promise.all([
       fetch(
         `https://sessionserver.mojang.com/session/minecraft/profile/${cleanUuid}`,
         { headers: { 'User-Agent': 'CapeSearch/1.0' }, signal: AbortSignal.timeout(8000) }
       ),
       getCapeHistory(uuid),
+      getRole(cleanUuid),
     ]);
 
     if (mojangRes.status === 204 || mojangRes.status === 404) {
@@ -316,7 +410,7 @@ module.exports = async function handler(req, res) {
 
     // Cache 15 s at the CDN edge; serve stale for 5 s while revalidating
     res.setHeader('Cache-Control', 's-maxage=15, stale-while-revalidate=5');
-    return res.status(200).json({ skin, cape, slim, name: profile.name, history: Array.isArray(history) ? history : [] });
+    return res.status(200).json({ skin, cape, slim, name: profile.name, history: Array.isArray(history) ? history : [], role: role || null });
 
   } catch (err) {
     return res.status(500).json({ error: 'Proxy error: ' + err.message });

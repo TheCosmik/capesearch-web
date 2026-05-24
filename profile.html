@@ -976,6 +976,18 @@ function fetchTextures(uuid){
         window._profileViewer.loadCape(data.cape).catch(function(){});
       }
 
+      // Role badge (Owner / Admin)
+      if(data.role){
+        var roleMap={owner:{label:'👑 Owner',cls:'by'},admin:{label:'🛡 Admin',cls:'bb'}};
+        var rc=roleMap[data.role];
+        if(rc){
+          var pb=document.getElementById('pBadges');
+          if(pb&&!pb.querySelector('.role-badge')){
+            pb.innerHTML+=' <span class="badge '+rc.cls+' role-badge">'+rc.label+'</span>';
+          }
+        }
+      }
+
       // Skin tab — real texture URL + model type
       if(data.skin){
         document.getElementById('skinUrl').textContent=data.skin;

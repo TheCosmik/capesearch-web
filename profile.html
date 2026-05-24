@@ -954,13 +954,7 @@ function fetchTextures(uuid){
     });
 }
 
-// friends (local data)
-var friends=PLAYERS.filter(function(p){return p.name.toLowerCase()!==key}).slice(0,8);
-document.getElementById('friendsGrid').innerHTML=friends.map(function(f){
-  return '<a href="profile.html?name='+encodeURIComponent(f.name)+'" class="pc">'+
-    '<img src="'+avN(f.name)+'" onerror="this.src=\''+FB+'\'" alt="'+f.name+'"/>'+
-    '<div><div class="pn">'+f.name+'</div><div class="pm">'+f.followers+' followers</div></div></a>';
-}).join('');
+// friends grid removed (replaced by Following / Followers tabs)
 
 // ── PLAYERDB LOOKUP – get real UUID & skin ────────────────────────────────────
 if(!resolvedUUID){
@@ -1279,10 +1273,12 @@ function _renderActsWithClaim(uuid, name, isClaimed, ownerUserId) {
   }
   var el = document.getElementById('pActs');
   if (el) el.innerHTML =
-    '<button class="btn btn-p">⭐ Follow</button>'+
+    '<button class="btn btn-p" id="followBtn" onclick="toggleFollow()">⭐ Follow</button>'+
     '<button class="btn btn-o">🔗 Share</button>'+
     '<button class="btn btn-o" onclick="copyText(\''+uuid+'\',this)">📋 Copy UUID</button>'+
     claimHtml;
+  // Re-apply follow button state after pActs was rewritten
+  if (_currentProfileUuid) loadFollowStatus(_currentProfileUuid);
 }
 
 function checkClaimStatus(uuid, name) {

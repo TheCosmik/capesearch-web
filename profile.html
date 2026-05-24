@@ -642,7 +642,7 @@ function applyUUID(uuid,canonName){
     '<button class="btn btn-p" id="followBtn" onclick="toggleFollow()">⭐ Follow</button>'+
     '<button class="btn btn-o">🔗 Share</button>'+
     '<button class="btn btn-o" onclick="copyText(\''+uuid+'\',this)">📋 Copy UUID</button>';
-  fetchPlayerData(uuid);   // name history via Ashcon
+  fetchPlayerData(uuid, displayName);   // name history via Ashcon
   fetchTextures(uuid);     // skin + cape via Mojang (authoritative)
   initProfileViewer(uuid);
   checkClaimStatus(uuid.replace(/-/g,''), displayName);
@@ -861,7 +861,7 @@ function fetchNameHistory(uuid){}  // stub so applyUUID call doesn't break
 function fetchLiveCape(uuid){}     // stub so applyUUID call doesn't break
 
 // ── NAME HISTORY (Ashcon — good format, used only for this) ──────────────────
-function fetchPlayerData(uuid){
+function fetchPlayerData(uuid, canonName){
   fetch('https://api.ashcon.app/mojang/v2/user/'+uuid)
     .then(function(r){return r.ok?r.json():null})
     .then(function(d){
@@ -875,6 +875,14 @@ function fetchPlayerData(uuid){
           }
           return{name:e.username,changed:dateStr};
         });
+        // Ashcon can have stale data — ensure the known current name is always first.
+        // If Ashcon's first entry doesn't match the real current name, fix it.
+        if(canonName && live[0].name.toLowerCase()!==canonName.toLowerCase()){
+          // Remove any duplicate of canonName already in the list
+          live=live.filter(function(e){return e.name.toLowerCase()!==canonName.toLowerCase();});
+          // Prepend the real current name
+          live.unshift({name:canonName,changed:null});
+        }
         renderNameHistory(live);
       }
     })

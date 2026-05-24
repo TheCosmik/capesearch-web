@@ -1,87 +1,81 @@
-// Vercel serverless function — fetches live wearer counts from crafty.gg
-// Cached at the CDN for 10 minutes so crafty.gg isn't hammered on every page load
+// Fetches live cape wearer counts from laby.net's public API.
+// Cached at the CDN for 10 minutes so laby.net isn't hammered on every load.
+//
+// GET /api/cape-counts
+// Returns: { migrator: 6385474, pan: 3378467, ... }
 
-const CAPE_SLUGS = {
-  migrator:      'migrator',
-  pan:           'pan',
-  anniversary15: '15th-anniversary',
-  common:        'common',
-  vanilla:       'vanilla',
-  cherry:        'cherry',
-  purpleheart:   'purple-heart',
-  follower:      'followers',
-  menace:        'menace',
-  copper:        'copper',
-  home:          'home',
-  mojangoffice:  'mojang-office',
-  yearn:         'yearn',
-  founders:      'founders',
-  // mcc15 has no known working slug on crafty.gg — falls back to hardcoded value
-  zombiehorse:   'zombie-horse',
-  experience:    'minecraft-experience',
-  minecon16:     'minecon-2016',
-  minecon13:     'minecon-2013',
-  minecon15:     'minecon-2015',
-  minecon12:     'minecon-2012',
-  minecon11:     'minecon-2011',
-  realmsmapper:  'realms-mapmaker',
-  mojangstudios: 'mojang-studios',
-  mojang:        'mojang',
-  translator:    'translator',
-  mojiramod:     'mojira-moderator',
-  mojangclassic: 'mojang-classic',
-  cobalt:        'cobalt',
-  scrolls:       'scrolls',
-  translatorcn:  'translator-chinese',
-  birthday:      'birthday',
-  turtle:        'turtle',
-  valentine:     'valentine',
-  prismarine:    'prismarine',
-  oxeye:         'oxeye',
-  snowman:       'snowman',
-  spade:         'spade',
-  db:            'db',
-  translatorjp:  'translator-japanese',
-  millionth:     'millionth-customer',
+const NAME_MAP = {
+  'Migrator':              'migrator',
+  'Pan':                   'pan',
+  '15th Anniversary':      'anniversary15',
+  'Common':                'common',
+  'Vanilla':               'vanilla',
+  'Cherry Blossom':        'cherry',
+  'Purple Heart':          'purpleheart',
+  "Follower's":            'follower',
+  'Menace':                'menace',
+  'Home':                  'home',
+  'Copper':                'copper',
+  'Mojang Office':         'mojangoffice',
+  'Yearn':                 'yearn',
+  "Founder's":             'founders',
+  'MCC 15th Year':         'mcc15',
+  'Zombie Horse':          'zombiehorse',
+  'Minecraft Experience':  'experience',
+  'MineCon 2016':          'minecon16',
+  'MineCon 2015':          'minecon15',
+  'MineCon 2013':          'minecon13',
+  'MineCon 2012':          'minecon12',
+  'MineCon 2011':          'minecon11',
+  'Realms Mapmaker':       'realmsmapper',
+  'Mojang':                'mojang',
+  'Mojang Studios':        'mojangstudios',
+  'Translator':            'translator',
+  'Mojira Moderator':      'mojiramod',
+  'Mojang Classic':        'mojangclassic',
+  'Cobalt':                'cobalt',
+  'Scrolls':               'scrolls',
+  'Turtle':                'turtle',
+  'Translator (Chinese)':  'translatorcn',
+  'Valentine':             'valentine',
+  'Oxeye':                 'oxeye',
+  'Birthday':              'birthday',
+  'Translator (Japanese)': 'translatorjp',
+  'Spade':                 'spade',
+  'Snowman':               'snowman',
+  'Millionth Customer':    'millionth',
+  'dB':                    'db',
+  'Prismarine':            'prismarine',
 };
 
-async function fetchCount(slug) {
-  try {
-    const res = await fetch(`https://crafty.gg/capes/${slug}`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml',
-      },
-      signal: AbortSignal.timeout(8000),
-    });
-    if (!res.ok) return null;
-    const html = await res.text();
-    // crafty.gg renders count as e.g. "Players Using\n          6,645"
-    const match = html.match(/Players\s+Using\D{0,30}?([\d,]+)/i);
-    if (!match) return null;
-    return parseInt(match[1].replace(/,/g, ''), 10);
-  } catch {
-    return null;
-  }
-}
-
 module.exports = async function handler(req, res) {
-  const entries = Object.entries(CAPE_SLUGS);
-
-  const results = await Promise.all(
-    entries.map(async ([id, slug]) => {
-      const count = await fetchCount(slug);
-      return { id, count };
-    })
-  );
-
-  const counts = {};
-  for (const { id, count } of results) {
-    if (count !== null) counts[id] = count;
-  }
-
-  // Cache at Vercel CDN for 10 min; serve stale for 60s while revalidating
-  res.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate=60');
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.status(200).json(counts);
+
+  try {
+    const r = await fetch(
+      'https://laby.net/api/v3/search/textures/cape?order=most_used&size=50',
+      {
+        headers: { 'User-Agent': 'CapeSearch/1.0' },
+        signal: AbortSignal.timeout(8000),
+      }
+    );
+    if (!r.ok) throw new Error('laby returned ' + r.status);
+
+    const data = await r.json();
+    const counts = {};
+
+    for (const item of (data.results || [])) {
+      const id = NAME_MAP[item.name];
+      if (id && typeof item.use_count === 'number') {
+        counts[id] = item.use_count;
+      }
+    }
+
+    res.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate=60');
+    return res.status(200).json(counts);
+  } catch (err) {
+    // Return empty so the frontend falls back to hardcoded values
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json({});
+  }
 };

@@ -457,7 +457,14 @@ function renderGrid(){
       '<div class="cwear">👥 '+fmt(c.wearers)+'</div></div></div>';
   }).join('');
   var hash=location.hash.replace('#','');
-  if(hash){var el=document.getElementById('cape-'+hash);if(el)setTimeout(function(){el.scrollIntoView({behavior:'smooth',block:'center'})},100)}
+  if(hash){
+    var el=document.getElementById('cape-'+hash);
+    if(el) setTimeout(function(){el.scrollIntoView({behavior:'smooth',block:'center'})},100);
+    // Auto-open the modal for the linked cape
+    if(CAPES.find(function(c){return c.id===hash;})){
+      setTimeout(function(){openModal(hash);},250);
+    }
+  }
 }
 
 function renderFeed(){

@@ -976,14 +976,14 @@ function fetchTextures(uuid){
         window._profileViewer.loadCape(data.cape).catch(function(){});
       }
 
-      // Role badge (Owner / Admin)
+      // Role badge — shown inline next to the player name
       if(data.role){
         var roleMap={owner:{label:'👑 Owner',cls:'by'},admin:{label:'🛡 Admin',cls:'bb'}};
         var rc=roleMap[data.role];
         if(rc){
-          var pb=document.getElementById('pBadges');
-          if(pb&&!pb.querySelector('.role-badge')){
-            pb.innerHTML+=' <span class="badge '+rc.cls+' role-badge">'+rc.label+'</span>';
+          var pUser=document.getElementById('pUser');
+          if(pUser&&!pUser.querySelector('.role-badge')){
+            pUser.innerHTML+='<span class="badge '+rc.cls+' role-badge" style="font-size:.65rem;vertical-align:middle;margin-left:.55rem">'+rc.label+'</span>';
           }
         }
       }

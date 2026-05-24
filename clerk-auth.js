@@ -4,6 +4,9 @@
 //   #clerkSignIn  — "Log in" button (shown when signed out)
 //   #clerkUser    — container for bell + avatar (shown when signed in)
 
+// ── Hardcoded owner UUID (C0smik) — used to gate Admin Panel link in dropdown ─
+var _OWNER_UUID = '97a449ca635d44da9e021fe62eef5bda';
+
 // ── Appearance ────────────────────────────────────────────────────────────────
 var CLERK_APPEARANCE = {
   variables: {
@@ -184,6 +187,7 @@ function _buildBell() {
 
 // ── Account dropdown HTML ─────────────────────────────────────────────────────
 function _buildDropdown(displayName, accounts, activeUuid) {
+  var isOwner = accounts && accounts.some(function(a) { return a.minecraftUuid === _OWNER_UUID; });
   var accountRows = '';
   if (accounts && accounts.length) {
     accountRows += '<div style="padding:.5rem .75rem .3rem;font-size:.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.07em">Minecraft Accounts</div>';
@@ -213,6 +217,12 @@ function _buildDropdown(displayName, accounts, activeUuid) {
     +     '<div style="font-size:.875rem;font-weight:700;color:#f1f5f9">' + _esc(displayName) + '</div>'
     +   '</div>'
     +   accountRows
+    +   (isOwner
+          ? '<a href="admin.html" style="display:flex;align-items:center;gap:.5rem;padding:.55rem .85rem;'
+          +   'font-size:.85rem;color:#fbbf24;text-decoration:none;font-weight:600;border-bottom:1px solid #1e293b" '
+          +   'onmouseover="this.style.background=\'#182030\'" '
+          +   'onmouseout="this.style.background=\'none\'">⚡ Admin Panel</a>'
+          : '')
     +   '<button onclick="_goManage()" style="width:100%;background:none;border:none;text-align:left;'
     +     'padding:.55rem .85rem;font-size:.85rem;color:#94a3b8;cursor:pointer;display:flex;align-items:center;gap:.5rem" '
     +     'onmouseover="this.style.background=\'#182030\';this.style.color=\'#f1f5f9\'" '

@@ -856,35 +856,34 @@ function fetchProfileStats(cleanUuid){
     .catch(function(){el.textContent='';});
 }
 
-// single ashcon.app call – handles name history AND cape (no CORS issues)
-function fetchNameHistory(uuid){}  // stub so applyUUID call doesn't break
-function fetchLiveCape(uuid){}     // stub so applyUUID call doesn't break
+// stubs kept for backwards compat; real work is in fetchPlayerData + fetchTextures
+function fetchNameHistory(uuid){}
+function fetchLiveCape(uuid){}
 
-// ── NAME HISTORY (Ashcon — good format, used only for this) ──────────────────
+// ── NAME HISTORY (laby.net — has complete history where Mojang API is stale) ────
 function fetchPlayerData(uuid, canonName){
-  fetch('https://api.ashcon.app/mojang/v2/user/'+uuid)
+  // Format: hyphenated UUID (laby.net requires it)
+  var hUuid=uuid.replace(/^([0-9a-f]{8})([0-9a-f]{4})([0-9a-f]{4})([0-9a-f]{4})([0-9a-f]{12})$/i,
+    '$1-$2-$3-$4-$5');
+  fetch('https://laby.net/api/v3/user/'+hUuid+'/names')
     .then(function(r){return r.ok?r.json():null})
     .then(function(d){
-      if(!d)return;
-      if(d.username_history&&d.username_history.length){
-        var live=d.username_history.slice().map(function(e){
-          var dateStr=null;
-          if(e.changed_at){
-            var dt=new Date(e.changed_at);
-            dateStr=dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-          }
-          return{name:e.username,changed:dateStr};
-        });
-        // Ashcon can have stale data — ensure the known current name is always first.
-        // If Ashcon's first entry doesn't match the real current name, fix it.
-        if(canonName && live[0].name.toLowerCase()!==canonName.toLowerCase()){
-          // Remove any duplicate of canonName already in the list
-          live=live.filter(function(e){return e.name.toLowerCase()!==canonName.toLowerCase();});
-          // Prepend the real current name
-          live.unshift({name:canonName,changed:null});
+      if(!Array.isArray(d)||!d.length)return;
+      // laby returns oldest→newest; reverse so index 0 = current name
+      var live=d.slice().reverse().map(function(e){
+        var dateStr=null;
+        if(e.changed_at){
+          var dt=new Date(e.changed_at);
+          dateStr=dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
         }
-        renderNameHistory(live);
+        return{name:e.name,changed:dateStr};
+      });
+      // Ensure the known current name (from playerdb) is always at index 0
+      if(canonName && live[0].name.toLowerCase()!==canonName.toLowerCase()){
+        live=live.filter(function(e){return e.name.toLowerCase()!==canonName.toLowerCase();});
+        live.unshift({name:canonName,changed:null});
       }
+      renderNameHistory(live);
     })
     .catch(function(){});
 }

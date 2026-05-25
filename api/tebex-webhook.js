@@ -112,8 +112,6 @@ async function revokePerks(cleanUuid, packages) {
 
 // ── Main handler ──────────────────────────────────────────────────────────────
 module.exports = async function handler(req, res) {
-  console.log('tebex-webhook hit:', req.method, req.headers['x-signature'] ? 'signed' : 'unsigned');
-
   // Allow GET so Tebex reachability checks pass
   if (req.method === 'GET') return res.status(200).json({ ok: true });
   if (req.method !== 'POST') return res.status(405).end();
@@ -124,7 +122,6 @@ module.exports = async function handler(req, res) {
   // Read raw body before any parsing — needed for HMAC
   const rawBodyBuf = await getRawBody(req);
   const rawBody    = rawBodyBuf.toString('utf8');
-  console.log('raw body bytes:', rawBodyBuf.length, '| preview:', rawBody.slice(0, 120));
 
   // Verify Tebex signature — two-stage process per Tebex docs:
   //   1. SHA256(rawBody) → hex string
@@ -132,7 +129,6 @@ module.exports = async function handler(req, res) {
   const signature = req.headers['x-signature'];
   const bodyHash  = crypto.createHash('sha256').update(rawBodyBuf).digest('hex');
   const expected  = crypto.createHmac('sha256', secret).update(bodyHash).digest('hex');
-  console.log('sig check | received:', signature, '| expected:', expected, '| match:', signature === expected);
   if (!signature || signature !== expected) {
     console.error('Tebex signature mismatch', { received: signature, expected });
     return res.status(401).json({ error: 'Invalid signature' });

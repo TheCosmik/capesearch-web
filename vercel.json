@@ -4,5 +4,9 @@
       "path": "/api/cron-poll",
       "schedule": "0 0 * * *"
     }
+  ],
+  "rewrites": [
+    { "source": "/api/check-claim", "destination": "/api/claim" },
+    { "source": "/api/start-claim", "destination": "/api/claim" }
   ]
 }

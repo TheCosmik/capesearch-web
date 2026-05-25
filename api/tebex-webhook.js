@@ -123,11 +123,14 @@ module.exports = async function handler(req, res) {
   // Read raw body before any parsing — needed for HMAC
   const rawBody = await getRawBody(req);
 
-  // Verify Tebex HMAC-SHA256 signature
-  const signature = req.headers['x-signature'];
-  const expected  = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
-  if (!signature || signature !== expected) {
-    console.error('Tebex signature mismatch', { received: signature, expected });
+  // Verify Tebex HMAC-SHA256 signature.
+  // Try secret as plain string first, then as hex-decoded bytes (Tebex uses plain string).
+  const signature   = req.headers['x-signature'];
+  const expectedStr = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
+  const expectedHex = crypto.createHmac('sha256', Buffer.from(secret, 'hex')).update(rawBody).digest('hex');
+  const expected    = expectedStr;
+  if (!signature || (signature !== expectedStr && signature !== expectedHex)) {
+    console.error('Tebex signature mismatch', { received: signature, expectedStr, expectedHex });
     return res.status(401).json({ error: 'Invalid signature' });
   }
 

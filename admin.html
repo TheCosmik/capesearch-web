@@ -297,19 +297,24 @@ function renderTable(profiles) {
     var dispUuid  = shortUuid.slice(0, 13) + '…';
     var isOwner   = p.role === 'owner';
 
+    var betaBtn = '<button class="btn btn-sm ' + (p.beta ? 'btn-p' : 'btn-o') + ' beta-btn" ' +
+      'data-uuid="' + p.uuid + '" data-beta="' + (p.beta ? '1' : '0') + '" ' +
+      'onclick="toggleBeta(this)" title="' + (p.beta ? 'Remove Beta Tester' : 'Grant Beta Tester') + '">' +
+      '🧪' + (p.beta ? ' ✓' : '') +
+    '</button>';
+
     var roleSelector = isOwner
-      ? '<span class="badge by" style="font-size:.68rem">👑 Owner</span>'
+      ? '<div style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap">' +
+          '<span class="badge by" style="font-size:.68rem">👑 Owner</span>' +
+          betaBtn +
+        '</div>'
       : '<div style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap">' +
           '<select class="role-sel" data-uuid="' + p.uuid + '" onchange="onRoleChange(this)">' +
             '<option value=""' + (!p.role ? ' selected' : '') + '>No Role</option>' +
             '<option value="admin"' + (p.role === 'admin' ? ' selected' : '') + '>🛡 Admin</option>' +
           '</select>' +
           '<button class="btn btn-sm btn-p" data-uuid="' + p.uuid + '" onclick="saveRole(this)" style="display:none">Save</button>' +
-          '<button class="btn btn-sm ' + (p.beta ? 'btn-p' : 'btn-o') + ' beta-btn" ' +
-            'data-uuid="' + p.uuid + '" data-beta="' + (p.beta ? '1' : '0') + '" ' +
-            'onclick="toggleBeta(this)" title="' + (p.beta ? 'Remove Beta Tester' : 'Grant Beta Tester') + '">' +
-            '🧪' + (p.beta ? ' ✓' : '') +
-          '</button>' +
+          betaBtn +
         '</div>';
 
     return '<tr data-name="' + (p.name||'').toLowerCase() + '" data-uuid="' + p.uuid + '" data-role="' + (p.role||'') + '" data-beta="' + (p.beta ? '1' : '') + '">' +

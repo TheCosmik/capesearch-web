@@ -162,6 +162,9 @@ module.exports = async function handler(req, res) {
         if (uuid) await revokeVip(uuid);
         break;
       }
+      case 'validation.webhook':
+        // Tebex challenge-response — echo the id back to confirm receipt
+        return res.status(200).json({ id: payload.id });
       default:
         // Unknown event — acknowledge and ignore
         break;

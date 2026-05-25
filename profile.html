@@ -981,8 +981,13 @@ function fetchTextures(uuid){
         window._profileViewer.loadCape(data.cape).catch(function(){});
       }
 
-      // Role badges — shown inline next to the player name
+      // VIP green name + badges — shown inline next to the player name
       var pUser=document.getElementById('pUser');
+      if(data.vip&&pUser){
+        // Wrap the plain name in a green span before appending any badges
+        var _pn=pUser.dataset.playerName||pUser.textContent;
+        pUser.innerHTML='<span style="color:var(--green)">'+_pn.replace(/[<>&]/g,function(c){return{'<':'&lt;','>':'&gt;','&':'&amp;'}[c];})+'</span>';
+      }
       if(data.role){
         var roleMap={owner:{label:'👑 Owner',cls:'by'},admin:{label:'🛡 Admin',cls:'bb'}};
         var rc=roleMap[data.role];
@@ -992,6 +997,9 @@ function fetchTextures(uuid){
       }
       if(data.beta&&pUser&&!pUser.querySelector('.beta-badge')){
         pUser.innerHTML+='<span class="beta-badge" style="display:inline-flex;align-items:center;padding:.12rem .45rem;border-radius:999px;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;vertical-align:middle;margin-left:.35rem;background:rgba(167,139,250,.15);color:#a78bfa">🧪 Beta Tester</span>';
+      }
+      if(data.vip&&pUser&&!pUser.querySelector('.vip-badge')){
+        pUser.innerHTML+='<span class="vip-badge" style="display:inline-flex;align-items:center;padding:.12rem .45rem;border-radius:999px;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;vertical-align:middle;margin-left:.35rem;background:rgba(74,222,128,.15);color:var(--green)">💎 VIP</span>';
       }
 
       // Skin tab — real texture URL + model type

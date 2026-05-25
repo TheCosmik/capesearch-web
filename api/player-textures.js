@@ -104,6 +104,12 @@ async function getBeta(cleanUuid) {
   return stored === '1';
 }
 
+// Returns true if the given UUID has an active VIP subscription.
+async function getVip(cleanUuid) {
+  const [stored] = await kvPipeline([['GET', `perk-vip:${cleanUuid}`]]);
+  return stored === '1';
+}
+
 // Returns true if ANY Minecraft account linked to clerkUserId has owner role.
 async function isOwnerByClerkId(clerkUserId) {
   const [raw] = await kvPipeline([['GET', `user-minecraft:${clerkUserId}`]]);
@@ -116,6 +122,19 @@ async function isOwnerByClerkId(clerkUserId) {
     // Check KV roles for all linked accounts in one pipeline
     const roles = await kvPipeline(accounts.map(a => ['GET', `role:${a.minecraftUuid}`]));
     return roles.some(r => r === 'owner');
+  } catch { return false; }
+}
+
+// Returns true if ANY Minecraft account linked to clerkUserId has owner or admin role.
+async function isAdminOrOwnerByClerkId(clerkUserId) {
+  const [raw] = await kvPipeline([['GET', `user-minecraft:${clerkUserId}`]]);
+  if (!raw || raw === KV_READ_ERROR) return false;
+  try {
+    const parsed   = JSON.parse(raw);
+    const accounts = Array.isArray(parsed) ? parsed : [parsed];
+    if (accounts.some(a => a.minecraftUuid === OWNER_UUID)) return true;
+    const roles = await kvPipeline(accounts.map(a => ['GET', `role:${a.minecraftUuid}`]));
+    return roles.some(r => r === 'owner' || r === 'admin');
   } catch { return false; }
 }
 
@@ -280,6 +299,22 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ ok: true });
   }
 
+  // ── Set VIP status (admin or owner) ──────────────────────────────────────
+  // POST /api/player-textures?action=set-vip
+  // Body: { clerkUserId, targetUuid, vip: true|false }
+  if (req.method === 'POST' && req.query.action === 'set-vip') {
+    const { clerkUserId, targetUuid, vip: newVip } = req.body || {};
+    if (!clerkUserId || !targetUuid) return res.status(400).json({ error: 'missing fields' });
+    if (!(await isAdminOrOwnerByClerkId(clerkUserId))) return res.status(403).json({ error: 'Admin access required' });
+    const targetClean = targetUuid.replace(/-/g, '').toLowerCase();
+    if (!/^[0-9a-f]{32}$/.test(targetClean)) return res.status(400).json({ error: 'invalid uuid' });
+    await kvPipeline(newVip
+      ? [['SET', `perk-vip:${targetClean}`, '1']]
+      : [['DEL', `perk-vip:${targetClean}`]]);
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json({ ok: true });
+  }
+
   // ── Set beta tester status (owner only) ──────────────────────────────────
   // POST /api/player-textures?action=set-beta
   // Body: { clerkUserId, targetUuid, beta: true|false }
@@ -337,21 +372,24 @@ module.exports = async function handler(req, res) {
       res.setHeader('Cache-Control', 'no-store');
       return res.status(200).json({ profiles: [] });
     }
-    // Batch-fetch names, KV roles, and beta flags in one pipeline
+    // Batch-fetch names, KV roles, beta flags, and VIP status in one pipeline
     const allCmds = [
       ...uuids.map(u => ['GET', `pname:${u.uuid}`]),
       ...uuids.map(u => ['GET', `role:${u.uuid}`]),
       ...uuids.map(u => ['GET', `role-beta:${u.uuid}`]),
+      ...uuids.map(u => ['GET', `perk-vip:${u.uuid}`]),
     ];
     const allResults = await kvPipeline(allCmds);
     const names = allResults.slice(0, uuids.length);
     const roles = allResults.slice(uuids.length, uuids.length * 2);
-    const betas = allResults.slice(uuids.length * 2);
+    const betas = allResults.slice(uuids.length * 2, uuids.length * 3);
+    const vips  = allResults.slice(uuids.length * 3);
     const profiles = uuids.map((u, i) => ({
       uuid:      u.uuid,
       name:      names[i] || u.uuid.slice(0, 8),
       role:      u.uuid === OWNER_UUID ? 'owner' : (roles[i] || null),
       beta:      betas[i] === '1',
+      vip:       vips[i] === '1',
       claimedAt: u.ts,
     }));
     res.setHeader('Cache-Control', 'no-store');
@@ -415,7 +453,7 @@ module.exports = async function handler(req, res) {
     kvPipeline([['ZADD', 'tracked:players', 'NX', 0, cleanUuid]]).catch(() => {});
 
     // Fetch Mojang profile + KV history + role in parallel to keep latency low
-    const [mojangRes, history, role, beta] = await Promise.all([
+    const [mojangRes, history, role, beta, vip] = await Promise.all([
       fetch(
         `https://sessionserver.mojang.com/session/minecraft/profile/${cleanUuid}`,
         { headers: { 'User-Agent': 'CapeSearch/1.0' }, signal: AbortSignal.timeout(8000) }
@@ -423,6 +461,7 @@ module.exports = async function handler(req, res) {
       getCapeHistory(uuid),
       getRole(cleanUuid),
       getBeta(cleanUuid),
+      getVip(cleanUuid),
     ]);
 
     if (mojangRes.status === 204 || mojangRes.status === 404) {
@@ -458,7 +497,7 @@ module.exports = async function handler(req, res) {
 
     // Cache 15 s at the CDN edge; serve stale for 5 s while revalidating
     res.setHeader('Cache-Control', 's-maxage=15, stale-while-revalidate=5');
-    return res.status(200).json({ skin, cape, slim, name: profile.name, history: Array.isArray(history) ? history : [], role: role || null, beta: !!beta });
+    return res.status(200).json({ skin, cape, slim, name: profile.name, history: Array.isArray(history) ? history : [], role: role || null, beta: !!beta, vip: !!vip });
 
   } catch (err) {
     return res.status(500).json({ error: 'Proxy error: ' + err.message });

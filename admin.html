@@ -168,6 +168,7 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.25rem 1re
         <option value="owner">👑 Owner</option>
         <option value="admin">🛡 Admin</option>
         <option value="beta">🧪 Beta Tester</option>
+        <option value="vip">💎 VIP</option>
         <option value="none">No Role</option>
       </select>
       <span class="results-count" id="resultsCount"></span>
@@ -251,11 +252,13 @@ function updateStats() {
   var owners = _allProfiles.filter(function(p){ return p.role === 'owner'; }).length;
   var admins = _allProfiles.filter(function(p){ return p.role === 'admin'; }).length;
   var betas  = _allProfiles.filter(function(p){ return p.beta; }).length;
+  var vips   = _allProfiles.filter(function(p){ return p.vip; }).length;
   document.getElementById('statsRow').innerHTML =
     statCard('👥', 'Claimed Profiles', total) +
     statCard('👑', 'Owners', owners) +
     statCard('🛡', 'Admins', admins) +
-    statCard('🧪', 'Beta Testers', betas);
+    statCard('🧪', 'Beta Testers', betas) +
+    statCard('💎', 'VIP Members', vips);
 }
 
 function loadPanel(profiles) {
@@ -277,11 +280,12 @@ function fmtDate(ts) {
   return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-function roleBadge(role, beta) {
+function roleBadge(role, beta, vip) {
   var html = '';
   if (role === 'owner') html += '<span class="badge by">👑 Owner</span>';
   else if (role === 'admin') html += '<span class="badge bb">🛡 Admin</span>';
   if (beta) html += (html ? ' ' : '') + '<span class="badge bv">🧪 Beta</span>';
+  if (vip)  html += (html ? ' ' : '') + '<span class="badge bg">💎 VIP</span>';
   return html || '<span style="color:var(--muted);font-size:.8rem">—</span>';
 }
 
@@ -304,10 +308,16 @@ function renderTable(profiles) {
       '🧪' + (p.beta ? ' ✓' : '') +
     '</button>';
 
+    var vipBtn = '<button class="btn btn-sm ' + (p.vip ? 'btn-p' : 'btn-o') + ' vip-btn" ' +
+      'data-uuid="' + p.uuid + '" data-vip="' + (p.vip ? '1' : '0') + '" ' +
+      'onclick="toggleVip(this)" title="' + (p.vip ? 'Remove VIP' : 'Grant VIP') + '">' +
+      '💎' + (p.vip ? ' ✓' : '') +
+    '</button>';
+
     var roleSelector = isOwner
       ? '<div style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap">' +
           '<span class="badge by" style="font-size:.68rem">👑 Owner</span>' +
-          betaBtn +
+          betaBtn + vipBtn +
         '</div>'
       : '<div style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap">' +
           '<select class="role-sel" data-uuid="' + p.uuid + '" onchange="onRoleChange(this)">' +
@@ -315,17 +325,17 @@ function renderTable(profiles) {
             '<option value="admin"' + (p.role === 'admin' ? ' selected' : '') + '>🛡 Admin</option>' +
           '</select>' +
           '<button class="btn btn-sm btn-p" data-uuid="' + p.uuid + '" onclick="saveRole(this)" style="display:none">Save</button>' +
-          betaBtn +
+          betaBtn + vipBtn +
         '</div>';
 
-    return '<tr data-name="' + (p.name||'').toLowerCase() + '" data-uuid="' + p.uuid + '" data-role="' + (p.role||'') + '" data-beta="' + (p.beta ? '1' : '') + '">' +
+    return '<tr data-name="' + (p.name||'').toLowerCase() + '" data-uuid="' + p.uuid + '" data-role="' + (p.role||'') + '" data-beta="' + (p.beta ? '1' : '') + '" data-vip="' + (p.vip ? '1' : '') + '">' +
       '<td style="width:42px"><img src="https://mc-heads.net/avatar/' + p.uuid + '/36" style="width:36px;height:36px;border-radius:5px;image-rendering:pixelated;display:block" onerror="this.style.opacity=\'.3\'"/></td>' +
       '<td><a href="profile.html?name=' + encodeURIComponent(p.name||p.uuid) + '" style="font-weight:700;font-size:.875rem">' + (p.name||p.uuid.slice(0,8)) + '</a></td>' +
       '<td style="font-family:monospace;font-size:.75rem;color:var(--txt2)">' +
         '<span title="' + shortUuid + '">' + dispUuid + '</span>' +
         ' <button class="btn btn-sm btn-o" onclick="copyUuid(\'' + p.uuid + '\',this)" style="padding:.15rem .45rem;font-size:.7rem">📋</button>' +
       '</td>' +
-      '<td>' + roleBadge(p.role, p.beta) + '</td>' +
+      '<td>' + roleBadge(p.role, p.beta, p.vip) + '</td>' +
       '<td style="font-size:.78rem;color:var(--txt2)">' + fmtDate(p.claimedAt) + '</td>' +
       '<td>' + roleSelector + '</td>' +
       '</tr>';
@@ -364,7 +374,7 @@ function saveRole(btn) {
 
       // Update the current-role badge cell (pass both role and beta)
       var cells = row.querySelectorAll('td');
-      if (cells[3]) cells[3].innerHTML = roleBadge(newRole || null, p ? p.beta : false);
+      if (cells[3]) cells[3].innerHTML = roleBadge(newRole || null, p ? p.beta : false, p ? p.vip : false);
 
       btn.style.display = 'none';
       btn.textContent = 'Save';
@@ -402,11 +412,13 @@ function filterTable() {
     var uuid     = row.dataset.uuid || '';
     var rowRole  = row.dataset.role || '';
     var rowBeta  = row.dataset.beta || '';
+    var rowVip   = row.dataset.vip  || '';
 
     var matchSearch = !q || name.includes(q) || uuid.includes(q);
     var matchRole   = !role ||
-                      (role === 'none' ? !rowRole && !rowBeta :
+                      (role === 'none' ? !rowRole && !rowBeta && !rowVip :
                        role === 'beta' ? rowBeta === '1' :
+                       role === 'vip'  ? rowVip  === '1' :
                        rowRole === role);
 
     var show = matchSearch && matchRole;
@@ -487,7 +499,7 @@ function toggleBeta(btn) {
 
       // Update the current-role badge cell
       var cells = row.querySelectorAll('td');
-      if (cells[3]) cells[3].innerHTML = roleBadge(p ? p.role : null, newBeta);
+      if (cells[3]) cells[3].innerHTML = roleBadge(p ? p.role : null, newBeta, p ? p.vip : false);
 
       // Refresh stats
       updateStats();
@@ -502,6 +514,52 @@ function toggleBeta(btn) {
   .catch(function() {
     showToast('❌ Network error.');
     btn.textContent = '🧪' + (isBeta ? ' ✓' : '');
+    btn.disabled = false;
+  });
+}
+
+// ── VIP toggle ───────────────────────────────────────────────────────────────
+function toggleVip(btn) {
+  var uuid   = btn.dataset.uuid;
+  var isVip  = btn.dataset.vip === '1';
+  var newVip = !isVip;
+  var row    = btn.closest('tr');
+
+  btn.disabled = true;
+  btn.textContent = '…';
+
+  fetch('/api/player-textures?action=set-vip', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ clerkUserId: _clerkUserId, targetUuid: uuid, vip: newVip }),
+  })
+  .then(function(r){ return r.ok ? r.json() : null; })
+  .then(function(d) {
+    if (d && d.ok) {
+      var p = _allProfiles.find(function(x){ return x.uuid === uuid; });
+      if (p) p.vip = newVip;
+
+      row.dataset.vip  = newVip ? '1' : '';
+      btn.dataset.vip  = newVip ? '1' : '0';
+      btn.textContent  = '💎' + (newVip ? ' ✓' : '');
+      btn.className    = 'btn btn-sm ' + (newVip ? 'btn-p' : 'btn-o') + ' vip-btn';
+      btn.title        = newVip ? 'Remove VIP' : 'Grant VIP';
+      btn.disabled     = false;
+
+      var cells = row.querySelectorAll('td');
+      if (cells[3]) cells[3].innerHTML = roleBadge(p ? p.role : null, p ? p.beta : false, newVip);
+
+      updateStats();
+      showToast(newVip ? '✅ VIP granted.' : '✅ VIP removed.');
+    } else {
+      showToast('❌ Failed to update VIP status.');
+      btn.textContent = '💎' + (isVip ? ' ✓' : '');
+      btn.disabled = false;
+    }
+  })
+  .catch(function() {
+    showToast('❌ Network error.');
+    btn.textContent = '💎' + (isVip ? ' ✓' : '');
     btn.disabled = false;
   });
 }

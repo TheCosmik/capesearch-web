@@ -24,7 +24,7 @@
   var T = {
     en: {
       'nav.home':'Home','nav.capes':'Capes','nav.servers':'Servers',
-      'nav.skins':'Skins','nav.faq':'FAQ','nav.login':'Log in','nav.admin':'Admin',
+      'nav.skins':'Skins','nav.faq':'FAQ','nav.store':'Store','nav.login':'Log in','nav.admin':'Admin',
       'nav.search':'Search player...',
       'index.hero_sub':'Connect to our Minecraft server to claim your profile',
       'index.stat_players':'Players Tracked','index.stat_changes':'Cape Changes Today',
@@ -66,7 +66,7 @@
     },
     es: {
       'nav.home':'Inicio','nav.capes':'Capas','nav.servers':'Servidores',
-      'nav.skins':'Skins','nav.faq':'Preguntas','nav.login':'Iniciar sesión','nav.admin':'Admin',
+      'nav.skins':'Skins','nav.faq':'Preguntas','nav.store':'Tienda','nav.login':'Iniciar sesión','nav.admin':'Admin',
       'nav.search':'Buscar jugador...',
       'index.hero_sub':'Conéctate a nuestro servidor de Minecraft para reclamar tu perfil',
       'index.stat_players':'Jugadores Rastreados','index.stat_changes':'Cambios de Capa Hoy',
@@ -107,7 +107,7 @@
     },
     fr: {
       'nav.home':'Accueil','nav.capes':'Capes','nav.servers':'Serveurs',
-      'nav.skins':'Skins','nav.faq':'FAQ','nav.login':'Se connecter','nav.admin':'Admin',
+      'nav.skins':'Skins','nav.faq':'FAQ','nav.store':'Boutique','nav.login':'Se connecter','nav.admin':'Admin',
       'nav.search':'Chercher un joueur...',
       'index.hero_sub':'Connectez-vous à notre serveur Minecraft pour revendiquer votre profil',
       'index.stat_players':'Joueurs Suivis','index.stat_changes':'Changements de Cape Aujourd\'hui',
@@ -148,7 +148,7 @@
     },
     de: {
       'nav.home':'Startseite','nav.capes':'Capes','nav.servers':'Server',
-      'nav.skins':'Skins','nav.faq':'FAQ','nav.login':'Anmelden','nav.admin':'Admin',
+      'nav.skins':'Skins','nav.faq':'FAQ','nav.store':'Shop','nav.login':'Anmelden','nav.admin':'Admin',
       'nav.search':'Spieler suchen...',
       'index.hero_sub':'Verbinde dich mit unserem Minecraft-Server, um dein Profil zu beanspruchen',
       'index.stat_players':'Verfolgte Spieler','index.stat_changes':'Cape-Änderungen Heute',
@@ -189,7 +189,7 @@
     },
     pt: {
       'nav.home':'Início','nav.capes':'Capas','nav.servers':'Servidores',
-      'nav.skins':'Skins','nav.faq':'FAQ','nav.login':'Entrar','nav.admin':'Admin',
+      'nav.skins':'Skins','nav.faq':'FAQ','nav.store':'Loja','nav.login':'Entrar','nav.admin':'Admin',
       'nav.search':'Buscar jogador...',
       'index.hero_sub':'Conecte-se ao nosso servidor Minecraft para reivindicar seu perfil',
       'index.stat_players':'Jogadores Rastreados','index.stat_changes':'Mudanças de Capa Hoje',
@@ -230,7 +230,7 @@
     },
     ru: {
       'nav.home':'Главная','nav.capes':'Плащи','nav.servers':'Серверы',
-      'nav.skins':'Скины','nav.faq':'FAQ','nav.login':'Войти','nav.admin':'Админ',
+      'nav.skins':'Скины','nav.faq':'FAQ','nav.store':'Магазин','nav.login':'Войти','nav.admin':'Админ',
       'nav.search':'Найти игрока...',
       'index.hero_sub':'Подключитесь к нашему серверу Minecraft, чтобы заявить права на профиль',
       'index.stat_players':'Отслеживаемые Игроки','index.stat_changes':'Смены Плащей Сегодня',
@@ -271,7 +271,7 @@
     },
     zh: {
       'nav.home':'首页','nav.capes':'披风','nav.servers':'服务器',
-      'nav.skins':'皮肤','nav.faq':'常见问题','nav.login':'登录','nav.admin':'管理',
+      'nav.skins':'皮肤','nav.faq':'常见问题','nav.store':'商城','nav.login':'登录','nav.admin':'管理',
       'nav.search':'搜索玩家...',
       'index.hero_sub':'连接到我们的Minecraft服务器以认领您的档案',
       'index.stat_players':'已追踪玩家','index.stat_changes':'今日披风变更',
@@ -312,7 +312,7 @@
     },
     ja: {
       'nav.home':'ホーム','nav.capes':'マント','nav.servers':'サーバー',
-      'nav.skins':'スキン','nav.faq':'よくある質問','nav.login':'ログイン','nav.admin':'管理',
+      'nav.skins':'スキン','nav.faq':'よくある質問','nav.store':'ストア','nav.login':'ログイン','nav.admin':'管理',
       'nav.search':'プレイヤーを検索...',
       'index.hero_sub':'プロフィールを申請するには、Minecraftサーバーに接続してください',
       'index.stat_players':'追跡中のプレイヤー','index.stat_changes':'本日のマント変更',

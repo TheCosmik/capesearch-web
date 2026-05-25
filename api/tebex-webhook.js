@@ -111,6 +111,10 @@ async function revokePerks(cleanUuid, packages) {
 
 // ── Main handler ──────────────────────────────────────────────────────────────
 module.exports = async function handler(req, res) {
+  console.log('tebex-webhook hit:', req.method, req.headers['x-signature'] ? 'signed' : 'unsigned');
+
+  // Allow GET so Tebex reachability checks pass
+  if (req.method === 'GET') return res.status(200).json({ ok: true });
   if (req.method !== 'POST') return res.status(405).end();
 
   const secret = process.env.TEBEX_WEBHOOK_SECRET;

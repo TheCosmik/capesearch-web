@@ -39,29 +39,38 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ wearers: [] });
     }
 
-    // Fetch all display names in one pipeline call
-    const nameRes = await fetch(`${url}/pipeline`, {
+    // Fetch display names AND VIP flags in one pipeline call
+    const n = uuids.length;
+    const batchRes = await fetch(`${url}/pipeline`, {
       method:  'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body:    JSON.stringify(uuids.map(u => ['GET', `pname:${u}`])),
+      body:    JSON.stringify([
+        ...uuids.map(u => ['GET', `pname:${u}`]),
+        ...uuids.map(u => ['GET', `perk-vip:${u}`]),
+      ]),
       signal:  AbortSignal.timeout(5000),
     });
 
-    let wearers = uuids.map(u => ({ uuid: u, name: null }));
+    let wearers = uuids.map(u => ({ uuid: u, name: null, vip: false }));
 
-    if (nameRes.ok) {
-      const nameData = await nameRes.json();
-      if (Array.isArray(nameData)) {
+    if (batchRes.ok) {
+      const batchData = await batchRes.json();
+      if (Array.isArray(batchData)) {
+        const names = batchData.slice(0, n);
+        const vips  = batchData.slice(n);
         wearers = uuids.map((u, i) => ({
           uuid: u,
-          // pname values are stored as plain strings (no JSON wrapping)
-          name: (nameData[i] && nameData[i].result) ? String(nameData[i].result) : null,
+          name: (names[i] && names[i].result) ? String(names[i].result) : null,
+          vip:  (vips[i]  && vips[i].result)  === '1',
         }));
       }
     }
 
     // Only include players whose name we have on record
     wearers = wearers.filter(w => w.name);
+
+    // VIPs sorted first, then by original order (most-recently-seen)
+    wearers.sort((a, b) => (b.vip ? 1 : 0) - (a.vip ? 1 : 0));
 
     res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=30');
     return res.status(200).json({ wearers });

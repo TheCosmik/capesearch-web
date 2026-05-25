@@ -126,13 +126,15 @@ module.exports = async function handler(req, res) {
   const rawBody    = rawBodyBuf.toString('utf8');
   console.log('raw body bytes:', rawBodyBuf.length, '| preview:', rawBody.slice(0, 120));
 
-  // Verify Tebex HMAC-SHA256 signature.
-  // Try secret as plain string first, then as hex-decoded bytes.
-  const signature   = req.headers['x-signature'];
-  const expectedStr = crypto.createHmac('sha256', secret).update(rawBodyBuf).digest('hex');
-  const expectedHex = crypto.createHmac('sha256', Buffer.from(secret, 'hex')).update(rawBodyBuf).digest('hex');
-  if (!signature || (signature !== expectedStr && signature !== expectedHex)) {
-    console.error('Tebex sig mismatch | bytes:', rawBodyBuf.length, '| received:', signature, '| expectedStr:', expectedStr, '| expectedHex:', expectedHex);
+  // Verify Tebex signature — two-stage process per Tebex docs:
+  //   1. SHA256(rawBody) → hex string
+  //   2. HMAC-SHA256(key=secret, data=hexHash) → hex string
+  const signature = req.headers['x-signature'];
+  const bodyHash  = crypto.createHash('sha256').update(rawBodyBuf).digest('hex');
+  const expected  = crypto.createHmac('sha256', secret).update(bodyHash).digest('hex');
+  console.log('sig check | received:', signature, '| expected:', expected, '| match:', signature === expected);
+  if (!signature || signature !== expected) {
+    console.error('Tebex signature mismatch', { received: signature, expected });
     return res.status(401).json({ error: 'Invalid signature' });
   }
 

@@ -37,11 +37,12 @@ async function kvPipeline(commands) {
 }
 
 // ── Raw body reader (required for HMAC verification) ──────────────────────────
+// Collects chunks as Buffers to preserve exact bytes for HMAC computation.
 function getRawBody(req) {
   return new Promise((resolve, reject) => {
-    let data = '';
-    req.on('data', chunk => { data += chunk.toString(); });
-    req.on('end',  () => resolve(data));
+    const chunks = [];
+    req.on('data', chunk => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
+    req.on('end',  () => resolve(Buffer.concat(chunks)));
     req.on('error', reject);
   });
 }
@@ -121,16 +122,17 @@ module.exports = async function handler(req, res) {
   if (!secret) return res.status(500).json({ error: 'Webhook secret not configured' });
 
   // Read raw body before any parsing — needed for HMAC
-  const rawBody = await getRawBody(req);
+  const rawBodyBuf = await getRawBody(req);
+  const rawBody    = rawBodyBuf.toString('utf8');
+  console.log('raw body bytes:', rawBodyBuf.length, '| preview:', rawBody.slice(0, 120));
 
   // Verify Tebex HMAC-SHA256 signature.
-  // Try secret as plain string first, then as hex-decoded bytes (Tebex uses plain string).
+  // Try secret as plain string first, then as hex-decoded bytes.
   const signature   = req.headers['x-signature'];
-  const expectedStr = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
-  const expectedHex = crypto.createHmac('sha256', Buffer.from(secret, 'hex')).update(rawBody).digest('hex');
-  const expected    = expectedStr;
+  const expectedStr = crypto.createHmac('sha256', secret).update(rawBodyBuf).digest('hex');
+  const expectedHex = crypto.createHmac('sha256', Buffer.from(secret, 'hex')).update(rawBodyBuf).digest('hex');
   if (!signature || (signature !== expectedStr && signature !== expectedHex)) {
-    console.error('Tebex signature mismatch', { received: signature, expectedStr, expectedHex });
+    console.error('Tebex sig mismatch | bytes:', rawBodyBuf.length, '| received:', signature, '| expectedStr:', expectedStr, '| expectedHex:', expectedHex);
     return res.status(401).json({ error: 'Invalid signature' });
   }
 

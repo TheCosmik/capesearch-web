@@ -40,6 +40,7 @@ a:hover{text-decoration:underline}
 .br{background:rgba(248,113,113,.14);color:var(--red)}
 .by{background:rgba(251,191,36,.14);color:var(--yellow)}
 .bb{background:rgba(96,165,250,.14);color:var(--blue)}
+.bv{background:rgba(167,139,250,.15);color:#a78bfa}
 .btn{display:inline-flex;align-items:center;gap:.35rem;padding:.45rem .9rem;border-radius:var(--rad);font-size:.8rem;font-weight:600;cursor:pointer;border:none;transition:all .2s}
 .btn-p{background:var(--green);color:#0a1a0a}
 .btn-p:hover{background:var(--green2)}
@@ -140,7 +141,19 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.25rem 1re
   <div id="panelContent" style="display:none">
 
     <!-- Stats row -->
-    <div id="statsRow" style="display:flex;gap:.85rem;margin-bottom:1.5rem;flex-wrap:wrap"></div>
+    <div id="statsRow" style="display:flex;gap:.85rem;margin-bottom:1.25rem;flex-wrap:wrap"></div>
+
+    <!-- Beta enrollment toggle -->
+    <div style="background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad2);padding:1rem 1.25rem;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+      <div>
+        <div style="font-weight:700;font-size:.875rem;margin-bottom:.2rem">🧪 Beta Tester Auto-Enrollment</div>
+        <div style="font-size:.78rem;color:var(--txt2)">When enabled, every new profile claimant automatically receives the Beta Tester badge.</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:.75rem;flex-shrink:0">
+        <span id="betaEnrollStatus" style="font-size:.82rem;font-weight:700;color:var(--muted)">Checking…</span>
+        <button id="betaEnrollToggle" onclick="toggleBetaEnrollment()" class="btn btn-o" style="min-width:100px">…</button>
+      </div>
+    </div>
 
     <!-- Search / filter bar -->
     <div class="filter-bar">
@@ -153,6 +166,7 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.25rem 1re
         <option value="">All Roles</option>
         <option value="owner">👑 Owner</option>
         <option value="admin">🛡 Admin</option>
+        <option value="beta">🧪 Beta Tester</option>
         <option value="none">No Role</option>
       </select>
       <span class="results-count" id="resultsCount"></span>
@@ -231,18 +245,22 @@ async function checkOwnerAccess() {
 }
 
 // ── Panel rendering ───────────────────────────────────────────────────────────
-function loadPanel(profiles) {
-  _allProfiles = profiles;
-
-  // Stats
-  var total  = profiles.length;
-  var admins = profiles.filter(function(p){ return p.role === 'admin'; }).length;
-  var owners = profiles.filter(function(p){ return p.role === 'owner'; }).length;
+function updateStats() {
+  var total  = _allProfiles.length;
+  var owners = _allProfiles.filter(function(p){ return p.role === 'owner'; }).length;
+  var admins = _allProfiles.filter(function(p){ return p.role === 'admin'; }).length;
+  var betas  = _allProfiles.filter(function(p){ return p.beta; }).length;
   document.getElementById('statsRow').innerHTML =
     statCard('👥', 'Claimed Profiles', total) +
     statCard('👑', 'Owners', owners) +
-    statCard('🛡', 'Admins', admins);
+    statCard('🛡', 'Admins', admins) +
+    statCard('🧪', 'Beta Testers', betas);
+}
 
+function loadPanel(profiles) {
+  _allProfiles = profiles;
+  updateStats();
+  loadBetaEnrollment();
   renderTable(profiles);
 }
 
@@ -258,10 +276,12 @@ function fmtDate(ts) {
   return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-function roleBadge(role) {
-  if (role === 'owner') return '<span class="badge by">👑 Owner</span>';
-  if (role === 'admin') return '<span class="badge bb">🛡 Admin</span>';
-  return '<span style="color:var(--muted);font-size:.8rem">—</span>';
+function roleBadge(role, beta) {
+  var html = '';
+  if (role === 'owner') html += '<span class="badge by">👑 Owner</span>';
+  else if (role === 'admin') html += '<span class="badge bb">🛡 Admin</span>';
+  if (beta) html += (html ? ' ' : '') + '<span class="badge bv">🧪 Beta</span>';
+  return html || '<span style="color:var(--muted);font-size:.8rem">—</span>';
 }
 
 function renderTable(profiles) {
@@ -279,20 +299,27 @@ function renderTable(profiles) {
 
     var roleSelector = isOwner
       ? '<span class="badge by" style="font-size:.68rem">👑 Owner</span>'
-      : '<select class="role-sel" data-uuid="' + p.uuid + '" onchange="onRoleChange(this)">' +
-          '<option value=""' + (!p.role ? ' selected' : '') + '>No Role</option>' +
-          '<option value="admin"' + (p.role === 'admin' ? ' selected' : '') + '>🛡 Admin</option>' +
-        '</select>' +
-        ' <button class="btn btn-sm btn-p" data-uuid="' + p.uuid + '" onclick="saveRole(this)" style="display:none">Save</button>';
+      : '<div style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap">' +
+          '<select class="role-sel" data-uuid="' + p.uuid + '" onchange="onRoleChange(this)">' +
+            '<option value=""' + (!p.role ? ' selected' : '') + '>No Role</option>' +
+            '<option value="admin"' + (p.role === 'admin' ? ' selected' : '') + '>🛡 Admin</option>' +
+          '</select>' +
+          '<button class="btn btn-sm btn-p" data-uuid="' + p.uuid + '" onclick="saveRole(this)" style="display:none">Save</button>' +
+          '<button class="btn btn-sm ' + (p.beta ? 'btn-p' : 'btn-o') + ' beta-btn" ' +
+            'data-uuid="' + p.uuid + '" data-beta="' + (p.beta ? '1' : '0') + '" ' +
+            'onclick="toggleBeta(this)" title="' + (p.beta ? 'Remove Beta Tester' : 'Grant Beta Tester') + '">' +
+            '🧪' + (p.beta ? ' ✓' : '') +
+          '</button>' +
+        '</div>';
 
-    return '<tr data-name="' + (p.name||'').toLowerCase() + '" data-uuid="' + p.uuid + '" data-role="' + (p.role||'') + '">' +
+    return '<tr data-name="' + (p.name||'').toLowerCase() + '" data-uuid="' + p.uuid + '" data-role="' + (p.role||'') + '" data-beta="' + (p.beta ? '1' : '') + '">' +
       '<td style="width:42px"><img src="https://mc-heads.net/avatar/' + p.uuid + '/36" style="width:36px;height:36px;border-radius:5px;image-rendering:pixelated;display:block" onerror="this.style.opacity=\'.3\'"/></td>' +
       '<td><a href="profile.html?name=' + encodeURIComponent(p.name||p.uuid) + '" style="font-weight:700;font-size:.875rem">' + (p.name||p.uuid.slice(0,8)) + '</a></td>' +
       '<td style="font-family:monospace;font-size:.75rem;color:var(--txt2)">' +
         '<span title="' + shortUuid + '">' + dispUuid + '</span>' +
         ' <button class="btn btn-sm btn-o" onclick="copyUuid(\'' + p.uuid + '\',this)" style="padding:.15rem .45rem;font-size:.7rem">📋</button>' +
       '</td>' +
-      '<td>' + roleBadge(p.role) + '</td>' +
+      '<td>' + roleBadge(p.role, p.beta) + '</td>' +
       '<td style="font-size:.78rem;color:var(--txt2)">' + fmtDate(p.claimedAt) + '</td>' +
       '<td>' + roleSelector + '</td>' +
       '</tr>';
@@ -304,7 +331,7 @@ function renderTable(profiles) {
 
 function onRoleChange(sel) {
   var row  = sel.closest('tr');
-  var btn  = row.querySelector('button[data-uuid]');
+  var btn  = row.querySelector('button.btn-p[data-uuid]:not(.beta-btn)');
   if (btn) btn.style.display = '';
 }
 
@@ -313,6 +340,7 @@ function saveRole(btn) {
   var row     = btn.closest('tr');
   var sel     = row.querySelector('select.role-sel');
   var newRole = sel ? sel.value : null;
+  var saveBtn = btn; // alias for clarity
 
   btn.disabled = true;
   btn.textContent = '…';
@@ -325,28 +353,19 @@ function saveRole(btn) {
   .then(function(r){ return r.ok ? r.json() : null; })
   .then(function(d) {
     if (d && d.ok) {
-      // Update local data
-      var p = _allProfiles.find(function(x){ return x.uuid === uuid; });
-      if (p) p.role = newRole || null;
-
       // Update row data attribute so role filter stays accurate
       row.dataset.role = newRole || '';
 
-      // Update the current-role badge cell
+      // Update the current-role badge cell (pass both role and beta)
       var cells = row.querySelectorAll('td');
-      if (cells[3]) cells[3].innerHTML = roleBadge(newRole || null);
+      if (cells[3]) cells[3].innerHTML = roleBadge(newRole || null, p ? p.beta : false);
 
       btn.style.display = 'none';
       btn.textContent = 'Save';
       btn.disabled = false;
 
       // Refresh stats
-      var admins = _allProfiles.filter(function(x){ return x.role === 'admin'; }).length;
-      var owners = _allProfiles.filter(function(x){ return x.role === 'owner'; }).length;
-      document.getElementById('statsRow').innerHTML =
-        statCard('👥', 'Claimed Profiles', _allProfiles.length) +
-        statCard('👑', 'Owners', owners) +
-        statCard('🛡', 'Admins', admins);
+      updateStats();
 
       showToast('✅ Role updated for ' + (row.querySelector('a') ? row.querySelector('a').textContent : uuid));
     } else {
@@ -376,10 +395,13 @@ function filterTable() {
     var name     = row.dataset.name || '';
     var uuid     = row.dataset.uuid || '';
     var rowRole  = row.dataset.role || '';
+    var rowBeta  = row.dataset.beta || '';
 
     var matchSearch = !q || name.includes(q) || uuid.includes(q);
     var matchRole   = !role ||
-                      (role === 'none'  ? !rowRole : rowRole === role);
+                      (role === 'none' ? !rowRole && !rowBeta :
+                       role === 'beta' ? rowBeta === '1' :
+                       rowRole === role);
 
     var show = matchSearch && matchRole;
     row.style.display = show ? '' : 'none';
@@ -423,6 +445,109 @@ function copyUuid(uuid, btn) {
     btn.textContent = '✅';
     setTimeout(function(){ btn.textContent = orig; }, 1500);
   });
+}
+
+// ── Beta tester toggle ────────────────────────────────────────────────────────
+function toggleBeta(btn) {
+  var uuid    = btn.dataset.uuid;
+  var isBeta  = btn.dataset.beta === '1';
+  var newBeta = !isBeta;
+  var row     = btn.closest('tr');
+
+  btn.disabled = true;
+  btn.textContent = '…';
+
+  fetch('/api/player-textures?action=set-beta', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ clerkUserId: _clerkUserId, targetUuid: uuid, beta: newBeta }),
+  })
+  .then(function(r){ return r.ok ? r.json() : null; })
+  .then(function(d) {
+    if (d && d.ok) {
+      // Update local data
+      var p = _allProfiles.find(function(x){ return x.uuid === uuid; });
+      if (p) p.beta = newBeta;
+
+      // Update row data attribute
+      row.dataset.beta = newBeta ? '1' : '';
+
+      // Update button appearance
+      btn.dataset.beta = newBeta ? '1' : '0';
+      btn.textContent  = '🧪' + (newBeta ? ' ✓' : '');
+      btn.className    = 'btn btn-sm ' + (newBeta ? 'btn-p' : 'btn-o') + ' beta-btn';
+      btn.title        = newBeta ? 'Remove Beta Tester' : 'Grant Beta Tester';
+      btn.disabled     = false;
+
+      // Update the current-role badge cell
+      var cells = row.querySelectorAll('td');
+      if (cells[3]) cells[3].innerHTML = roleBadge(p ? p.role : null, newBeta);
+
+      // Refresh stats
+      updateStats();
+
+      showToast(newBeta ? '✅ Beta Tester granted.' : '✅ Beta Tester removed.');
+    } else {
+      showToast('❌ Failed to update beta status.');
+      btn.textContent = '🧪' + (isBeta ? ' ✓' : '');
+      btn.disabled = false;
+    }
+  })
+  .catch(function() {
+    showToast('❌ Network error.');
+    btn.textContent = '🧪' + (isBeta ? ' ✓' : '');
+    btn.disabled = false;
+  });
+}
+
+// ── Beta enrollment controls ──────────────────────────────────────────────────
+function updateBetaEnrollUI(enabled) {
+  var statusEl  = document.getElementById('betaEnrollStatus');
+  var toggleBtn = document.getElementById('betaEnrollToggle');
+  if (statusEl) {
+    statusEl.textContent = enabled ? '🟢 Enabled' : '🔴 Disabled';
+    statusEl.style.color = enabled ? 'var(--green)' : 'var(--red)';
+  }
+  if (toggleBtn) {
+    toggleBtn.textContent = enabled ? 'Turn Off' : 'Turn On';
+    toggleBtn.className   = 'btn ' + (enabled ? 'btn-o' : 'btn-p');
+    toggleBtn.disabled    = false;
+  }
+}
+
+async function loadBetaEnrollment() {
+  try {
+    var r = await fetch('/api/player-textures?action=get-beta-enrollment');
+    if (r.ok) { var d = await r.json(); updateBetaEnrollUI(d.enabled); }
+  } catch {}
+}
+
+async function toggleBetaEnrollment() {
+  var statusEl  = document.getElementById('betaEnrollStatus');
+  var toggleBtn = document.getElementById('betaEnrollToggle');
+  var currentlyEnabled = statusEl && statusEl.textContent.includes('Enabled');
+  var newEnabled = !currentlyEnabled;
+
+  if (toggleBtn) { toggleBtn.disabled = true; toggleBtn.textContent = '…'; }
+
+  try {
+    var r = await fetch('/api/player-textures?action=set-beta-enrollment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clerkUserId: _clerkUserId, enabled: newEnabled }),
+    });
+    if (r.ok) {
+      updateBetaEnrollUI(newEnabled);
+      showToast(newEnabled ? '✅ Beta enrollment enabled.' : '✅ Beta enrollment disabled.');
+    } else {
+      showToast('❌ Failed to update enrollment.');
+      if (toggleBtn) toggleBtn.disabled = false;
+      loadBetaEnrollment(); // re-sync
+    }
+  } catch {
+    showToast('❌ Network error.');
+    if (toggleBtn) toggleBtn.disabled = false;
+  }
 }
 
 var _toastTimer = null;

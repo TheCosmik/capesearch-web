@@ -102,6 +102,12 @@ module.exports = async function handler(req, res) {
     ['DEL', `claimbyuser:${payload.clerkUserId}`],
   ]);
 
+  // Auto-assign Beta Tester badge if enrollment is currently active
+  const [betaEnabled] = await kvPipeline([['GET', 'beta-enabled']]);
+  if (betaEnabled === '1') {
+    await kvPipeline([['SET', `role-beta:${payload.minecraftUuid}`, '1']]);
+  }
+
   return res.status(200).json({
     success: true,
     minecraftName: payload.minecraftName,

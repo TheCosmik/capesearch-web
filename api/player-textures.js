@@ -98,6 +98,12 @@ async function getRole(cleanUuid) {
   return (stored && stored !== KV_READ_ERROR) ? stored : null;
 }
 
+// Returns true if the given UUID is a Beta Tester.
+async function getBeta(cleanUuid) {
+  const [stored] = await kvPipeline([['GET', `role-beta:${cleanUuid}`]]);
+  return stored === '1';
+}
+
 // Returns true if ANY Minecraft account linked to clerkUserId has owner role.
 async function isOwnerByClerkId(clerkUserId) {
   const [raw] = await kvPipeline([['GET', `user-minecraft:${clerkUserId}`]]);
@@ -274,6 +280,44 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ ok: true });
   }
 
+  // ── Set beta tester status (owner only) ──────────────────────────────────
+  // POST /api/player-textures?action=set-beta
+  // Body: { clerkUserId, targetUuid, beta: true|false }
+  if (req.method === 'POST' && req.query.action === 'set-beta') {
+    const { clerkUserId, targetUuid, beta: newBeta } = req.body || {};
+    if (!clerkUserId || !targetUuid) return res.status(400).json({ error: 'missing fields' });
+    if (!(await isOwnerByClerkId(clerkUserId))) return res.status(403).json({ error: 'Owner access required' });
+    const targetClean = targetUuid.replace(/-/g, '').toLowerCase();
+    if (!/^[0-9a-f]{32}$/.test(targetClean)) return res.status(400).json({ error: 'invalid uuid' });
+    await kvPipeline(newBeta
+      ? [['SET', `role-beta:${targetClean}`, '1']]
+      : [['DEL', `role-beta:${targetClean}`]]);
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json({ ok: true });
+  }
+
+  // ── Get beta enrollment status ────────────────────────────────────────────
+  // GET /api/player-textures?action=get-beta-enrollment
+  if (req.query.action === 'get-beta-enrollment') {
+    const [stored] = await kvPipeline([['GET', 'beta-enabled']]);
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json({ enabled: stored === '1' });
+  }
+
+  // ── Set beta enrollment (owner only) ─────────────────────────────────────
+  // POST /api/player-textures?action=set-beta-enrollment
+  // Body: { clerkUserId, enabled: true|false }
+  if (req.method === 'POST' && req.query.action === 'set-beta-enrollment') {
+    const { clerkUserId, enabled } = req.body || {};
+    if (!clerkUserId) return res.status(400).json({ error: 'clerkUserId required' });
+    if (!(await isOwnerByClerkId(clerkUserId))) return res.status(403).json({ error: 'Owner access required' });
+    await kvPipeline(enabled
+      ? [['SET', 'beta-enabled', '1']]
+      : [['DEL', 'beta-enabled']]);
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json({ ok: true });
+  }
+
   // ── List claimed profiles (owner only) ────────────────────────────────────
   // GET /api/player-textures?action=list-claimed&clerkUserId={id}
   if (req.query.action === 'list-claimed') {
@@ -293,18 +337,21 @@ module.exports = async function handler(req, res) {
       res.setHeader('Cache-Control', 'no-store');
       return res.status(200).json({ profiles: [] });
     }
-    // Batch-fetch names and KV roles in one pipeline
+    // Batch-fetch names, KV roles, and beta flags in one pipeline
     const allCmds = [
       ...uuids.map(u => ['GET', `pname:${u.uuid}`]),
       ...uuids.map(u => ['GET', `role:${u.uuid}`]),
+      ...uuids.map(u => ['GET', `role-beta:${u.uuid}`]),
     ];
     const allResults = await kvPipeline(allCmds);
     const names = allResults.slice(0, uuids.length);
-    const roles = allResults.slice(uuids.length);
+    const roles = allResults.slice(uuids.length, uuids.length * 2);
+    const betas = allResults.slice(uuids.length * 2);
     const profiles = uuids.map((u, i) => ({
       uuid:      u.uuid,
       name:      names[i] || u.uuid.slice(0, 8),
       role:      u.uuid === OWNER_UUID ? 'owner' : (roles[i] || null),
+      beta:      betas[i] === '1',
       claimedAt: u.ts,
     }));
     res.setHeader('Cache-Control', 'no-store');
@@ -368,13 +415,14 @@ module.exports = async function handler(req, res) {
     kvPipeline([['ZADD', 'tracked:players', 'NX', 0, cleanUuid]]).catch(() => {});
 
     // Fetch Mojang profile + KV history + role in parallel to keep latency low
-    const [mojangRes, history, role] = await Promise.all([
+    const [mojangRes, history, role, beta] = await Promise.all([
       fetch(
         `https://sessionserver.mojang.com/session/minecraft/profile/${cleanUuid}`,
         { headers: { 'User-Agent': 'CapeSearch/1.0' }, signal: AbortSignal.timeout(8000) }
       ),
       getCapeHistory(uuid),
       getRole(cleanUuid),
+      getBeta(cleanUuid),
     ]);
 
     if (mojangRes.status === 204 || mojangRes.status === 404) {
@@ -410,7 +458,7 @@ module.exports = async function handler(req, res) {
 
     // Cache 15 s at the CDN edge; serve stale for 5 s while revalidating
     res.setHeader('Cache-Control', 's-maxage=15, stale-while-revalidate=5');
-    return res.status(200).json({ skin, cape, slim, name: profile.name, history: Array.isArray(history) ? history : [], role: role || null });
+    return res.status(200).json({ skin, cape, slim, name: profile.name, history: Array.isArray(history) ? history : [], role: role || null, beta: !!beta });
 
   } catch (err) {
     return res.status(500).json({ error: 'Proxy error: ' + err.message });

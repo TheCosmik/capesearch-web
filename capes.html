@@ -180,17 +180,17 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
 
 
   <div class="fbar">
-    <span style="font-size:.76rem;color:var(--muted);font-weight:600">Filter:</span>
-    <button class="fbtn on" data-f="all">All Capes</button>
-    <button class="fbtn" data-f="rare">Rare Only</button>
+    <span style="font-size:.76rem;color:var(--muted);font-weight:600" data-i18n="capes.filter_label">Filter:</span>
+    <button class="fbtn on" data-f="all" data-i18n="capes.filter_all">All Capes</button>
+    <button class="fbtn" data-f="rare" data-i18n="capes.filter_rare">Rare Only</button>
     <button class="fbtn" data-f="minecon">MineCon</button>
-    <button class="fbtn" data-f="common">Common</button>
+    <button class="fbtn" data-f="common" data-i18n="capes.filter_common">Common</button>
     <div style="margin-left:auto;display:flex;align-items:center;gap:.5rem">
-      <span style="font-size:.76rem;color:var(--muted)">Sort:</span>
+      <span style="font-size:.76rem;color:var(--muted)" data-i18n="capes.sort_label">Sort:</span>
       <select class="sort" id="sortSel">
-        <option value="wearers">Most Wearers</option>
-        <option value="name">Name A–Z</option>
-        <option value="rare">Rarest First</option>
+        <option value="wearers" data-i18n="capes.sort_wearers">Most Wearers</option>
+        <option value="name" data-i18n="capes.sort_name">Name A–Z</option>
+        <option value="rare" data-i18n="capes.sort_rare">Rarest First</option>
       </select>
     </div>
   </div>
@@ -234,10 +234,10 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
 
 <footer>
   <div class="foot-in">
-    <div class="foot-brand"><div class="fl">Cape<span>Search</span></div><p>Not affiliated with Mojang or Microsoft.</p></div>
-    <div class="foot-col"><h4>Quick Links</h4><ul><li><a href="index.html">Home</a></li><li><a href="capes.html">Capes</a></li><li><a href="#">API</a></li></ul></div>
+    <div class="foot-brand"><div class="fl">Cape<span>Search</span></div><p data-i18n="footer.tagline">Most comprehensive Minecraft player tracking. Not affiliated with Mojang or Microsoft.</p></div>
+    <div class="foot-col"><h4 data-i18n="footer.quick_links">Quick Links</h4><ul><li><a href="index.html" data-i18n="nav.home">Home</a></li><li><a href="capes.html" data-i18n="nav.capes">Capes</a></li><li><a href="#" data-i18n="footer.api">API</a></li></ul></div>
   </div>
-  <div class="foot-bot">Copyright &copy; 2026 NameSearch. All rights reserved.</div>
+  <div class="foot-bot" data-i18n="footer.copyright">Copyright &copy; 2026 NameSearch. All rights reserved.</div>
 </footer>
 
 <script src="skinview3d.bundle.js"></script>

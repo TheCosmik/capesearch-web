@@ -1281,7 +1281,7 @@ async function removeSavedEntry(evt, catId, uuid, name) {
   evt.preventDefault();
   evt.stopPropagation();
   try {
-    await savedApi('POST', { action: 'save-profile', catId: catId, targetUuid: uuid, targetName: name, action: 'remove' });
+    await savedApi('POST', { action: 'save-profile', catId: catId, targetUuid: uuid, targetName: name, saveAction: 'remove' });
     loadCatEntries(catId);
   } catch(e) {}
 }

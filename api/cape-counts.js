@@ -44,6 +44,7 @@ const NAME_MAP = {
   'Spade':                 'spade',
   'Snowman':               'snowman',
   'Millionth Customer':    'millionth',
+  'Moonlight Trail':       'moonlighttrail',
   'dB':                    'db',
   'Prismarine':            'prismarine',
 };

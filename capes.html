@@ -309,6 +309,7 @@ var CAPES=[
   {id:'translatorjp',name:'Translator (Japanese)', wearers:1,      color:'#f97316',rare:true},
   {id:'birthday',    name:'Birthday Cape',          wearers:1,      color:'#f472b6',rare:true},
   {id:'millionth',   name:'Millionth Customer',     wearers:1,      color:'#fbbf24',rare:true},
+  {id:'moonlighttrail',name:'Moonlight Trail',       wearers:1,      color:'#1e3a8a',rare:true},
 ];
 var PLAYERS=[
   {name:'Dream',uuid:'69e76b14-1d14-4b87-9b5b-01b32e9b6f4c',cape:'minecon16',followers:'1.2M'},
@@ -338,7 +339,7 @@ var EMOJIS={
   minecon12:'🏆',mojangstudios:'🔴',minecon11:'🏆',translator:'🟠',mcc15:'🏆',
   scrolls:'🎲',realmsmapper:'🗺️',spade:'♠️',mojang:'🔴',cobalt:'🔵',translatorcn:'🌏',
   mojiramod:'🔴',translatorjp:'🌏',mojangclassic:'🔴',db:'🎵',mojangoffice:'🏢',
-  millionth:'🥇',
+  millionth:'🥇',moonlighttrail:'🌙',
 };
 var FB='https://mc-heads.net/avatar/Steve/32';
 function fmt(n){return n.toLocaleString()}
@@ -389,6 +390,7 @@ var CAPE_IMGS={
   db:           W+'DannyBstyle%27s_Cape.png/256px-DannyBstyle%27s_Cape.png',
   mojangoffice: W+'Mojang_Office_Cape_JE.png/256px-Mojang_Office_Cape_JE.png',
   millionth:    W+'Millionth_Customer_Cape.png/256px-Millionth_Customer_Cape.png',
+  moonlighttrail:W+'Moonlight_Trail_Cape_JE.png/256px-Moonlight_Trail_Cape_JE.png',
 };
 
 // ── CAPE TEXTURES (actual UV maps — used for 3D viewer) ──────────────────────
@@ -435,6 +437,7 @@ var CAPE_TEXTURES={
   millionth:    'https://textures.minecraft.net/texture/70efffaf86fe5bc089608d3cb297d3e276b9eb7a8f9f2fe6659c23a2d8b18edf',
   mojangoffice: 'https://textures.minecraft.net/texture/5c29410057e32abec02d870ecb52ec25fb45ea81e785a7854ae8429d7236ca26',
   mojang:       'https://textures.minecraft.net/texture/5786fe99be377dfb6858859f926c4dbc995751e91cee373468c5fbf4865e7151',
+  moonlighttrail:'https://textures.minecraft.net/texture/fe8a02dfe9ee390e44ff33d69feef9d3943f76d3901015bbd50f0b677722d288bd',
 };
 
 function capePreview(c,size){

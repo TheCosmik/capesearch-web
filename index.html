@@ -452,7 +452,7 @@ function renderPlayers(profiles){
 function loadTopProfiles(){
   var el=document.getElementById('players');
   el.innerHTML='<div style="padding:1.5rem;text-align:center;color:var(--muted);font-size:.85rem">Loading…</div>';
-  fetch('/api/top-profiles?limit=8')
+  fetch('/api/top-profiles?limit=9')
     .then(function(r){return r.ok?r.json():null})
     .then(function(d){
       if(d&&d.month){

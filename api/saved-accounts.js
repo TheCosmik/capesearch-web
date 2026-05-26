@@ -189,7 +189,7 @@ module.exports = async function handler(req, res) {
 
   // save-profile
   if (action === 'save-profile') {
-    const { catId, targetUuid, targetName, action: saveAction } = req.body;
+    const { catId, targetUuid, targetName, saveAction } = req.body;
     if (!catId || !targetUuid) return res.status(400).json({ error: 'catId and targetUuid required' });
     const cleanUuid = targetUuid.replace(/-/g, '').toLowerCase();
     const catKey = `saved-cat:${userId}:${catId}`;

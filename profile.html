@@ -1470,7 +1470,7 @@ async function toggleSaveToCat(catId, targetUuid, targetName, itemEl) {
       catId: catId,
       targetUuid: targetUuid,
       targetName: targetName,
-      action: isAdding ? 'add' : 'remove',
+      saveAction: isAdding ? 'add' : 'remove',
     });
     if (isAdding) {
       _saveCheckedCatIds.push(catId);

@@ -749,37 +749,30 @@ function loadCapeImageFallback(capeImageUrl){
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
-// Show loading state — grid renders only after live counts arrive from the API.
-// Hardcoded wearers values above are a fallback for API failures only.
-document.getElementById('cgrid').innerHTML=
-  '<div style="padding:3rem;text-align:center;color:var(--muted);font-size:.9rem">Loading cape data…</div>';
+renderGrid();
 document.getElementById('statTotal').textContent=CAPES.length;
 
 // ── LIVE COUNTS from /api/cape-counts ────────────────────────────────────────
-// First call always renders the grid with live numbers.
-// Subsequent calls (every 5 min) only re-render if any count changed.
-var _capeCountsReady=false;
+// Fetches up-to-date wearer counts from laby.net via a serverless function.
+// Runs once on load, then every 5 minutes while the page is open.
+// Falls back silently to the hardcoded values above if the fetch fails.
 function refreshCapeCounts(){
   fetch('/api/cape-counts')
     .then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
     .then(function(counts){
-      var changed=!_capeCountsReady; // always render on first successful fetch
+      var changed=false;
       CAPES.forEach(function(c){
         if(typeof counts[c.id]==='number' && counts[c.id]!==c.wearers){
           c.wearers=counts[c.id];
           changed=true;
         }
       });
-      _capeCountsReady=true;
       if(changed) renderGrid();
     })
-    .catch(function(e){
-      console.warn('Live cape counts unavailable, using defaults.',e);
-      if(!_capeCountsReady){ _capeCountsReady=true; renderGrid(); } // fallback render
-    });
+    .catch(function(e){ console.warn('Live cape counts unavailable, using defaults.',e); });
 }
 refreshCapeCounts();
-setInterval(refreshCapeCounts, 5 * 60 * 1000); // re-check every 5 minutes
+setInterval(refreshCapeCounts, 5 * 60 * 1000); // refresh every 5 minutes
 </script>
 <script src="lang.js"></script>
 <script src="clerk-auth.js"></script>

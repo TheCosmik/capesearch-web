@@ -104,6 +104,30 @@ code{font-size:.75rem;color:var(--txt2);word-break:break-all}
 .pc .pn{font-weight:700;font-size:.875rem;color:var(--txt)}
 .pc .pm{font-size:.73rem;color:var(--muted);margin-top:2px}
 
+/* SAVED PANEL */
+.saved-cats{display:flex;flex-direction:column;gap:1rem}
+.saved-cat-hdr{display:flex;align-items:center;gap:.5rem;margin-bottom:.6rem}
+.saved-cat-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.saved-cat-name{font-size:.9rem;font-weight:700;flex:1}
+.saved-cat-actions{display:flex;gap:.35rem;opacity:0;transition:opacity .15s}
+.saved-cat-block:hover .saved-cat-actions{opacity:1}
+.saved-cat-block{background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad2);padding:1rem 1.1rem}
+.saved-cat-empty{color:var(--muted);font-size:.8rem;padding:.2rem 0}
+.saved-entry-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:.5rem}
+.saved-entry{background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--rad);padding:.55rem .75rem;display:flex;align-items:center;gap:.6rem;text-decoration:none;color:inherit;transition:border-color .15s}
+.saved-entry:hover{border-color:var(--green);text-decoration:none}
+.saved-entry img{width:32px;height:32px;image-rendering:pixelated;border-radius:4px;flex-shrink:0;background:var(--bg)}
+.saved-entry .se-name{font-size:.82rem;font-weight:600;color:var(--txt)}
+.saved-entry-rm{margin-left:auto;flex-shrink:0;background:none;border:none;color:var(--muted);cursor:pointer;font-size:.85rem;padding:.1rem .2rem;border-radius:3px;transition:color .15s}
+.saved-entry-rm:hover{color:var(--red)}
+.btn-new-cat{background:transparent;border:1px dashed var(--bdr2);color:var(--txt2);border-radius:var(--rad);padding:.5rem 1rem;font-size:.82rem;font-weight:600;cursor:pointer;transition:all .2s;width:100%}
+.btn-new-cat:hover{border-color:var(--green);color:var(--green)}
+/* Save dropdown */
+.save-drop{position:absolute;right:0;top:calc(100% + .4rem);background:var(--bg2);border:1px solid var(--bdr);border-radius:.75rem;padding:.85rem 1rem;min-width:220px;z-index:300;box-shadow:0 4px 24px rgba(0,0,0,.5)}
+.save-drop-item{display:flex;align-items:center;gap:.55rem;padding:.45rem .3rem;cursor:pointer;border-radius:.4rem;transition:background .12s;font-size:.84rem}
+.save-drop-item:hover{background:var(--card2)}
+.save-drop-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.save-drop-check{width:14px;height:14px;flex-shrink:0;color:var(--green);margin-left:auto}
 footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1rem;margin-top:2.5rem}
 .foot-in{max-width:1200px;margin:0 auto;display:flex;flex-wrap:wrap;gap:2rem;justify-content:space-between}
 .foot-brand .fl{font-size:1rem;font-weight:800;color:var(--txt);margin-bottom:.3rem}
@@ -250,6 +274,7 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
         <button class="tab" data-tab="t-skin">🖼 Skin</button>
         <button class="tab" data-tab="t-following">➕ Following<span id="tabFollowingCount" style="color:var(--muted);font-weight:400"></span></button>
         <button class="tab" data-tab="t-followers">👥 Followers<span id="tabFollowersCount" style="color:var(--muted);font-weight:400"></span></button>
+        <button class="tab" data-tab="t-saved" id="tabSaved" style="display:none">📁 Saved</button>
       </div>
 
       <!-- NAMES -->
@@ -302,6 +327,13 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
           <div style="color:var(--muted);font-size:.85rem;padding:.5rem 0">Loading…</div>
         </div>
       </div>
+      <!-- SAVED ACCOUNTS (only visible to profile owner) -->
+      <div class="panel" id="t-saved">
+        <div id="savedPanelContent">
+          <div style="color:var(--muted);font-size:.85rem;padding:.5rem 0">Loading…</div>
+        </div>
+      </div>
+
       <!-- CAPES STRIP — always visible below tabs -->
       <div class="capes-section" id="capesSection">
         <div class="capes-section-hdr">🎭 Capes<span id="capeCount" style="letter-spacing:0;margin-left:.3em">(0)</span></div>
@@ -943,7 +975,7 @@ function loadFollowers(cleanUuid) {
 function fetchProfileStats(cleanUuid){
   var el=document.getElementById('pViews');
   if(!el)return;
-  fetch('/api/profile-stats?uuid='+encodeURIComponent(cleanUuid))
+  fetch('/api/top-profiles?action=stats&uuid='+encodeURIComponent(cleanUuid))
     .then(function(r){return r.ok?r.json():null})
     .then(function(d){
       if(!d||d.views===0){el.textContent='';return;}
@@ -1139,6 +1171,377 @@ if(!resolvedUUID){
     });
 }
 
+// ── SAVED ACCOUNTS ────────────────────────────────────────────────────────────
+var _savedPanelLoaded = false;
+var _saveDrop = null;   // current open dropdown element
+var _saveDropUuid = null;
+
+// Retrieve the Clerk session token for API calls
+async function getSessionToken() {
+  try {
+    if (window.Clerk && window.Clerk.session) {
+      return await window.Clerk.session.getToken();
+    }
+  } catch(e) {}
+  return null;
+}
+
+async function savedApi(method, params) {
+  var token = await getSessionToken();
+  var headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+  var opts = { method: method, headers: headers };
+  var url = '/api/saved-accounts';
+  if (method === 'GET') {
+    var qs = Object.keys(params).map(function(k){ return encodeURIComponent(k)+'='+encodeURIComponent(params[k]); }).join('&');
+    url += '?' + qs;
+  } else {
+    opts.body = JSON.stringify(params);
+  }
+  var r = await fetch(url, opts);
+  if (!r.ok) throw new Error('saved-accounts ' + r.status);
+  return r.json();
+}
+
+// Render the Saved panel (called lazily when the tab is first opened)
+async function loadSavedPanel() {
+  var container = document.getElementById('savedPanelContent');
+  if (!container) return;
+  if (_savedPanelLoaded) return; // already rendered
+  container.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:.5rem 0">Loading…</div>';
+  try {
+    var data = await savedApi('GET', { action: 'cats' });
+    _savedPanelLoaded = true;
+    renderSavedPanel(data.cats || []);
+  } catch(e) {
+    container.innerHTML = '<div style="color:var(--red);font-size:.85rem;padding:.5rem 0">Could not load saved lists.</div>';
+  }
+}
+
+function renderSavedPanel(cats) {
+  var container = document.getElementById('savedPanelContent');
+  if (!container) return;
+  var html = '<div class="saved-cats" id="savedCatsList">';
+  if (!cats.length) {
+    html += '<div style="color:var(--muted);font-size:.85rem;padding:.25rem 0">No lists yet. Create one below!</div>';
+  }
+  cats.forEach(function(cat) {
+    html += buildCatBlock(cat);
+  });
+  html += '</div>';
+  html += '<button class="btn-new-cat" style="margin-top:1rem" onclick="openNewCatForm()">＋ New list</button>';
+  html += '<div id="newCatForm" style="display:none;margin-top:.75rem"></div>';
+  container.innerHTML = html;
+  // Load entries for each category
+  cats.forEach(function(cat) { loadCatEntries(cat.id); });
+}
+
+function buildCatBlock(cat) {
+  var dotStyle = 'background:' + escHtml(cat.color || '#4ade80');
+  return '<div class="saved-cat-block" id="cat-block-'+escHtml(cat.id)+'" data-cat-id="'+escHtml(cat.id)+'">'+
+    '<div class="saved-cat-hdr">'+
+      '<span class="saved-cat-dot" style="'+dotStyle+'"></span>'+
+      '<span class="saved-cat-name" id="cat-name-'+escHtml(cat.id)+'">'+escHtml(cat.name)+'</span>'+
+      '<div class="saved-cat-actions">'+
+        '<button class="btn btn-o btn-sm" onclick="openRenameCat(\''+escHtml(cat.id)+'\')">✏️ Rename</button>'+
+        '<button class="btn btn-o btn-sm" style="color:var(--red);border-color:rgba(248,113,113,.35)" onclick="deleteCat(\''+escHtml(cat.id)+'\')">🗑</button>'+
+      '</div>'+
+    '</div>'+
+    '<div class="saved-entry-grid" id="cat-entries-'+escHtml(cat.id)+'">'+
+      '<div style="color:var(--muted);font-size:.8rem">Loading…</div>'+
+    '</div>'+
+  '</div>';
+}
+
+async function loadCatEntries(catId) {
+  var grid = document.getElementById('cat-entries-'+catId);
+  if (!grid) return;
+  try {
+    var data = await savedApi('GET', { action: 'entries', catId: catId });
+    var entries = data.entries || [];
+    if (!entries.length) {
+      grid.innerHTML = '<div class="saved-cat-empty">No players saved here yet.</div>';
+      return;
+    }
+    grid.innerHTML = entries.map(function(e) {
+      var href = 'profile.html?name=' + encodeURIComponent(e.name);
+      var avatar = 'https://mc-heads.net/avatar/' + e.uuid + '/32';
+      return '<a href="'+href+'" class="saved-entry">'+
+        '<img src="'+avatar+'" onerror="this.src=\''+escHtml('https://mc-heads.net/avatar/Steve/32')+'\'" alt="'+escHtml(e.name)+'"/>'+
+        '<span class="se-name">'+escHtml(e.name)+'</span>'+
+        '<button class="saved-entry-rm" title="Remove" onclick="removeSavedEntry(event,\''+escHtml(catId)+'\',\''+escHtml(e.uuid)+'\',\''+escHtml(e.name)+'\')">✕</button>'+
+      '</a>';
+    }).join('');
+  } catch(e) {
+    if (grid) grid.innerHTML = '<div class="saved-cat-empty" style="color:var(--red)">Error loading entries.</div>';
+  }
+}
+
+async function removeSavedEntry(evt, catId, uuid, name) {
+  evt.preventDefault();
+  evt.stopPropagation();
+  try {
+    await savedApi('POST', { action: 'save-profile', catId: catId, targetUuid: uuid, targetName: name, action: 'remove' });
+    loadCatEntries(catId);
+  } catch(e) {}
+}
+
+function openNewCatForm() {
+  var formDiv = document.getElementById('newCatForm');
+  if (!formDiv) return;
+  formDiv.style.display = 'block';
+  var colors = ['#4ade80','#60a5fa','#f87171','#fbbf24','#c084fc','#fb923c','#34d399','#f472b6'];
+  var colorPickers = colors.map(function(c,i) {
+    return '<button type="button" onclick="selectNewCatColor(this,\''+c+'\')" '+
+      'style="width:20px;height:20px;border-radius:50%;background:'+c+';border:2px solid transparent;cursor:pointer;padding:0" '+
+      'data-color="'+c+'" title="'+c+'"></button>';
+  }).join('');
+  formDiv.innerHTML =
+    '<div style="background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad2);padding:1rem">'+
+    '<div style="font-size:.82rem;font-weight:600;margin-bottom:.6rem">New list</div>'+
+    '<input id="newCatNameInput" type="text" placeholder="List name…" maxlength="40" '+
+      'style="width:100%;background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--rad);color:var(--txt);'+
+      'padding:.45rem .75rem;font-size:.84rem;outline:none;margin-bottom:.6rem" />'+
+    '<div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.75rem">'+
+      '<span style="font-size:.78rem;color:var(--muted);margin-right:.2rem">Color:</span>'+
+      colorPickers+
+    '</div>'+
+    '<div style="display:flex;gap:.5rem">'+
+      '<button class="btn btn-p btn-sm" onclick="submitNewCat()">Create</button>'+
+      '<button class="btn btn-o btn-sm" onclick="document.getElementById(\'newCatForm\').style.display=\'none\'">Cancel</button>'+
+    '</div>'+
+    '</div>';
+  // Default color
+  document.getElementById('newCatForm')._selectedColor = '#4ade80';
+  var firstBtn = formDiv.querySelector('[data-color="#4ade80"]');
+  if (firstBtn) firstBtn.style.borderColor = '#fff';
+  setTimeout(function(){ var inp=document.getElementById('newCatNameInput'); if(inp) inp.focus(); }, 50);
+}
+
+function selectNewCatColor(btn, color) {
+  var formDiv = document.getElementById('newCatForm');
+  if (!formDiv) return;
+  formDiv._selectedColor = color;
+  formDiv.querySelectorAll('[data-color]').forEach(function(b){ b.style.borderColor = 'transparent'; });
+  btn.style.borderColor = '#fff';
+}
+
+async function submitNewCat() {
+  var inp = document.getElementById('newCatNameInput');
+  var formDiv = document.getElementById('newCatForm');
+  if (!inp || !formDiv) return;
+  var name = inp.value.trim();
+  if (!name) { inp.focus(); return; }
+  var color = formDiv._selectedColor || '#4ade80';
+  try {
+    var data = await savedApi('POST', { action: 'create-cat', name: name, color: color });
+    _savedPanelLoaded = false;
+    var catsData = await savedApi('GET', { action: 'cats' });
+    _savedPanelLoaded = true;
+    renderSavedPanel(catsData.cats || []);
+  } catch(e) {
+    alert('Could not create list. Please try again.');
+  }
+}
+
+function openRenameCat(catId) {
+  var nameEl = document.getElementById('cat-name-'+catId);
+  var block   = document.getElementById('cat-block-'+catId);
+  if (!nameEl || !block) return;
+  var current = nameEl.textContent;
+  var inp = document.createElement('input');
+  inp.type = 'text';
+  inp.value = current;
+  inp.maxLength = 40;
+  inp.style.cssText = 'background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--rad);'+
+    'color:var(--txt);padding:.25rem .55rem;font-size:.85rem;outline:none;width:auto;max-width:200px';
+  nameEl.parentNode.replaceChild(inp, nameEl);
+  inp.focus();
+  inp.select();
+  async function save() {
+    var newName = inp.value.trim() || current;
+    try {
+      await savedApi('POST', { action: 'rename-cat', catId: catId, name: newName });
+    } catch(e) {}
+    var span = document.createElement('span');
+    span.className = 'saved-cat-name';
+    span.id = 'cat-name-'+catId;
+    span.textContent = newName;
+    inp.parentNode.replaceChild(span, inp);
+  }
+  inp.addEventListener('blur', save);
+  inp.addEventListener('keydown', function(e){ if(e.key==='Enter') save(); if(e.key==='Escape'){ inp.value=current; save(); }});
+}
+
+async function deleteCat(catId) {
+  var block = document.getElementById('cat-block-'+catId);
+  var nameEl = document.getElementById('cat-name-'+catId);
+  var catName = nameEl ? nameEl.textContent : 'this list';
+  if (!confirm('Delete "'+catName+'" and all its saved profiles?')) return;
+  try {
+    await savedApi('POST', { action: 'delete-cat', catId: catId });
+    if (block) block.remove();
+  } catch(e) {
+    alert('Could not delete list. Please try again.');
+  }
+}
+
+// ── SAVE BUTTON (on visited profiles) ────────────────────────────────────────
+
+var _saveCats = null; // cached category list
+var _saveCheckedCatIds = []; // which cats already contain the target
+
+async function initSaveBtn(targetUuid) {
+  _saveDropUuid = targetUuid;
+  try {
+    var [catsData, checkData] = await Promise.all([
+      savedApi('GET', { action: 'cats' }),
+      savedApi('GET', { action: 'check', targetUuid: targetUuid }),
+    ]);
+    _saveCats = catsData.cats || [];
+    _saveCheckedCatIds = checkData.catIds || [];
+    var btn = document.getElementById('saveBtn');
+    if (btn && _saveCheckedCatIds.length > 0) {
+      btn.innerHTML = '✅ Saved';
+      btn.style.borderColor = 'var(--green)';
+      btn.style.color = 'var(--green)';
+    }
+  } catch(e) {
+    _saveCats = [];
+    _saveCheckedCatIds = [];
+  }
+}
+
+function toggleSaveDrop() {
+  if (_saveDrop) { closeSaveDrop(); return; }
+  var wrap = document.getElementById('saveBtnWrap');
+  if (!wrap) return;
+  var currentName = '';
+  var puEl = document.getElementById('pUser');
+  if (puEl) currentName = puEl.dataset.playerName || puEl.textContent;
+
+  if (!_saveCats || !_saveCats.length) {
+    // No categories yet — show a quick "create first list" prompt
+    var drop = document.createElement('div');
+    drop.className = 'save-drop';
+    drop.innerHTML =
+      '<div style="font-size:.8rem;color:var(--muted);margin-bottom:.65rem">No lists yet.</div>'+
+      '<button class="btn btn-p btn-sm" style="width:100%" onclick="closeSaveDrop();openQuickNewCat(\''+escHtml(_saveDropUuid)+'\',\''+escHtml(currentName)+'\')">＋ Create your first list</button>';
+    wrap.appendChild(drop);
+    _saveDrop = drop;
+    document.addEventListener('click', onDocClickCloseSave);
+    return;
+  }
+
+  var drop = document.createElement('div');
+  drop.className = 'save-drop';
+  var items = _saveCats.map(function(cat) {
+    var checked = _saveCheckedCatIds.indexOf(cat.id) !== -1;
+    return '<div class="save-drop-item" onclick="toggleSaveToCat(\''+escHtml(cat.id)+'\',\''+escHtml(_saveDropUuid)+'\',\''+escHtml(currentName)+'\',this)">'+
+      '<span class="save-drop-dot" style="background:'+escHtml(cat.color)+'"></span>'+
+      '<span>'+escHtml(cat.name)+'</span>'+
+      (checked ? '<span class="save-drop-check">✓</span>' : '<span class="save-drop-check" style="visibility:hidden">✓</span>')+
+    '</div>';
+  }).join('');
+  drop.innerHTML = items +
+    '<hr style="border:none;border-top:1px solid var(--bdr);margin:.55rem 0"/>'+
+    '<div class="save-drop-item" style="color:var(--txt2);font-size:.8rem" onclick="closeSaveDrop();openQuickNewCat(\''+escHtml(_saveDropUuid)+'\',\''+escHtml(currentName)+'\')">＋ New list</div>';
+  wrap.appendChild(drop);
+  _saveDrop = drop;
+  setTimeout(function(){ document.addEventListener('click', onDocClickCloseSave); }, 10);
+}
+
+function onDocClickCloseSave(e) {
+  if (_saveDrop && !_saveDrop.contains(e.target)) closeSaveDrop();
+}
+
+function closeSaveDrop() {
+  if (_saveDrop) { _saveDrop.remove(); _saveDrop = null; }
+  document.removeEventListener('click', onDocClickCloseSave);
+}
+
+async function toggleSaveToCat(catId, targetUuid, targetName, itemEl) {
+  var catIdx = _saveCheckedCatIds.indexOf(catId);
+  var isAdding = catIdx === -1;
+  var checkEl = itemEl ? itemEl.querySelector('.save-drop-check') : null;
+  try {
+    await savedApi('POST', {
+      action: 'save-profile',
+      catId: catId,
+      targetUuid: targetUuid,
+      targetName: targetName,
+      action: isAdding ? 'add' : 'remove',
+    });
+    if (isAdding) {
+      _saveCheckedCatIds.push(catId);
+      if (checkEl) checkEl.style.visibility = 'visible';
+    } else {
+      _saveCheckedCatIds.splice(catIdx, 1);
+      if (checkEl) checkEl.style.visibility = 'hidden';
+    }
+    // Update Save button appearance
+    var btn = document.getElementById('saveBtn');
+    if (btn) {
+      if (_saveCheckedCatIds.length > 0) {
+        btn.innerHTML = '✅ Saved';
+        btn.style.borderColor = 'var(--green)';
+        btn.style.color = 'var(--green)';
+      } else {
+        btn.innerHTML = '💾 Save';
+        btn.style.borderColor = '';
+        btn.style.color = '';
+      }
+    }
+  } catch(e) {}
+}
+
+function openQuickNewCat(targetUuid, targetName) {
+  // Show a small inline prompt to create the first list and immediately save to it
+  var wrap = document.getElementById('saveBtnWrap');
+  if (!wrap) return;
+  var drop = document.createElement('div');
+  drop.className = 'save-drop';
+  drop.style.minWidth = '250px';
+  drop.innerHTML =
+    '<div style="font-size:.82rem;font-weight:600;margin-bottom:.6rem">Create a new list</div>'+
+    '<input id="quickCatInput" type="text" placeholder="List name…" maxlength="40" '+
+      'style="width:100%;background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad);'+
+      'color:var(--txt);padding:.4rem .65rem;font-size:.82rem;outline:none;margin-bottom:.6rem"/>'+
+    '<div style="display:flex;gap:.5rem">'+
+      '<button class="btn btn-p btn-sm" onclick="submitQuickNewCat(\''+escHtml(targetUuid)+'\',\''+escHtml(targetName)+'\')">Create & Save</button>'+
+      '<button class="btn btn-o btn-sm" onclick="closeSaveDrop()">Cancel</button>'+
+    '</div>';
+  wrap.appendChild(drop);
+  _saveDrop = drop;
+  setTimeout(function(){ document.addEventListener('click', onDocClickCloseSave); }, 10);
+  setTimeout(function(){ var inp=document.getElementById('quickCatInput'); if(inp) inp.focus(); }, 50);
+}
+
+async function submitQuickNewCat(targetUuid, targetName) {
+  var inp = document.getElementById('quickCatInput');
+  if (!inp) return;
+  var name = inp.value.trim();
+  if (!name) { inp.focus(); return; }
+  try {
+    var catData = await savedApi('POST', { action: 'create-cat', name: name, color: '#4ade80' });
+    var cat = catData.cat;
+    if (!_saveCats) _saveCats = [];
+    _saveCats.push(cat);
+    closeSaveDrop();
+    await toggleSaveToCat(cat.id, targetUuid, targetName, null);
+    // Invalidate saved panel so it reloads next time
+    _savedPanelLoaded = false;
+    // Re-open the dropdown to show the new list
+    toggleSaveDrop();
+  } catch(e) {
+    alert('Could not create list. Please try again.');
+  }
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
 // ── TABS ──────────────────────────────────────────────────────────────────────
 document.getElementById('tabBar').addEventListener('click',function(e){
   var btn=e.target.closest('.tab');
@@ -1151,6 +1554,7 @@ document.getElementById('tabBar').addEventListener('click',function(e){
   // Lazy-load follow tabs on first open
   if(tabId==='t-following') loadFollowing(window._profileOwnerClerkId||null);
   if(tabId==='t-followers' && _currentProfileUuid) loadFollowers(_currentProfileUuid);
+  if(tabId==='t-saved') loadSavedPanel();
 });
 
 // ── SEARCH ────────────────────────────────────────────────────────────────────
@@ -1596,14 +2000,28 @@ function _renderActsWithClaim(uuid, name, isClaimed, ownerUserId) {
       '</div>';
   }
 
+  // Show Save button for any logged-in user who is NOT the owner
+  var saveHtml = '';
+  if (currentUserId && !isOwner) {
+    saveHtml = '<div id="saveBtnWrap" style="position:relative;display:inline-block">'+
+      '<button class="btn btn-o" id="saveBtn" onclick="toggleSaveDrop()" title="Save to list">💾 Save</button>'+
+      '</div>';
+  }
+  // Show the Saved tab only to the profile owner
+  var tabSavedEl = document.getElementById('tabSaved');
+  if (tabSavedEl) tabSavedEl.style.display = isOwner ? '' : 'none';
+
   var el = document.getElementById('pActs');
   if (el) el.innerHTML =
     '<button class="btn btn-p" id="followBtn" onclick="toggleFollow()">⭐ Follow</button>'+
+    saveHtml+
     '<button class="btn btn-o">🔗 Share</button>'+
     '<button class="btn btn-o" onclick="copyText(\''+uuid+'\',this)">📋 Copy UUID</button>'+
     claimHtml+cogHtml;
   // Re-apply follow button state after pActs was rewritten
   if (_currentProfileUuid) loadFollowStatus(_currentProfileUuid);
+  // Initialise save-button state (checks which categories contain this profile)
+  if (saveHtml && _currentProfileUuid) initSaveBtn(_currentProfileUuid);
 }
 
 function checkClaimStatus(uuid, name) {

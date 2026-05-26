@@ -79,6 +79,15 @@ module.exports = async function handler(req, res) {
       }
     } catch {}
 
+    // Require a claimed Minecraft profile — prevents "Unknown" follower entries.
+    // If the follower has no linked MC account, resolvedMcUuid will still be ''.
+    if (!resolvedMcUuid) {
+      return res.status(403).json({
+        error:   'claimed_required',
+        message: 'You must claim a Minecraft profile before following players.',
+      });
+    }
+
     const [score] = await kvPipeline(url, token, [
       ['ZSCORE', `following:${clerkUserId}`, cleanTarget],
     ]);

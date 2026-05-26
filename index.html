@@ -203,7 +203,7 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:2rem 1rem;m
         <div class="sec-title"><span class="ic">🔥</span> <span data-i18n="index.popular_accounts">Popular Accounts</span></div>
         <span id="popularMonth" style="font-size:.75rem;color:var(--muted)"></span>
       </div>
-      <div style="display:flex;flex-direction:column;gap:.55rem" id="players"></div>
+      <div class="card" id="players"></div>
     </div>
   </div>
 
@@ -441,10 +441,10 @@ function renderPlayers(profiles){
   }
   el.innerHTML=profiles.map(function(p,i){
     var views=p.views>=1000?(p.views/1000).toFixed(1)+'K views':p.views+' views';
-    return '<a href="profile.html?name='+encodeURIComponent(p.name)+'" class="pc">'+
-      '<img src="'+avN(p.name)+'" onerror="this.src=\''+FB+'\'" alt="'+p.name+'"/>'+
-      '<div style="min-width:0;flex:1"><div class="pn">'+p.name+'</div>'+
-      '<div class="pm">👁 '+views+'</div></div>'+
+    return '<a href="profile.html?name='+encodeURIComponent(p.name)+'" class="fi" style="text-decoration:none;color:inherit">'+
+      '<img src="'+avN(p.name)+'" onerror="this.src=\''+FB+'\'" alt="'+p.name+'" style="width:38px;height:38px;border-radius:5px;image-rendering:pixelated;flex-shrink:0;background:var(--bg2)"/>'+
+      '<div style="min-width:0;flex:1"><div class="fi-name">'+p.name+'</div>'+
+      '<div class="fi-detail">👁 '+views+'</div></div>'+
       '<span style="font-size:.75rem;color:var(--muted);flex-shrink:0">#'+(i+1)+'</span></a>';
   }).join('');
 }

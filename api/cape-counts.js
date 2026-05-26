@@ -71,7 +71,7 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    res.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate=60');
+    res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=60');
     return res.status(200).json(counts);
   } catch (err) {
     // Return empty so the frontend falls back to hardcoded values

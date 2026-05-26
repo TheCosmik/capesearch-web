@@ -13,7 +13,7 @@
 //                      (score 0 = never polled → highest priority)
 //   cph:{uuid}       — sorted set; member = cape URL, score = last-seen Unix ms
 
-const BATCH_SIZE    = 8;                 // players per cron run
+const BATCH_SIZE    = 20;                // players per cron run
 const TRACK_KEY     = 'tracked:players';
 const RUN_BUDGET_MS = 8_000;            // bail before Vercel's 10 s hard limit
 

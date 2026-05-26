@@ -753,21 +753,26 @@ renderGrid();
 document.getElementById('statTotal').textContent=CAPES.length;
 
 // ── LIVE COUNTS from /api/cape-counts ────────────────────────────────────────
-// Fetches up-to-date wearer counts from crafty.gg via a serverless function.
+// Fetches up-to-date wearer counts from laby.net via a serverless function.
+// Runs once on load, then every 5 minutes while the page is open.
 // Falls back silently to the hardcoded values above if the fetch fails.
-fetch('/api/cape-counts')
-  .then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
-  .then(function(counts){
-    var changed=false;
-    CAPES.forEach(function(c){
-      if(typeof counts[c.id]==='number' && counts[c.id]!==c.wearers){
-        c.wearers=counts[c.id];
-        changed=true;
-      }
-    });
-    if(changed) renderGrid();
-  })
-  .catch(function(e){ console.warn('Live cape counts unavailable, using defaults.',e); });
+function refreshCapeCounts(){
+  fetch('/api/cape-counts')
+    .then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
+    .then(function(counts){
+      var changed=false;
+      CAPES.forEach(function(c){
+        if(typeof counts[c.id]==='number' && counts[c.id]!==c.wearers){
+          c.wearers=counts[c.id];
+          changed=true;
+        }
+      });
+      if(changed) renderGrid();
+    })
+    .catch(function(e){ console.warn('Live cape counts unavailable, using defaults.',e); });
+}
+refreshCapeCounts();
+setInterval(refreshCapeCounts, 5 * 60 * 1000); // refresh every 5 minutes
 </script>
 <script src="lang.js"></script>
 <script src="clerk-auth.js"></script>

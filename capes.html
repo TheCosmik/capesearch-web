@@ -753,14 +753,16 @@ renderGrid();
 document.getElementById('statTotal').textContent=CAPES.length;
 
 // ── LIVE COUNTS from /api/cape-counts ────────────────────────────────────────
-// Fetches up-to-date wearer counts from laby.net via a serverless function.
-// Runs once on load, then every 5 minutes while the page is open.
-// Falls back silently to the hardcoded values above if the fetch fails.
+// Always re-renders on the first fetch so live numbers replace hardcoded ones
+// within ~1 second of page load. Every 5 minutes after that it re-renders only
+// if any count has changed by even 1.
+var _capeFirstFetch=true;
 function refreshCapeCounts(){
   fetch('/api/cape-counts')
     .then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
     .then(function(counts){
-      var changed=false;
+      var changed=_capeFirstFetch; // first load always re-renders
+      _capeFirstFetch=false;
       CAPES.forEach(function(c){
         if(typeof counts[c.id]==='number' && counts[c.id]!==c.wearers){
           c.wearers=counts[c.id];
@@ -769,10 +771,13 @@ function refreshCapeCounts(){
       });
       if(changed) renderGrid();
     })
-    .catch(function(e){ console.warn('Live cape counts unavailable, using defaults.',e); });
+    .catch(function(e){
+      console.warn('Live cape counts unavailable, using defaults.',e);
+      _capeFirstFetch=false;
+    });
 }
 refreshCapeCounts();
-setInterval(refreshCapeCounts, 5 * 60 * 1000); // refresh every 5 minutes
+setInterval(refreshCapeCounts, 5 * 60 * 1000); // re-check every 5 minutes
 </script>
 <script src="lang.js"></script>
 <script src="clerk-auth.js"></script>

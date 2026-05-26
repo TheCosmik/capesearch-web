@@ -124,7 +124,12 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
 .viewer-btn{width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s,border-color .2s;padding:0;line-height:1}
 .viewer-btn:hover{background:rgba(74,222,128,.25);border-color:var(--green)}
 .viewer-btn.active{background:rgba(74,222,128,.2);border-color:var(--green)}
-@media(max-width:768px){.phdr-in{flex-direction:column;align-items:center;text-align:center}.nav-links{display:none}.pacts{justify-content:center}.pbadges{justify-content:center}.profile-layout{flex-direction:column;align-items:center}}
+.nav-burger{display:none;background:none;border:none;color:var(--txt);font-size:1.4rem;cursor:pointer;padding:.25rem .45rem;line-height:1;flex-shrink:0}
+.nav-mob{display:none;border-top:1px solid var(--bdr);flex-direction:column;gap:.1rem;padding:.5rem 0 .8rem}
+.nav-mob.open{display:flex}
+.nav-mob a{color:var(--txt2);font-size:.9rem;font-weight:500;padding:.5rem .75rem;border-radius:var(--rad);transition:all .2s;text-decoration:none;display:block}
+.nav-mob a:hover,.nav-mob a.on{color:var(--txt);background:var(--card);text-decoration:none}
+@media(max-width:768px){.phdr-in{flex-direction:column;align-items:center;text-align:center}.nav-links{display:none}.nav-burger{display:block}.pacts{justify-content:center}.pbadges{justify-content:center}.profile-layout{flex-direction:column;align-items:center}}
 
 /* CAPES STRIP */
 .capes-section{margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid var(--bdr)}
@@ -187,12 +192,30 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
       <a href="index.html#faq" data-i18n="nav.faq">FAQ</a>
       <a href="https://capesearch.tebex.io" target="_blank" rel="noopener" data-i18n="nav.store">Store</a>
     </div>
+    <button class="nav-burger" id="navBurger" aria-label="Toggle menu">☰</button>
     <div style="display:flex;align-items:center;margin-left:.5rem;flex-shrink:0">
       <button id="clerkSignIn" style="display:none;background:var(--green);color:#0f1923;border:none;border-radius:var(--rad);padding:.35rem .9rem;font-size:.875rem;font-weight:700;cursor:pointer;transition:opacity .15s" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'" data-i18n="nav.login">Log in</button>
       <div id="clerkUser" style="display:none;align-items:center"></div>
     </div>
   </div>
+  <div class="nav-mob" id="navMob">
+    <a href="index.html" data-i18n="nav.home">Home</a>
+    <a href="capes.html" data-i18n="nav.capes">Capes</a>
+    <a href="servers.html" data-i18n="nav.servers">Servers</a>
+    <a href="https://discord.gg/Jmkb2Zc5Z4" target="_blank" rel="noopener" data-i18n="nav.discord">Discord</a>
+    <a href="index.html#faq" data-i18n="nav.faq">FAQ</a>
+    <a href="https://capesearch.tebex.io" target="_blank" rel="noopener" data-i18n="nav.store">Store</a>
+  </div>
 </nav>
+<script>
+(function(){
+  var btn=document.getElementById('navBurger'),mob=document.getElementById('navMob');
+  if(!btn||!mob)return;
+  btn.addEventListener('click',function(e){e.stopPropagation();var o=mob.classList.toggle('open');btn.textContent=o?'✕':'☰';});
+  document.addEventListener('click',function(e){if(!e.target.closest('.nav')){mob.classList.remove('open');btn.textContent='☰';}});
+  mob.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){mob.classList.remove('open');btn.textContent='☰';});});
+})();
+</script>
 
 <div class="phdr">
   <div class="phdr-in">

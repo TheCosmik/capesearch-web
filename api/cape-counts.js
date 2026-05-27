@@ -64,12 +64,20 @@ module.exports = async function handler(req, res) {
 
     const data = await r.json();
     const counts = {};
+    const unmatched = [];
 
     for (const item of (data.results || [])) {
       const id = NAME_MAP[item.name];
       if (id && typeof item.use_count === 'number') {
         counts[id] = item.use_count;
+      } else if (!id) {
+        unmatched.push({ name: item.name, use_count: item.use_count });
       }
+    }
+
+    // ?debug=true returns raw laby.net names so you can spot mismatches
+    if (req.query.debug === 'true') {
+      return res.status(200).json({ counts, unmatched, total: (data.results || []).length });
     }
 
     res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=60');

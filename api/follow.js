@@ -88,6 +88,11 @@ module.exports = async function handler(req, res) {
       });
     }
 
+    // Prevent self-follows
+    if (resolvedMcUuid === cleanTarget) {
+      return res.status(400).json({ error: 'self_follow', message: 'You cannot follow yourself.' });
+    }
+
     const [score] = await kvPipeline(url, token, [
       ['ZSCORE', `following:${clerkUserId}`, cleanTarget],
     ]);

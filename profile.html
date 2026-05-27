@@ -2012,9 +2012,11 @@ function _renderActsWithClaim(uuid, name, isClaimed, ownerUserId) {
   var tabSavedEl = document.getElementById('tabSaved');
   if (tabSavedEl) tabSavedEl.style.display = isOwner ? '' : 'none';
 
+  var followHtml = isOwner ? '' : '<button class="btn btn-p" id="followBtn" onclick="toggleFollow()">⭐ Follow</button>';
+
   var el = document.getElementById('pActs');
   if (el) el.innerHTML =
-    '<button class="btn btn-p" id="followBtn" onclick="toggleFollow()">⭐ Follow</button>'+
+    followHtml+
     saveHtml+
     '<button class="btn btn-o">🔗 Share</button>'+
     '<button class="btn btn-o" onclick="copyText(\''+uuid+'\',this)">📋 Copy UUID</button>'+

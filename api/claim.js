@@ -35,8 +35,40 @@ async function kvPipeline(commands) {
   }
 }
 
+// Hardcoded owner UUID (C0smik)
+const OWNER_UUID = '97a449ca635d44da9e021fe62eef5bda';
+
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
+
+  // ── GET /api/claim?action=rank&uuid=&secret= ──────────────────────────────
+  // Used by the CapeSearchRanks Minecraft plugin to look up a player's rank.
+  // Returns: { rank: 'owner' | 'betatester' | 'member' | null }
+  if (req.method === 'GET' && req.query.action === 'rank') {
+    const { uuid, secret } = req.query;
+    const expectedSecret = process.env.PLUGIN_SECRET || '123123jdsflkjsdflksdfl';
+    if (!secret || secret !== expectedSecret) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    if (!uuid) return res.status(400).json({ error: 'uuid required' });
+    const cleanUuid = uuid.replace(/-/g, '').toLowerCase();
+    if (!/^[0-9a-f]{32}$/.test(cleanUuid)) return res.status(400).json({ error: 'Invalid UUID' });
+
+    // Owner check (hardcoded)
+    if (cleanUuid === OWNER_UUID) {
+      res.setHeader('Cache-Control', 'no-store');
+      return res.status(200).json({ rank: 'owner' });
+    }
+
+    // KV checks: beta tester first, then claimed member
+    const [betaRaw, claimRaw] = await kvPipeline([
+      ['GET', `beta:${cleanUuid}`],
+      ['GET', `claimed:${cleanUuid}`],
+    ]);
+    const rank = betaRaw ? 'betatester' : claimRaw ? 'member' : null;
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json({ rank });
+  }
 
   // ── GET /api/check-claim?uuid= ────────────────────────────────────────────
   if (req.method === 'GET') {

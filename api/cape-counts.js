@@ -53,6 +53,7 @@ const NAME_MAP = {
   'Moonlight Trail':       'moonlighttrail',
   'dB':                    'db',
   'Prismarine':            'prismarine',
+  'Crafter':               'crafter',
 };
 
 // ── KV helpers ────────────────────────────────────────────────────────────────

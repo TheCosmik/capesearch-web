@@ -493,6 +493,7 @@ var CAPES=[
   {id:'birthday',    name:'Birthday Cape',          wearers:1,      color:'#f472b6',rare:true},
   {id:'millionth',   name:'Millionth Customer',     wearers:1,      color:'#fbbf24',rare:true},
   {id:'moonlighttrail',name:'Moonlight Trail',       wearers:1,      color:'#1e3a8a',rare:true},
+  {id:'crafter',       name:'Crafter Cape',          wearers:1,      color:'#c8a052',rare:true},
 ];
 var W='https://minecraft.wiki/images/thumb/';
 var CAPE_IMGS={
@@ -538,6 +539,7 @@ var CAPE_IMGS={
   mojangoffice: W+'Mojang_Office_Cape_JE.png/256px-Mojang_Office_Cape_JE.png',
   millionth:    W+'Millionth_Customer_Cape.png/256px-Millionth_Customer_Cape.png',
   moonlighttrail:W+'Moonlight_Trail_Cape_JE.png/256px-Moonlight_Trail_Cape_JE.png',
+  crafter:       W+'Crafter_Cape_JE.png/256px-Crafter_Cape_JE.png',
 };
 var CAPE_TEXTURES={
   migrator:  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAAgCAYAAACinX6EAAACiElEQVR4XuWWT2oVQRjE3xGCCDG4MFF0EzSIGFBBEZTss8km4M6NJ/AE7gR3HsO1kHU2LvUIHsATjKlmaqjU149umh5BevHj9avpmf6q+ps/m1enPzZnr3cmsH9wmIXHP9y4NX3Zuz99v3OUBcfmOZtfD55V8eTp2+nw4Yt0/tX/HOEcME1TFzZq0o3XHNuGF7wNBuB6CTfSyhLAp/e7qRCAolgYwDE3WMILLsF18fvm5Dyha/t8N9JK2gEWffF5PwQAjcd1bgkvuASvr0DT8FcLgIuh1dUwxmx/naegwFyHuMEaNHyupfXoreJGWkmL0sjHm7cTP789TvA/DXKumsdDD3gIbq4GnKfdB1DHqgEwZRj9und3MU2o6U64+VwIbq4GmsyZXy0ANU/4WlONIbDl3TxgtwA3V0MuAO0+0jUAFK1m9X3sOubSKMceAHU3VwON4tdvQT6guwegOw4u7x1fC0DBXDeaCwC4uRrY6t6VvCZ00D0AmNYAfj86SriuxeCrz0OARt3N1cCdVvPalRquG2llCYBmsRADwJjmNQAa5acvd1/1+VrBZAma59qsiVBzI61cC4DtzwDYBdAYkJrkbrt5MBccDFYQnkVO1wB0h9n+f14+T7ALAMb/IgCuo3B9rceNtJIC4IURAM0TLoixB0DzPQPgmtoBuVvBjbSSAuCiLQFsewbM5wWDJTQArWO1DsD9VhsA5qpJfw12CmAJget6ENDdSCtB6MVsIBgsoQFoEKt1gAu9mAsNBksggOnd+RIAxmSYDrgyu4SgATCEIQLA+blb4L/pgPm1FQyWkA5YQvDd7/oh5MJoBGE0gjAaQRiNIIxGEEYjCKMRhNEIwmgEYTT+AksiJ9gdoefNAAAAAElFTkSuQmCC',
@@ -582,6 +584,7 @@ var CAPE_TEXTURES={
   mojangoffice: 'https://textures.minecraft.net/texture/5c29410057e32abec02d870ecb52ec25fb45ea81e785a7854ae8429d7236ca26',
   mojang:       'https://textures.minecraft.net/texture/9e507afc56359978a3eb3e32367042b853cddd0995d17d0da995662913fb00f7',
   moonlighttrail:'https://textures.minecraft.net/texture/fe8a02dfe9e390e44ff33d69feef9d3943f76d3901015bbd50f0b67722d288bd',
+  crafter:       'https://textures.minecraft.net/texture/479eacefa3cdd7aca94207f36c0dd449653ddf259daf40544a5866baf05eee22',
 };
 var EMOJIS={
   migrator:'🟣',vanilla:'🟡',common:'⬛',turtle:'🐢',follower:'💜',founders:'🌍',
@@ -591,7 +594,7 @@ var EMOJIS={
   minecon12:'🏆',mojangstudios:'🔴',minecon11:'🏆',translator:'🟠',mcc15:'🏆',
   scrolls:'🎲',realmsmapper:'🗺️',spade:'♠️',mojang:'🔴',cobalt:'🔵',translatorcn:'🌏',
   mojiramod:'🔴',translatorjp:'🌏',mojangclassic:'🔴',db:'🎵',mojangoffice:'🏢',
-  millionth:'🥇',moonlighttrail:'🌙',
+  millionth:'🥇',moonlighttrail:'🌙',crafter:'🧰',
 };
 function fmt(n){return n.toLocaleString()}
 var PLAYERS=[
@@ -707,6 +710,8 @@ var CAPE_HASH_DATA={
   // ── Confirmed via Debuggg live lookup ────────────────────────────────────────
   'bcfbe84c6542a4a5c213c1cacf8979b5e913dcb4ad783a8b80e3c4a7d5c8bdac':
     {name:'dB',                   img:'capes/DB.png',                    id:'db'},
+  '479eacefa3cdd7aca94207f36c0dd449653ddf259daf40544a5866baf05eee22':
+    {name:'Crafter',              img:'capes/crafter.png',               id:'crafter'},
   // ── add more below as they are identified ───────────────────────────────────
 };
 var FB='https://mc-heads.net/avatar/Steve/32';

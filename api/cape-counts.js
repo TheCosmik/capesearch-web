@@ -64,20 +64,33 @@ module.exports = async function handler(req, res) {
 
     const data = await r.json();
     const counts = {};
-    const unmatched = [];
+    const unmatched = [];  // known names with no count
+    const missed = [];     // names in NAME_MAP but count field missing/wrong type
 
     for (const item of (data.results || [])) {
       const id = NAME_MAP[item.name];
-      if (id && typeof item.use_count === 'number') {
-        counts[id] = item.use_count;
-      } else if (!id) {
-        unmatched.push({ name: item.name, use_count: item.use_count });
+      // Try multiple possible field names laby.net may use, coerce string→number
+      const raw = item.use_count ?? item.wearer_count ?? item.count ?? item.wearers;
+      const count = Number(raw);
+      if (id && !isNaN(count) && count >= 0) {
+        counts[id] = count;
+      } else if (id) {
+        // In NAME_MAP but couldn't read a count — log for debug
+        missed.push({ name: item.name, id, raw_fields: Object.keys(item), raw });
+      } else {
+        unmatched.push({ name: item.name, fields: Object.keys(item), raw });
       }
     }
 
     // ?debug=true returns raw laby.net names so you can spot mismatches
     if (req.query.debug === 'true') {
-      return res.status(200).json({ counts, unmatched, total: (data.results || []).length });
+      return res.status(200).json({
+        counts,
+        missed,    // known capes where count couldn't be read
+        unmatched, // capes from laby.net not in our NAME_MAP
+        total: (data.results || []).length,
+        sample: (data.results || []).slice(0, 3), // raw first 3 items to see full structure
+      });
     }
 
     res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=60');

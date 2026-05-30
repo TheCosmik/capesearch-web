@@ -1,10 +1,10 @@
 // Fetches live cape wearer counts from laby.net's public API.
-// Results are stored in KV so a laby.net outage or CDN cache issue
-// can never freeze counts permanently — we always serve the last
-// successful fetch and refresh it once it is older than REFRESH_MS.
+// Results are stored in KV so a laby.net outage can never freeze counts
+// permanently — we always serve the last successful fetch.
 //
-// GET /api/cape-counts
-// Returns: { migrator: 6385474, pan: 3378467, ... }
+// GET /api/cape-counts          — serve KV if fresh, else fetch laby.net
+// GET /api/cape-counts?force=true — always fetch laby.net (used by cron)
+// GET /api/cape-counts?debug=true — show raw laby.net + KV state
 
 const REFRESH_MS  = 30 * 60 * 1000; // re-fetch from laby.net after 30 minutes
 const KV_COUNTS   = 'cape-counts-data';
@@ -88,8 +88,8 @@ async function fetchFromLaby() {
   if (!r.ok) throw new Error('laby returned ' + r.status);
 
   const data = await r.json();
-  const counts  = {};
-  const missed  = [];
+  const counts    = {};
+  const missed    = [];
   const unmatched = [];
 
   for (const item of (data.results || [])) {
@@ -115,6 +115,9 @@ module.exports = async function handler(req, res) {
   // Never let the CDN cache this — we manage freshness via KV ourselves
   res.setHeader('Cache-Control', 'no-store');
 
+  const isDebug = req.query.debug === 'true';
+  const isForce = req.query.force === 'true'; // used by cron — always hit laby.net
+
   // ── Read KV cache ─────────────────────────────────────────────────────────
   const [cachedRaw, cachedTs] = await kvPipeline([
     ['GET', KV_COUNTS],
@@ -125,8 +128,8 @@ module.exports = async function handler(req, res) {
   const age   = Date.now() - ts;
   const fresh = age < REFRESH_MS && cachedRaw;
 
-  if (fresh && req.query.debug !== 'true') {
-    // KV data is recent enough — serve it immediately
+  // Serve KV directly when fresh and not forced/debug
+  if (fresh && !isForce && !isDebug) {
     try {
       return res.status(200).json(JSON.parse(cachedRaw));
     } catch { /* fall through to laby.net */ }
@@ -136,7 +139,7 @@ module.exports = async function handler(req, res) {
   try {
     const { counts, missed, unmatched, total, sample } = await fetchFromLaby();
 
-    if (req.query.debug === 'true') {
+    if (isDebug) {
       const cached = cachedRaw ? JSON.parse(cachedRaw) : null;
       return res.status(200).json({
         counts,
@@ -146,6 +149,7 @@ module.exports = async function handler(req, res) {
         sample,
         kv_age_minutes: Math.round(age / 60000),
         kv_cached: cached,
+        forced: isForce,
       });
     }
 
@@ -157,14 +161,19 @@ module.exports = async function handler(req, res) {
       ]).catch(() => {});
     }
 
+    // Cron calls just need a 200; no body needed for the scheduler
+    if (isForce) {
+      return res.status(200).json({ ok: true, updated: Object.keys(counts).length });
+    }
+
     return res.status(200).json(counts);
 
   } catch (err) {
-    // laby.net failed — return KV cache (however old) so the page
-    // doesn't revert to hardcoded fallbacks
+    // laby.net failed — return stale KV so the page never reverts to
+    // hardcoded defaults. Only fall back to {} if there is truly no KV data.
     if (cachedRaw) {
       try {
-        if (req.query.debug === 'true') {
+        if (isDebug) {
           return res.status(200).json({
             error: err.message,
             serving: 'stale_kv_cache',
@@ -176,8 +185,9 @@ module.exports = async function handler(req, res) {
       } catch { /* fall through */ }
     }
 
-    // No KV cache either — return empty so frontend uses hardcoded defaults
-    if (req.query.debug === 'true') {
+    // No KV at all — cron logs the error, browser gets empty object
+    // (frontend will use hardcoded defaults, which is acceptable on first boot)
+    if (isDebug || isForce) {
       return res.status(200).json({ error: err.message, counts: {} });
     }
     return res.status(200).json({});

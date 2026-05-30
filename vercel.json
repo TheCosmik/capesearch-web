@@ -3,10 +3,6 @@
     {
       "path": "/api/cron-poll",
       "schedule": "0 0 * * *"
-    },
-    {
-      "path": "/api/cape-counts?force=true",
-      "schedule": "*/30 * * * *"
     }
   ],
   "rewrites": [

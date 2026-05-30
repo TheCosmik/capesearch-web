@@ -1,14 +1,18 @@
-// Vercel cron job — background cape poller.
+// Vercel cron job — background cape poller + global cape count refresh.
 //
-// Every minute Vercel calls this endpoint.  It picks the BATCH_SIZE players
-// whose cape data is most stale (lowest last-polled score in the
-// "tracked:players" sorted set), fetches their current cape from Mojang,
-// and records anything new into their cph:{uuid} sorted set.
+// Runs daily at midnight UTC. Does two things:
 //
-// Players are registered into "tracked:players" automatically the first time
-// their profile is loaded via /api/player-textures.
+// 1. CAPE COUNTS: Fetches the global wearer counts from laby.net and writes
+//    them into KV (cape-counts-data / cape-counts-ts). This guarantees the
+//    /api/cape-counts KV is always fresh, independent of site traffic.
+//
+// 2. PLAYER POLLING: Picks the BATCH_SIZE players whose cape data is most
+//    stale (lowest last-polled score in "tracked:players") and refreshes their
+//    cape history from the Mojang session server.
 //
 // KV schema:
+//   cape-counts-data — JSON object: { migrator: N, pan: N, ... }
+//   cape-counts-ts   — Unix ms timestamp of last laby.net fetch
 //   tracked:players  — sorted set; member = UUID (no dashes), score = last-polled Unix ms
 //                      (score 0 = never polled → highest priority)
 //   cph:{uuid}       — sorted set; member = cape URL, score = last-seen Unix ms
@@ -16,6 +20,27 @@
 const BATCH_SIZE    = 20;                // players per cron run
 const TRACK_KEY     = 'tracked:players';
 const RUN_BUDGET_MS = 8_000;            // bail before Vercel's 10 s hard limit
+
+// ── Cape counts config ────────────────────────────────────────────────────────
+const KV_COUNTS = 'cape-counts-data';
+const KV_TS     = 'cape-counts-ts';
+const NAME_MAP  = {
+  'Migrator':'migrator','Pan':'pan','15th Anniversary':'anniversary15',
+  'Common':'common','Vanilla':'vanilla','Cherry Blossom':'cherry',
+  'Purple Heart':'purpleheart',"Follower's":'follower','Menace':'menace',
+  'Home':'home','Copper':'copper','Mojang Office':'mojangoffice',
+  'Yearn':'yearn',"Founder's":'founders','MCC 15th Year':'mcc15',
+  'Zombie Horse':'zombiehorse','Minecraft Experience':'experience',
+  'MineCon 2016':'minecon16','MineCon 2015':'minecon15',
+  'MineCon 2013':'minecon13','MineCon 2012':'minecon12','MineCon 2011':'minecon11',
+  'Realms Mapmaker':'realmsmapper','Mojang':'mojang','Mojang Studios':'mojangstudios',
+  'Translator':'translator','Mojira Moderator':'mojiramod','Mojang Classic':'mojangclassic',
+  'Cobalt':'cobalt','Scrolls':'scrolls','Turtle':'turtle',
+  'Translator (Chinese)':'translatorcn','Valentine':'valentine','Oxeye':'oxeye',
+  'Birthday':'birthday','Translator (Japanese)':'translatorjp','Spade':'spade',
+  'Snowman':'snowman','Millionth Customer':'millionth','Moonlight Trail':'moonlighttrail',
+  'dB':'db','Prismarine':'prismarine','Crafter':'crafter',
+};
 
 // ── KV helper ─────────────────────────────────────────────────────────────────
 async function kvPipeline(commands) {
@@ -52,10 +77,37 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ skipped: 'no KV configured' });
   }
 
+  // ── Step 1: Refresh global cape wearer counts from laby.net ─────────────────
+  let countsUpdated = 0;
+  try {
+    const labyRes = await fetch(
+      'https://laby.net/api/v3/search/textures/cape?order=most_used&size=100&page=0',
+      { headers: { 'User-Agent': 'CapeSearch/1.0' }, signal: AbortSignal.timeout(8000) }
+    );
+    if (labyRes.ok) {
+      const labyData = await labyRes.json();
+      const counts = {};
+      for (const item of (labyData.results || [])) {
+        const id  = NAME_MAP[item.name];
+        const raw = item.use_count ?? item.wearer_count ?? item.count ?? item.wearers;
+        const n   = Number(raw);
+        if (id && !isNaN(n) && n >= 0) counts[id] = n;
+      }
+      if (Object.keys(counts).length >= 5) {
+        await kvPipeline([
+          ['SET', KV_COUNTS, JSON.stringify(counts)],
+          ['SET', KV_TS,     String(Date.now())],
+        ]);
+        countsUpdated = Object.keys(counts).length;
+      }
+    }
+  } catch { /* laby.net failure — skip, existing KV remains intact */ }
+
+  // ── Step 2: Poll individual players for cape changes ─────────────────────────
   // Get the BATCH_SIZE players with the lowest scores (oldest / never polled).
   const [uuids] = await kvPipeline([['ZRANGE', TRACK_KEY, 0, BATCH_SIZE - 1]]);
   if (!Array.isArray(uuids) || uuids.length === 0) {
-    return res.status(200).json({ polled: 0, message: 'no tracked players yet' });
+    return res.status(200).json({ polled: 0, countsUpdated, message: 'no tracked players yet' });
   }
 
   const start    = Date.now();
@@ -114,5 +166,5 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  return res.status(200).json({ polled, capeFound, ms: Date.now() - start });
+  return res.status(200).json({ polled, capeFound, countsUpdated, ms: Date.now() - start });
 };

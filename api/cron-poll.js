@@ -39,7 +39,7 @@ const NAME_MAP  = {
   'Translator (Chinese)':'translatorcn','Valentine':'valentine','Oxeye':'oxeye',
   'Birthday':'birthday','Translator (Japanese)':'translatorjp','Spade':'spade',
   'Snowman':'snowman','Millionth Customer':'millionth','Moonlight Trail':'moonlighttrail',
-  'dB':'db','Prismarine':'prismarine','Crafter':'crafter',
+  'dB':'db','Prismarine':'prismarine','Crafter':'crafter','Builder':'builder',
 };
 
 // ── KV helper ─────────────────────────────────────────────────────────────────

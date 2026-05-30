@@ -49,6 +49,7 @@ const CAPE_HASH_IDS = {
   '7706b5f5fc90329691e59277dcc66ba20572219fa8e5da472afd5235fad12cc8': 'oxeye',
   'bcfbe84c6542a4a5c213c1cacf8979b5e913dcb4ad783a8b80e3c4a7d5c8bdac': 'db',
   '479eacefa3cdd7aca94207f36c0dd449653ddf259daf40544a5866baf05eee22': 'crafter',
+  '2c579968c64c1719740fd8c2a451461879b238002574fce48f7d1a7c36a1c7d4': 'builder',
 };
 
 // ── Hardcoded site owner (C0smik) — always has Owner role regardless of KV ───

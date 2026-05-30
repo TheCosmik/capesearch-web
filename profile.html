@@ -287,6 +287,7 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
               <tbody id="namesTbl"></tbody>
             </table>
           </div>
+          <div id="namesShowMore"></div>
         </div>
       </div>
 
@@ -790,18 +791,48 @@ document.getElementById('pActs').innerHTML=
 window._profileSettings = {};
 window._lastNameHistory  = null;
 
-function renderNameHistory(nh){
-  window._lastNameHistory = nh;
+var _namesExpanded = false;
+var NAME_PREVIEW   = 5; // show current + 4 historical by default
+
+function renderNameRow(nh, e, i){
   var hideOld = !!(window._profileSettings && window._profileSettings.hideOldNames);
-  document.getElementById('namesTbl').innerHTML=nh.map(function(e,i){
-    var nameCell = (hideOld && i > 0)
-      ? '<span style="color:var(--muted);letter-spacing:.15em">—</span>'
-      : '<strong>'+e.name+'</strong>';
-    return '<tr><td style="color:var(--muted)">'+(nh.length-i)+'</td>'+
-      '<td>'+nameCell+(i===0?' <span class="badge bg" style="margin-left:5px">Current</span>':'')+
-      '</td><td>'+(e.changed||'<span style="color:var(--muted)">Original</span>')+'</td>'+
-      '<td><span style="color:var(--muted);font-size:.8rem">'+(i===0?'Current name':'Historical')+'</span></td></tr>';
+  var nameCell = (hideOld && i > 0)
+    ? '<span style="color:var(--muted);letter-spacing:.15em">—</span>'
+    : '<strong>'+e.name+'</strong>';
+  return '<tr><td style="color:var(--muted)">'+(nh.length-i)+'</td>'+
+    '<td>'+nameCell+(i===0?' <span class="badge bg" style="margin-left:5px">Current</span>':'')+
+    '</td><td>'+(e.changed||'<span style="color:var(--muted)">Original</span>')+'</td>'+
+    '<td><span style="color:var(--muted);font-size:.8rem">'+(i===0?'Current name':'Historical')+'</span></td></tr>';
+}
+
+function renderNameHistory(nh, forceExpand){
+  window._lastNameHistory = nh;
+  if(forceExpand !== undefined) _namesExpanded = forceExpand;
+  var visible = (_namesExpanded || nh.length <= NAME_PREVIEW) ? nh : nh.slice(0, NAME_PREVIEW);
+  document.getElementById('namesTbl').innerHTML = visible.map(function(e,i){
+    return renderNameRow(nh, e, i);
   }).join('');
+
+  var moreEl = document.getElementById('namesShowMore');
+  if(!moreEl) return;
+  if(nh.length <= NAME_PREVIEW){
+    moreEl.innerHTML = '';
+    return;
+  }
+  if(_namesExpanded){
+    moreEl.innerHTML = '<button onclick="renderNameHistory(window._lastNameHistory,false)" '+
+      'style="width:100%;padding:.55rem;background:none;border:none;border-top:1px solid var(--bdr);'+
+      'color:var(--muted);font-size:.8rem;cursor:pointer;transition:color .2s" '+
+      'onmouseover="this.style.color=\'var(--txt)\'" onmouseout="this.style.color=\'var(--muted)\'">'+
+      '▲ Show less</button>';
+  } else {
+    var hidden = nh.length - NAME_PREVIEW;
+    moreEl.innerHTML = '<button onclick="renderNameHistory(window._lastNameHistory,true)" '+
+      'style="width:100%;padding:.55rem;background:none;border:none;border-top:1px solid var(--bdr);'+
+      'color:var(--muted);font-size:.8rem;cursor:pointer;transition:color .2s" '+
+      'onmouseover="this.style.color=\'var(--txt)\'" onmouseout="this.style.color=\'var(--muted)\'">'+
+      '▼ Show '+hidden+' more name'+(hidden===1?'':'s')+'</button>';
+  }
 }
 
 // show local data immediately as placeholder

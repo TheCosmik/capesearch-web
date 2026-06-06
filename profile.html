@@ -1267,6 +1267,15 @@ function loadComments(cleanUuid){
     .catch(function(){});
 }
 
+function commentRoleBadge(role,beta,vip){
+  var html='';
+  if(role==='owner') html+='<span class="badge by" style="font-size:.6rem;padding:.1rem .35rem">👑 Owner</span>';
+  else if(role==='admin') html+='<span class="badge bb" style="font-size:.6rem;padding:.1rem .35rem">🛡 Admin</span>';
+  if(beta) html+='<span class="badge bv" style="font-size:.6rem;padding:.1rem .35rem;background:rgba(167,139,250,.15);color:#a78bfa">🧪 Beta</span>';
+  if(vip)  html+='<span class="badge bg" style="font-size:.6rem;padding:.1rem .35rem">💎 VIP</span>';
+  return html;
+}
+
 function _renderComments(comments,isOwner,currentUserId){
   var listEl=document.getElementById('commentsList');
   var countEl=document.getElementById('commentsCount');
@@ -1284,7 +1293,10 @@ function _renderComments(comments,isOwner,currentUserId){
           'onerror="this.src=\'https://mc-heads.net/avatar/Steve/36\'" alt="" style="display:block">'+
       '</a>'+
       '<div class="comment-body">'+
-        '<a class="comment-author" href="profile.html?name='+encodeURIComponent(c.authorName)+'" style="color:var(--txt);text-decoration:none" onmouseover="this.style.color=\'var(--green)\'" onmouseout="this.style.color=\'var(--txt)\'">'+escHtml(c.authorName)+'</a>'+
+        '<span style="display:inline-flex;align-items:center;gap:.35rem;flex-wrap:wrap;margin-bottom:.2rem">'+
+          '<a class="comment-author" href="profile.html?name='+encodeURIComponent(c.authorName)+'" style="color:var(--txt);text-decoration:none;margin-bottom:0" onmouseover="this.style.color=\'var(--green)\'" onmouseout="this.style.color=\'var(--txt)\'">'+escHtml(c.authorName)+'</a>'+
+          commentRoleBadge(c.authorRole,c.authorBeta,c.authorVip)+
+        '</span>'+
         '<div class="comment-text">'+escHtml(c.text)+'</div>'+
         '<div class="comment-meta">'+
           '<span>'+fmtAgo(c.ts)+'</span>'+

@@ -437,20 +437,29 @@ module.exports = async function handler(req, res) {
     // Enrich each comment with the author's current role/beta/vip
     const uniqueAuthorUuids = [...new Set(comments.map(c => c.authorUuid).filter(Boolean))];
     if (uniqueAuthorUuids.length) {
-      const profileCmds = uniqueAuthorUuids.map(u => ['GET', `claimed:${u}`]);
-      const profileResults = await kvPipeline(profileCmds);
+      const cmds = [];
+      uniqueAuthorUuids.forEach(u => {
+        cmds.push(['GET', `role:${u}`]);
+        cmds.push(['GET', `role-beta:${u}`]);
+        cmds.push(['GET', `perk-vip:${u}`]);
+      });
+      const results = await kvPipeline(cmds);
       const roleMap = {};
       uniqueAuthorUuids.forEach((u, i) => {
-        try {
-          const p = profileResults[i] ? JSON.parse(profileResults[i]) : null;
-          roleMap[u] = { authorRole: p && p.role || null, authorBeta: !!(p && p.beta), authorVip: !!(p && p.vip) };
-        } catch { roleMap[u] = { authorRole: null, authorBeta: false, authorVip: false }; }
+        const base = i * 3;
+        let role = results[base];
+        if (u === OWNER_UUID) role = 'owner';
+        roleMap[u] = {
+          authorRole: (role && role !== KV_READ_ERROR) ? role : null,
+          authorBeta: results[base + 1] === '1',
+          authorVip:  results[base + 2] === '1',
+        };
       });
       comments.forEach(c => {
         const r = roleMap[c.authorUuid] || {};
         c.authorRole = r.authorRole || null;
-        c.authorBeta = r.authorBeta || false;
-        c.authorVip  = r.authorVip  || false;
+        c.authorBeta = !!r.authorBeta;
+        c.authorVip  = !!r.authorVip;
       });
     }
     res.setHeader('Cache-Control', 'no-store');

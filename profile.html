@@ -1264,7 +1264,7 @@ function _renderComments(comments,isOwner,currentUserId){
       '<img class="comment-av" src="https://mc-heads.net/avatar/'+encodeURIComponent(c.authorUuid)+'/36" '+
         'onerror="this.src=\'https://mc-heads.net/avatar/Steve/36\'" alt="">'+
       '<div class="comment-body">'+
-        '<div class="comment-author">'+escHtml(c.authorName)+'</div>'+
+        '<a class="comment-author" href="profile.html?name='+encodeURIComponent(c.authorName)+'" style="color:var(--txt);text-decoration:none" onmouseover="this.style.color=\'var(--green)\'" onmouseout="this.style.color=\'var(--txt)\'">'+escHtml(c.authorName)+'</a>'+
         '<div class="comment-text">'+escHtml(c.text)+'</div>'+
         '<div class="comment-meta">'+
           '<span>'+fmtAgo(c.ts)+'</span>'+

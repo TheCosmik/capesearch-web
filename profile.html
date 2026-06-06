@@ -380,6 +380,24 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
   <div class="foot-bot">Copyright &copy; 2026 NameSearch. All rights reserved.</div>
 </footer>
 
+<!-- REPORT COMMENT MODAL -->
+<div class="overlay" id="reportOverlay">
+  <div class="modal" style="max-width:420px;padding:1.75rem">
+    <button class="mclose" onclick="closeReportModal()" style="position:absolute;top:1rem;right:1rem">✕</button>
+    <div style="font-size:1.1rem;font-weight:800;margin-bottom:.3rem">🚩 Report Comment</div>
+    <div style="font-size:.84rem;color:var(--txt2);margin-bottom:1.25rem">Reporting comment by <strong id="reportCommentAuthor"></strong></div>
+    <textarea id="reportReason" class="comment-ta" maxlength="500" placeholder="Explain why you're reporting this comment…" style="min-height:100px"></textarea>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:.5rem">
+      <span id="reportCharCount" style="font-size:.73rem;color:var(--muted)">0 / 500</span>
+      <div style="display:flex;gap:.5rem">
+        <button class="btn btn-o" onclick="closeReportModal()">Cancel</button>
+        <button class="btn btn-p" id="reportSubmitBtn" onclick="submitReport()" style="background:#f97316;color:#fff">Submit Report</button>
+      </div>
+    </div>
+    <div id="reportStatus" style="font-size:.78rem;margin-top:.5rem;min-height:1rem"></div>
+  </div>
+</div>
+
 <!-- CLAIM MODAL -->
 <div class="overlay" id="claimOverlay">
   <div class="modal" style="max-width:460px;padding:2rem">
@@ -1271,6 +1289,7 @@ function _renderComments(comments,isOwner,currentUserId){
         '<div class="comment-meta">'+
           '<span>'+fmtAgo(c.ts)+'</span>'+
           (canDelete?'<button class="comment-del" onclick="deleteComment(\''+escHtml(c.id)+'\')">✕ Delete</button>':'')+
+          (currentUserId&&c.authorClerkId!==currentUserId?'<button class="comment-del" onclick="openReportModal(\''+escHtml(c.id)+'\',\''+escHtml(c.authorName)+'\')" style="color:var(--muted)" onmouseover="this.style.color=\'#f97316\'" onmouseout="this.style.color=\'var(--muted)\'">🚩 Report</button>':'')+
         '</div>'+
       '</div>'+
     '</div>';
@@ -1357,6 +1376,55 @@ function deleteComment(commentId){
   })
   .catch(function(){});
 }
+
+// ── REPORT MODAL ─────────────────────────────────────────────────────────────
+var _reportCommentId = null;
+
+function openReportModal(commentId, authorName){
+  _reportCommentId = commentId;
+  document.getElementById('reportCommentAuthor').textContent = authorName;
+  document.getElementById('reportReason').value = '';
+  document.getElementById('reportCharCount').textContent = '0 / 500';
+  document.getElementById('reportStatus').textContent = '';
+  var btn = document.getElementById('reportSubmitBtn');
+  if(btn){ btn.disabled = false; btn.textContent = 'Submit Report'; }
+  document.getElementById('reportOverlay').classList.add('show');
+  document.body.style.overflow = 'hidden';
+  var ta = document.getElementById('reportReason');
+  if(ta){ ta.focus(); ta.addEventListener('input', function(){ document.getElementById('reportCharCount').textContent = ta.value.length + ' / 500'; }); }
+}
+
+function closeReportModal(){
+  document.getElementById('reportOverlay').classList.remove('show');
+  document.body.style.overflow = '';
+  _reportCommentId = null;
+}
+
+function submitReport(){
+  var reason = (document.getElementById('reportReason').value || '').trim();
+  var statusEl = document.getElementById('reportStatus');
+  var btn = document.getElementById('reportSubmitBtn');
+  if(!reason){ statusEl.textContent = 'Please explain why you are reporting this comment.'; statusEl.style.color = 'var(--red)'; return; }
+  var clerkUserId = window.Clerk && window.Clerk.user ? window.Clerk.user.id : null;
+  if(!clerkUserId){ statusEl.textContent = 'You must be logged in to report a comment.'; statusEl.style.color = 'var(--red)'; return; }
+  btn.disabled = true; btn.textContent = 'Submitting…';
+  fetch('/api/player-textures?action=submit-report', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ clerkUserId: clerkUserId, profileUuid: _commentsUuid, commentId: _reportCommentId, reason: reason }),
+  })
+  .then(function(r){ return r.json().then(function(d){ if(!r.ok) throw new Error(d.error||'Failed'); return d; }); })
+  .then(function(){
+    statusEl.textContent = '✓ Report submitted. Thank you.'; statusEl.style.color = 'var(--green)';
+    btn.textContent = 'Submitted';
+    setTimeout(closeReportModal, 1500);
+  })
+  .catch(function(e){
+    statusEl.textContent = e.message || 'Failed to submit report.'; statusEl.style.color = 'var(--red)';
+    btn.disabled = false; btn.textContent = 'Submit Report';
+  });
+}
+
+document.getElementById('reportOverlay').addEventListener('click', function(e){ if(e.target===this) closeReportModal(); });
 
 function setCommentsEnabled(enabled){
   var clerkUserId=window.Clerk&&window.Clerk.user?window.Clerk.user.id:null;

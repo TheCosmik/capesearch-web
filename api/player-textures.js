@@ -549,6 +549,85 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ ok: true, commentsEnabled: !!enabled });
   }
 
+  // ── Comment report: submit ────────────────────────────────────────────────
+  // POST /api/player-textures?action=submit-report
+  // Body: { clerkUserId, profileUuid, commentId, reason }
+  if (req.method === 'POST' && req.query.action === 'submit-report') {
+    const { clerkUserId, profileUuid, commentId, reason } = req.body || {};
+    if (!clerkUserId || !profileUuid || !commentId || !reason) return res.status(400).json({ error: 'missing fields' });
+    const cleanProfile = profileUuid.replace(/-/g, '').toLowerCase();
+    // Get reporter's Minecraft info
+    let reporterUuid = '', reporterName = 'Unknown';
+    try {
+      const [userMcRaw] = await kvPipeline([['GET', `user-minecraft:${clerkUserId}`]]);
+      if (userMcRaw) {
+        const parsed = JSON.parse(userMcRaw);
+        const accounts = Array.isArray(parsed) ? parsed : [parsed];
+        if (accounts[0]) { reporterUuid = accounts[0].minecraftUuid || ''; reporterName = accounts[0].minecraftName || 'Unknown'; }
+      }
+    } catch {}
+    // Find the comment being reported
+    const [members] = await kvPipeline([['ZRANGE', `comments:${cleanProfile}`, 0, -1]]);
+    let targetComment = null;
+    if (Array.isArray(members)) {
+      for (const m of members) { try { const c = JSON.parse(m); if (c.id === commentId) { targetComment = c; break; } } catch {} }
+    }
+    if (!targetComment) return res.status(404).json({ error: 'Comment not found' });
+    const now = Date.now();
+    const report = {
+      id: `${now}-${Math.random().toString(36).slice(2, 8)}`,
+      commentId, profileUuid: cleanProfile,
+      commentAuthorUuid: targetComment.authorUuid, commentAuthorName: targetComment.authorName,
+      commentText: targetComment.text,
+      reporterClerkId: clerkUserId, reporterUuid, reporterName,
+      reason: String(reason).trim().slice(0, 500), ts: now,
+    };
+    await kvPipeline([
+      ['ZADD', 'reports', String(now), JSON.stringify(report)],
+      ['ZREMRANGEBYRANK', 'reports', '0', '-201'],
+    ]);
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json({ ok: true });
+  }
+
+  // ── Comment report: get list (admin/owner only) ───────────────────────────
+  // GET /api/player-textures?action=get-reports&clerkUserId=
+  if (req.query.action === 'get-reports') {
+    const clerkUserId = req.query.clerkUserId || '';
+    if (!clerkUserId) return res.status(400).json({ error: 'clerkUserId required' });
+    if (!(await isAdminOrOwnerByClerkId(clerkUserId))) return res.status(403).json({ error: 'Admin access required' });
+    const [members] = await kvPipeline([['ZREVRANGE', 'reports', 0, 199]]);
+    const reports = [];
+    if (Array.isArray(members)) { for (const m of members) { try { reports.push(JSON.parse(m)); } catch {} } }
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json({ reports });
+  }
+
+  // ── Comment report: dismiss (admin/owner only) ────────────────────────────
+  // POST /api/player-textures?action=dismiss-report
+  // Body: { clerkUserId, reportId, deleteComment: bool }
+  if (req.method === 'POST' && req.query.action === 'dismiss-report') {
+    const { clerkUserId, reportId, deleteComment } = req.body || {};
+    if (!clerkUserId || !reportId) return res.status(400).json({ error: 'missing fields' });
+    if (!(await isAdminOrOwnerByClerkId(clerkUserId))) return res.status(403).json({ error: 'Admin access required' });
+    const [members] = await kvPipeline([['ZRANGE', 'reports', 0, -1]]);
+    let toDelete = null; let reportObj = null;
+    if (Array.isArray(members)) {
+      for (const m of members) { try { const r = JSON.parse(m); if (r.id === reportId) { toDelete = m; reportObj = r; break; } } catch {} }
+    }
+    if (!toDelete) return res.status(404).json({ error: 'Report not found' });
+    const cmds = [['ZREM', 'reports', toDelete]];
+    if (deleteComment && reportObj) {
+      const [cmtMembers] = await kvPipeline([['ZRANGE', `comments:${reportObj.profileUuid}`, 0, -1]]);
+      if (Array.isArray(cmtMembers)) {
+        for (const m of cmtMembers) { try { const c = JSON.parse(m); if (c.id === reportObj.commentId) { cmds.push(['ZREM', `comments:${reportObj.profileUuid}`, m]); break; } } catch {} }
+      }
+    }
+    await kvPipeline(cmds);
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json({ ok: true });
+  }
+
   // ── Name-only lookup mode (used by nav search on all pages) ───────────────
   // Called as /api/player-textures?name=SomePlayer
   // Returns { name, uuid } without fetching full profile or KV history.

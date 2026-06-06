@@ -224,6 +224,17 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.25rem 1re
       </div>
     </div>
 
+    <!-- Reports section -->
+    <div style="margin-top:2rem">
+      <div class="tbl-card">
+        <div class="tbl-head">
+          <span class="tbl-title">🚩 Reported Comments</span>
+          <button class="btn btn-o btn-sm" onclick="loadReports()">↻ Refresh</button>
+        </div>
+        <div id="reportsBody" style="padding:1.5rem;text-align:center;color:var(--muted);font-size:.85rem">Loading…</div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -292,6 +303,7 @@ function loadPanel(profiles) {
   updateStats();
   loadBetaEnrollment();
   renderTable(profiles);
+  loadReports();
 }
 
 function statCard(icon, label, val) {
@@ -647,6 +659,93 @@ function showToast(msg) {
   t.style.display = 'block';
   clearTimeout(_toastTimer);
   _toastTimer = setTimeout(function(){ t.style.display = 'none'; }, 3000);
+}
+
+// ── Reports ───────────────────────────────────────────────────────────────────
+function loadReports() {
+  var el = document.getElementById('reportsBody');
+  if (!el) return;
+  el.innerHTML = '<div style="padding:1.5rem;text-align:center;color:var(--muted);font-size:.85rem">Loading…</div>';
+  fetch('/api/player-textures?action=get-reports&clerkUserId=' + encodeURIComponent(_clerkUserId))
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(d) {
+      var reports = d && d.reports || [];
+      if (!reports.length) {
+        el.innerHTML = '<div style="padding:1.5rem;text-align:center;color:var(--muted);font-size:.85rem">No reports. ✓</div>';
+        return;
+      }
+      el.innerHTML = reports.map(function(r) {
+        return '<div id="report-'+r.id+'" style="padding:1rem 1.1rem;border-bottom:1px solid var(--bdr);display:flex;flex-direction:column;gap:.6rem">'+
+          '<div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-start">'+
+            // Commented-on profile
+            '<div style="flex:1;min-width:220px">'+
+              '<div style="font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.3rem">Profile</div>'+
+              '<a href="profile.html?name='+encodeURIComponent(r.commentAuthorName)+'" style="font-size:.82rem">'+
+                'View profile this comment is on &rarr;'+
+              '</a>'+
+            '</div>'+
+            // Timestamp
+            '<div style="font-size:.72rem;color:var(--muted);white-space:nowrap;padding-top:.2rem">'+fmtDate(r.ts)+'</div>'+
+          '</div>'+
+          // Comment author
+          '<div style="display:flex;gap:.6rem;align-items:center">'+
+            '<img src="https://mc-heads.net/avatar/'+r.commentAuthorUuid+'/28" style="width:28px;height:28px;border-radius:4px;image-rendering:pixelated;flex-shrink:0" onerror="this.style.opacity=\'.3\'"/>'+
+            '<div>'+
+              '<div style="font-size:.72rem;color:var(--muted)">Commenter</div>'+
+              '<a href="profile.html?name='+encodeURIComponent(r.commentAuthorName)+'" style="font-weight:700;font-size:.85rem">'+r.commentAuthorName+'</a>'+
+            '</div>'+
+          '</div>'+
+          // Comment text
+          '<div style="background:var(--bg);border:1px solid var(--bdr);border-radius:var(--rad);padding:.6rem .85rem;font-size:.85rem;color:var(--txt2)">'+
+            '<div style="font-size:.7rem;color:var(--muted);margin-bottom:.25rem">Comment</div>'+
+            escR(r.commentText)+
+          '</div>'+
+          // Reporter
+          '<div style="display:flex;gap:.6rem;align-items:center">'+
+            (r.reporterUuid?'<img src="https://mc-heads.net/avatar/'+r.reporterUuid+'/28" style="width:28px;height:28px;border-radius:4px;image-rendering:pixelated;flex-shrink:0" onerror="this.style.opacity=\'.3\'"/>':'<div style="width:28px;height:28px;border-radius:4px;background:var(--bdr);flex-shrink:0"></div>')+
+            '<div>'+
+              '<div style="font-size:.72rem;color:var(--muted)">Reported by</div>'+
+              '<span style="font-weight:700;font-size:.85rem">'+escR(r.reporterName)+'</span>'+
+            '</div>'+
+          '</div>'+
+          // Report reason
+          '<div style="background:rgba(249,115,22,.07);border:1px solid rgba(249,115,22,.25);border-radius:var(--rad);padding:.6rem .85rem;font-size:.85rem;color:var(--txt2)">'+
+            '<div style="font-size:.7rem;color:#f97316;margin-bottom:.25rem">Report Reason</div>'+
+            escR(r.reason)+
+          '</div>'+
+          // Actions
+          '<div style="display:flex;gap:.5rem;flex-wrap:wrap">'+
+            '<button class="btn btn-o btn-sm" onclick="dismissReport(\''+r.id+'\',false)">✓ Dismiss</button>'+
+            '<button class="btn btn-sm" style="background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.35);color:var(--red)" onclick="dismissReport(\''+r.id+'\',true)">🗑 Delete Comment &amp; Dismiss</button>'+
+          '</div>'+
+        '</div>';
+      }).join('');
+    })
+    .catch(function(){ el.innerHTML = '<div style="padding:1.5rem;text-align:center;color:var(--red);font-size:.85rem">Failed to load reports.</div>'; });
+}
+
+function escR(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function dismissReport(reportId, deleteComment) {
+  var label = deleteComment ? 'Delete the comment and dismiss this report?' : 'Dismiss this report?';
+  if (!confirm(label)) return;
+  fetch('/api/player-textures?action=dismiss-report', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ clerkUserId: _clerkUserId, reportId: reportId, deleteComment: !!deleteComment }),
+  })
+  .then(function(r){ return r.ok ? r.json() : null; })
+  .then(function(d) {
+    if (d && d.ok) {
+      var el = document.getElementById('report-' + reportId);
+      if (el) el.remove();
+      var body = document.getElementById('reportsBody');
+      if (body && !body.querySelector('[id^="report-"]')) {
+        body.innerHTML = '<div style="padding:1.5rem;text-align:center;color:var(--muted);font-size:.85rem">No reports. ✓</div>';
+      }
+      showToast(deleteComment ? '🗑 Comment deleted and report dismissed.' : '✓ Report dismissed.');
+    }
+  })
+  .catch(function(){ showToast('Failed to dismiss report.'); });
 }
 </script>
 <script src="lang.js"></script>

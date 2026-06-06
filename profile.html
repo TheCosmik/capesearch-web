@@ -169,6 +169,22 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
 .cape-card .cc-name{font-size:.72rem;font-weight:700;color:var(--txt);line-height:1.25;word-break:break-word;min-height:2.5em;display:flex;align-items:center;justify-content:center}
 .cape-card .cc-status{font-size:.63rem;color:var(--muted);line-height:1.3}
 
+/* COMMENTS */
+.comments-section{margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid var(--bdr)}
+.comments-hdr{font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.9rem}
+.comment{display:flex;gap:.75rem;padding:.8rem 0;border-bottom:1px solid var(--bdr)}
+.comment:last-child{border-bottom:none}
+.comment-av{width:36px;height:36px;border-radius:6px;image-rendering:pixelated;flex-shrink:0}
+.comment-body{flex:1;min-width:0}
+.comment-author{font-size:.82rem;font-weight:700;margin-bottom:.2rem;color:var(--txt)}
+.comment-text{font-size:.85rem;color:var(--txt2);line-height:1.5;word-break:break-word;white-space:pre-wrap}
+.comment-meta{font-size:.72rem;color:var(--muted);margin-top:.35rem;display:flex;gap:.75rem;align-items:center}
+.comment-del{background:none;border:none;color:var(--muted);font-size:.72rem;cursor:pointer;padding:0;transition:color .15s}
+.comment-del:hover{color:var(--red)}
+.comment-ta{width:100%;background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad);color:var(--txt);padding:.65rem .85rem;font-size:.875rem;resize:vertical;min-height:72px;font-family:inherit;outline:none;transition:border-color .2s;display:block;box-sizing:border-box}
+.comment-ta:focus{border-color:var(--green)}
+.comment-ta::placeholder{color:var(--muted)}
+
 /* CAPE MODAL */
 .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:500;align-items:center;justify-content:center;padding:1rem}
 .overlay.show{display:flex}
@@ -342,6 +358,13 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
         <div class="capes-row" id="capesRow">
           <div style="color:var(--muted);font-size:.84rem;padding:.25rem 0">Loading…</div>
         </div>
+      </div>
+
+      <!-- COMMENTS SECTION -->
+      <div class="comments-section" id="commentsSection" style="display:none">
+        <div class="comments-hdr">💬 Comments <span id="commentsCount" style="letter-spacing:0;font-weight:400"></span></div>
+        <div id="commentsList"></div>
+        <div id="commentInputArea" style="margin-top:.85rem"></div>
       </div>
 
     </div><!-- end profile-main -->
@@ -756,6 +779,7 @@ function applyUUID(uuid,canonName){
   fetchTextures(uuid);     // skin + cape via Mojang (authoritative)
   initProfileViewer(uuid);
   checkClaimStatus(uuid.replace(/-/g,''), displayName);
+  loadComments(uuid.replace(/-/g,''));         // comments section
   // Fire-and-forget view tracking
   fetch('/api/track-view?uuid='+encodeURIComponent(uuid.replace(/-/g,''))+'&name='+encodeURIComponent(displayName)).catch(function(){});
   // Fetch and display all-time view count
@@ -1196,6 +1220,150 @@ function fetchTextures(uuid){
 }
 
 // friends grid removed (replaced by Following / Followers tabs)
+
+// ── COMMENTS ──────────────────────────────────────────────────────────────────
+var _commentsUuid = null;
+var _commentsEnabled = true;
+
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+function loadComments(cleanUuid){
+  _commentsUuid = cleanUuid;
+  fetch('/api/player-textures?action=get-comments&uuid='+encodeURIComponent(cleanUuid))
+    .then(function(r){return r.ok?r.json():null;})
+    .then(function(data){
+      if(!data)return;
+      _commentsEnabled=data.enabled;
+      var section=document.getElementById('commentsSection');
+      if(!section)return;
+      var currentUserId=window.Clerk&&window.Clerk.user?window.Clerk.user.id:null;
+      var isOwner=!!(currentUserId&&window._profileOwnerClerkId&&currentUserId===window._profileOwnerClerkId);
+      if(!data.enabled&&!isOwner){section.style.display='none';return;}
+      section.style.display='block';
+      _renderComments(data.comments||[],isOwner,currentUserId);
+      _renderCommentInput(isOwner,data.enabled,currentUserId);
+    })
+    .catch(function(){});
+}
+
+function _renderComments(comments,isOwner,currentUserId){
+  var listEl=document.getElementById('commentsList');
+  var countEl=document.getElementById('commentsCount');
+  if(!listEl)return;
+  if(countEl)countEl.textContent=comments.length?'('+comments.length+')':'';
+  if(!_commentsEnabled&&!isOwner){
+    listEl.innerHTML='<div style="color:var(--muted);font-size:.84rem;padding:.25rem 0">Comments are disabled on this profile.</div>';
+    return;
+  }
+  if(!comments.length){
+    listEl.innerHTML='<div style="color:var(--muted);font-size:.84rem;padding:.25rem 0">No comments yet — be the first!</div>';
+    return;
+  }
+  listEl.innerHTML=comments.map(function(c){
+    var canDelete=isOwner||(currentUserId&&c.authorClerkId===currentUserId);
+    return'<div class="comment" id="cmt-'+escHtml(c.id)+'">'+
+      '<img class="comment-av" src="https://crafatar.com/avatars/'+encodeURIComponent(c.authorUuid)+'?size=36&overlay" '+
+        'onerror="this.src=\'https://mc-heads.net/avatar/Steve/36\'" alt="">'+
+      '<div class="comment-body">'+
+        '<div class="comment-author">'+escHtml(c.authorName)+'</div>'+
+        '<div class="comment-text">'+escHtml(c.text)+'</div>'+
+        '<div class="comment-meta">'+
+          '<span>'+fmtAgo(c.ts)+'</span>'+
+          (canDelete?'<button class="comment-del" onclick="deleteComment(\''+escHtml(c.id)+'\')">✕ Delete</button>':'')+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+function _renderCommentInput(isOwner,enabled,currentUserId){
+  var area=document.getElementById('commentInputArea');
+  if(!area)return;
+  var html='';
+  if(isOwner&&!enabled){
+    html+='<div style="background:rgba(248,113,113,.07);border:1px solid rgba(248,113,113,.2);border-radius:var(--rad);padding:.7rem 1rem;font-size:.82rem;color:var(--muted);margin-bottom:.75rem">Comments are disabled. Enable them in ⚙ Profile Settings.</div>';
+  }
+  if(enabled&&currentUserId){
+    html+='<textarea class="comment-ta" id="commentText" maxlength="500" placeholder="Write a comment…"></textarea>'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:.5rem">'+
+        '<span id="cmtCharCount" style="font-size:.73rem;color:var(--muted)">0 / 500</span>'+
+        '<button class="btn btn-p" style="padding:.4rem .9rem;font-size:.82rem" onclick="submitComment()">Post Comment</button>'+
+      '</div>'+
+      '<div id="cmtError" style="font-size:.78rem;color:var(--red);margin-top:.35rem;min-height:1rem"></div>';
+  }else if(enabled&&!currentUserId){
+    html+='<div style="text-align:center;padding:.85rem;background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad);font-size:.84rem;color:var(--muted)">'+
+      '<a href="#" onclick="window.Clerk&&window.Clerk.openSignIn();return false" style="color:var(--green)">Log in</a> to leave a comment.</div>';
+  }
+  area.innerHTML=html;
+  var ta=document.getElementById('commentText');
+  if(ta){
+    ta.addEventListener('input',function(){
+      var cc=document.getElementById('cmtCharCount');
+      if(cc)cc.textContent=ta.value.length+' / 500';
+    });
+  }
+}
+
+function submitComment(){
+  var ta=document.getElementById('commentText');
+  var errEl=document.getElementById('cmtError');
+  if(!ta)return;
+  var text=ta.value.trim();
+  if(!text){if(errEl)errEl.textContent='Comment cannot be empty.';return;}
+  var clerkUserId=window.Clerk&&window.Clerk.user?window.Clerk.user.id:null;
+  if(!clerkUserId){if(errEl)errEl.textContent='You must be logged in.';return;}
+  var btn=document.querySelector('#commentInputArea .btn-p');
+  if(btn){btn.disabled=true;btn.textContent='Posting…';}
+  fetch('/api/player-textures?action=post-comment',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({clerkUserId:clerkUserId,targetUuid:_commentsUuid,text:text}),
+  })
+  .then(function(r){return r.json().then(function(d){if(!r.ok)throw new Error(d.error||'Failed');return d;});})
+  .then(function(){
+    ta.value='';
+    var cc=document.getElementById('cmtCharCount');if(cc)cc.textContent='0 / 500';
+    if(errEl)errEl.textContent='';
+    loadComments(_commentsUuid);
+  })
+  .catch(function(e){
+    if(errEl)errEl.textContent=e.message||'Failed to post comment.';
+    if(btn){btn.disabled=false;btn.textContent='Post Comment';}
+  });
+}
+
+function deleteComment(commentId){
+  var clerkUserId=window.Clerk&&window.Clerk.user?window.Clerk.user.id:null;
+  if(!clerkUserId)return;
+  if(!confirm('Delete this comment?'))return;
+  fetch('/api/player-textures?action=delete-comment',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({clerkUserId:clerkUserId,targetUuid:_commentsUuid,commentId:commentId}),
+  })
+  .then(function(r){return r.ok?r.json():null;})
+  .then(function(d){
+    if(!d||!d.ok)return;
+    var el=document.getElementById('cmt-'+commentId);
+    if(el)el.remove();
+    var listEl=document.getElementById('commentsList');
+    var rem=listEl?listEl.querySelectorAll('.comment').length:0;
+    var countEl=document.getElementById('commentsCount');
+    if(countEl)countEl.textContent=rem?'('+rem+')':'';
+    if(!rem&&listEl)listEl.innerHTML='<div style="color:var(--muted);font-size:.84rem;padding:.25rem 0">No comments yet — be the first!</div>';
+  })
+  .catch(function(){});
+}
+
+function setCommentsEnabled(enabled){
+  var clerkUserId=window.Clerk&&window.Clerk.user?window.Clerk.user.id:null;
+  if(!clerkUserId||!_commentsUuid)return;
+  fetch('/api/player-textures?action=toggle-comments',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({clerkUserId:clerkUserId,targetUuid:_commentsUuid,enabled:enabled}),
+  })
+  .then(function(r){return r.ok?r.json():null;})
+  .then(function(d){if(d&&d.ok)loadComments(_commentsUuid);})
+  .catch(function(){});
+}
 
 // ── PLAYERDB LOOKUP – get real UUID & skin ────────────────────────────────────
 if(!resolvedUUID){
@@ -2054,6 +2222,16 @@ function _renderActsWithClaim(uuid, name, isClaimed, ownerUserId) {
           '</label>'+
           '<div id="settingSaveStatus" style="font-size:.74rem;color:var(--muted);margin-top:.55rem;min-height:1rem"></div>'+
           '<hr style="border:none;border-top:1px solid var(--bdr);margin:.85rem 0"/>'+
+          '<label style="display:flex;align-items:flex-start;gap:.6rem;cursor:pointer;margin-bottom:.55rem">'+
+            '<input type="checkbox" id="settingComments" '+
+              (window._profileSettings && window._profileSettings.commentsEnabled === false ? '' : 'checked')+
+              ' onchange="setCommentsEnabled(this.checked)" style="margin-top:.18rem;accent-color:var(--green)">'+
+            '<span>'+
+              '<div style="font-size:.84rem;font-weight:500">Allow comments</div>'+
+              '<div style="font-size:.75rem;color:var(--muted);margin-top:.2rem">Let visitors leave comments on your profile</div>'+
+            '</span>'+
+          '</label>'+
+          '<hr style="border:none;border-top:1px solid var(--bdr);margin:.85rem 0"/>'+
           '<button onclick="openUnclaimConfirm()" '+
             'style="width:100%;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.25);'+
             'color:var(--red);border-radius:.5rem;padding:.45rem .75rem;font-size:.82rem;font-weight:600;'+
@@ -2090,6 +2268,8 @@ function _renderActsWithClaim(uuid, name, isClaimed, ownerUserId) {
   if (_currentProfileUuid) loadFollowStatus(_currentProfileUuid);
   // Initialise save-button state (checks which categories contain this profile)
   if (saveHtml && _currentProfileUuid) initSaveBtn(_currentProfileUuid);
+  // Re-render comments now that ownership is known (shows/hides delete buttons)
+  if (_commentsUuid) loadComments(_commentsUuid);
 }
 
 function checkClaimStatus(uuid, name) {

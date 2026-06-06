@@ -412,11 +412,113 @@ module.exports = async function handler(req, res) {
     // Verify ownership
     const claim = await kvGet(`claimed:${clean}`);
     if (!claim || claim.clerkUserId !== clerkUserId) return res.status(403).json({ error: 'not your profile' });
-    // Only persist known settings keys to avoid storing arbitrary data
-    const safe = { hideOldNames: !!settings.hideOldNames };
-    await kvSet(`profile-settings:${clean}`, safe);
+    // Merge into existing settings so other keys (e.g. commentsEnabled) are preserved
+    const existing = await kvGet(`profile-settings:${clean}`) || {};
+    existing.hideOldNames = !!settings.hideOldNames;
+    await kvSet(`profile-settings:${clean}`, existing);
     res.setHeader('Cache-Control', 'no-store');
     return res.status(200).json({ ok: true });
+  }
+
+  // ── Comments: get ─────────────────────────────────────────────────────────
+  // GET /api/player-textures?action=get-comments&uuid={uuid}
+  if (req.query.action === 'get-comments') {
+    const raw = (req.query.uuid || '').replace(/-/g, '').toLowerCase();
+    if (!/^[0-9a-f]{32}$/.test(raw)) return res.status(400).json({ error: 'invalid uuid' });
+    const settings = await kvGet(`profile-settings:${raw}`);
+    const enabled = !settings || settings.commentsEnabled !== false;
+    if (!enabled) { res.setHeader('Cache-Control','no-store'); return res.status(200).json({ comments: [], enabled: false }); }
+    const [members] = await kvPipeline([['ZREVRANGE', `comments:${raw}`, 0, 99]]);
+    const comments = [];
+    if (Array.isArray(members)) {
+      for (const m of members) { try { comments.push(JSON.parse(m)); } catch {} }
+    }
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json({ comments, enabled: true });
+  }
+
+  // ── Comments: post ────────────────────────────────────────────────────────
+  // POST /api/player-textures?action=post-comment
+  // Body: { clerkUserId, targetUuid, text }
+  if (req.method === 'POST' && req.query.action === 'post-comment') {
+    const { clerkUserId, targetUuid, text } = req.body || {};
+    if (!clerkUserId || !targetUuid || !text) return res.status(400).json({ error: 'missing fields' });
+    const cleanTarget = targetUuid.replace(/-/g, '').toLowerCase();
+    if (!/^[0-9a-f]{32}$/.test(cleanTarget)) return res.status(400).json({ error: 'invalid uuid' });
+    // Profile must be claimed
+    const claim = await kvGet(`claimed:${cleanTarget}`);
+    if (!claim) return res.status(403).json({ error: 'Profile not claimed' });
+    // Comments must be enabled
+    const settings = await kvGet(`profile-settings:${cleanTarget}`);
+    if (settings && settings.commentsEnabled === false) return res.status(403).json({ error: 'Comments disabled' });
+    // Get commenter's linked Minecraft account
+    const [userMcRaw] = await kvPipeline([['GET', `user-minecraft:${clerkUserId}`]]);
+    if (!userMcRaw) return res.status(403).json({ error: 'No Minecraft account linked' });
+    let authorUuid, authorName;
+    try {
+      const parsed = JSON.parse(userMcRaw);
+      const accounts = Array.isArray(parsed) ? parsed : [parsed];
+      if (!accounts.length) return res.status(403).json({ error: 'No Minecraft account linked' });
+      authorUuid = accounts[0].minecraftUuid;
+      const [storedName] = await kvPipeline([['GET', `pname:${authorUuid}`]]);
+      authorName = storedName || authorUuid.slice(0, 8);
+    } catch { return res.status(500).json({ error: 'Account lookup failed' }); }
+    const trimmed = String(text).trim().slice(0, 500);
+    if (!trimmed) return res.status(400).json({ error: 'Empty comment' });
+    const now = Date.now();
+    const comment = {
+      id: `${now}-${Math.random().toString(36).slice(2, 8)}`,
+      authorClerkId: clerkUserId,
+      authorUuid,
+      authorName,
+      text: trimmed,
+      ts: now,
+    };
+    await kvPipeline([
+      ['ZADD', `comments:${cleanTarget}`, String(now), JSON.stringify(comment)],
+      ['ZREMRANGEBYRANK', `comments:${cleanTarget}`, '0', '-101'], // keep newest 100
+    ]);
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json({ ok: true, comment });
+  }
+
+  // ── Comments: delete ──────────────────────────────────────────────────────
+  // POST /api/player-textures?action=delete-comment
+  // Body: { clerkUserId, targetUuid, commentId }
+  if (req.method === 'POST' && req.query.action === 'delete-comment') {
+    const { clerkUserId, targetUuid, commentId } = req.body || {};
+    if (!clerkUserId || !targetUuid || !commentId) return res.status(400).json({ error: 'missing fields' });
+    const cleanTarget = targetUuid.replace(/-/g, '').toLowerCase();
+    const [members] = await kvPipeline([['ZRANGE', `comments:${cleanTarget}`, 0, -1]]);
+    if (!Array.isArray(members)) return res.status(404).json({ error: 'Comment not found' });
+    let toDelete = null; let parsedC = null;
+    for (const m of members) {
+      try { const c = JSON.parse(m); if (c.id === commentId) { toDelete = m; parsedC = c; break; } } catch {}
+    }
+    if (!toDelete) return res.status(404).json({ error: 'Comment not found' });
+    const claim = await kvGet(`claimed:${cleanTarget}`);
+    const isOwner = claim && claim.clerkUserId === clerkUserId;
+    const isAuthor = parsedC.authorClerkId === clerkUserId;
+    if (!isAuthor && !isOwner) return res.status(403).json({ error: 'Not authorized' });
+    await kvPipeline([['ZREM', `comments:${cleanTarget}`, toDelete]]);
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json({ ok: true });
+  }
+
+  // ── Comments: toggle enabled (profile owner only) ─────────────────────────
+  // POST /api/player-textures?action=toggle-comments
+  // Body: { clerkUserId, targetUuid, enabled: bool }
+  if (req.method === 'POST' && req.query.action === 'toggle-comments') {
+    const { clerkUserId, targetUuid, enabled } = req.body || {};
+    if (!clerkUserId || !targetUuid) return res.status(400).json({ error: 'missing fields' });
+    const cleanTarget = targetUuid.replace(/-/g, '').toLowerCase();
+    const claim = await kvGet(`claimed:${cleanTarget}`);
+    if (!claim || claim.clerkUserId !== clerkUserId) return res.status(403).json({ error: 'Not your profile' });
+    const current = await kvGet(`profile-settings:${cleanTarget}`) || {};
+    current.commentsEnabled = !!enabled;
+    await kvSet(`profile-settings:${cleanTarget}`, current);
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json({ ok: true, commentsEnabled: !!enabled });
   }
 
   // ── Name-only lookup mode (used by nav search on all pages) ───────────────

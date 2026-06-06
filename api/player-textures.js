@@ -483,6 +483,27 @@ module.exports = async function handler(req, res) {
       ['ZADD', `comments:${cleanTarget}`, String(now), JSON.stringify(comment)],
       ['ZREMRANGEBYRANK', `comments:${cleanTarget}`, '0', '-101'], // keep newest 100
     ]);
+
+    // Notify profile owner — fire and forget, don't block the response
+    try {
+      const ownerClaim = claim; // already fetched above
+      const ownerClerkId = ownerClaim && ownerClaim.clerkUserId;
+      // Don't notify if the commenter is the profile owner
+      if (ownerClerkId && ownerClerkId !== clerkUserId) {
+        const notif = JSON.stringify({
+          type:        'new_comment',
+          fromName:    authorName,
+          fromMcUuid:  authorUuid,
+          profileUuid: cleanTarget,
+          ts:          now,
+        });
+        kvPipeline([
+          ['ZADD',            `notifs:${ownerClerkId}`, String(now), notif],
+          ['ZREMRANGEBYRANK', `notifs:${ownerClerkId}`, '0', '-51'], // keep last 50
+        ]).catch(() => {});
+      }
+    } catch {}
+
     res.setHeader('Cache-Control', 'no-store');
     return res.status(200).json({ ok: true, comment });
   }

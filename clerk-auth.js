@@ -100,7 +100,9 @@ function _renderBellDrop(drop, notifications) {
       +     'style="width:32px;height:32px;border-radius:5px;image-rendering:pixelated;flex-shrink:0"/>'
       +   '<div style="flex:1;min-width:0">'
       +     '<div style="font-size:.82rem;color:#f1f5f9;font-weight:' + (unseen ? '700' : '500') + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
-      +       _esc(n.fromName) + '<span style="color:#94a3b8;font-weight:400"> followed your profile</span>'
+      +       _esc(n.fromName) + '<span style="color:#94a3b8;font-weight:400">'
+      +         (n.type === 'new_comment' ? ' commented on your profile' : ' followed your profile')
+      +       '</span>'
       +     '</div>'
       +     '<div style="font-size:.72rem;color:#64748b;margin-top:1px">' + _timeAgo(n.ts) + '</div>'
       +   '</div>'

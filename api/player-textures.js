@@ -427,7 +427,8 @@ module.exports = async function handler(req, res) {
     if (!/^[0-9a-f]{32}$/.test(raw)) return res.status(400).json({ error: 'invalid uuid' });
     const settings = await kvGet(`profile-settings:${raw}`);
     const enabled = !settings || settings.commentsEnabled !== false;
-    if (!enabled) { res.setHeader('Cache-Control','no-store'); return res.status(200).json({ comments: [], enabled: false }); }
+    // Always return existing comments regardless of enabled state —
+    // disabling only prevents NEW comments, existing ones remain visible.
     const [members] = await kvPipeline([['ZREVRANGE', `comments:${raw}`, 0, 99]]);
     const comments = [];
     if (Array.isArray(members)) {

@@ -1238,9 +1238,11 @@ function loadComments(cleanUuid){
       if(!section)return;
       var currentUserId=window.Clerk&&window.Clerk.user?window.Clerk.user.id:null;
       var isOwner=!!(currentUserId&&window._profileOwnerClerkId&&currentUserId===window._profileOwnerClerkId);
-      if(!data.enabled&&!isOwner){section.style.display='none';return;}
+      var comments=data.comments||[];
+      // Hide section only if disabled AND no existing comments AND not the owner
+      if(!data.enabled&&!isOwner&&!comments.length){section.style.display='none';return;}
       section.style.display='block';
-      _renderComments(data.comments||[],isOwner,currentUserId);
+      _renderComments(comments,isOwner,currentUserId);
       _renderCommentInput(isOwner,data.enabled,currentUserId);
     })
     .catch(function(){});
@@ -1251,10 +1253,6 @@ function _renderComments(comments,isOwner,currentUserId){
   var countEl=document.getElementById('commentsCount');
   if(!listEl)return;
   if(countEl)countEl.textContent=comments.length?'('+comments.length+')':'';
-  if(!_commentsEnabled&&!isOwner){
-    listEl.innerHTML='<div style="color:var(--muted);font-size:.84rem;padding:.25rem 0">Comments are disabled on this profile.</div>';
-    return;
-  }
   if(!comments.length){
     listEl.innerHTML='<div style="color:var(--muted);font-size:.84rem;padding:.25rem 0">No comments yet — be the first!</div>';
     return;
@@ -1280,8 +1278,10 @@ function _renderCommentInput(isOwner,enabled,currentUserId){
   var area=document.getElementById('commentInputArea');
   if(!area)return;
   var html='';
-  if(isOwner&&!enabled){
-    html+='<div style="background:rgba(248,113,113,.07);border:1px solid rgba(248,113,113,.2);border-radius:var(--rad);padding:.7rem 1rem;font-size:.82rem;color:var(--muted);margin-bottom:.75rem">Comments are disabled. Enable them in ⚙ Profile Settings.</div>';
+  if(!enabled&&isOwner){
+    html+='<div style="background:rgba(248,113,113,.07);border:1px solid rgba(248,113,113,.2);border-radius:var(--rad);padding:.7rem 1rem;font-size:.82rem;color:var(--muted);margin-bottom:.75rem">New comments are disabled. Existing comments are still visible. Enable in ⚙ Profile Settings.</div>';
+  } else if(!enabled&&!isOwner){
+    html+='<div style="font-size:.78rem;color:var(--muted);padding:.35rem 0">Comments are closed on this profile.</div>';
   }
   if(enabled&&currentUserId){
     html+='<textarea class="comment-ta" id="commentText" maxlength="500" placeholder="Write a comment…"></textarea>'+

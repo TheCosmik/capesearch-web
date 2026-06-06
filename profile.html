@@ -1282,11 +1282,13 @@ function _renderCommentInput(isOwner,enabled,currentUserId){
   if(!area)return;
   var html='';
   if(!enabled&&isOwner){
-    html+='<div style="background:rgba(248,113,113,.07);border:1px solid rgba(248,113,113,.2);border-radius:var(--rad);padding:.7rem 1rem;font-size:.82rem;color:var(--muted);margin-bottom:.75rem">New comments are disabled. Existing comments are still visible. Enable in ⚙ Profile Settings.</div>';
+    html+='<div style="background:rgba(248,113,113,.07);border:1px solid rgba(248,113,113,.2);border-radius:var(--rad);padding:.7rem 1rem;font-size:.82rem;color:var(--muted)">New comments are disabled. Existing comments are still visible. Enable in ⚙ Profile Settings.</div>';
   } else if(!enabled&&!isOwner){
-    html+='<div style="font-size:.78rem;color:var(--muted);padding:.35rem 0">Comments are closed on this profile.</div>';
+    html+='<div style="font-size:.78rem;color:var(--muted);padding:.35rem 0">💬 Comments are closed on this profile.</div>';
   }
-  if(enabled&&currentUserId){
+  if(enabled&&isOwner){
+    html+='<div style="font-size:.78rem;color:var(--muted);padding:.35rem 0">You cannot comment on your own profile.</div>';
+  } else if(enabled&&currentUserId){
     html+='<textarea class="comment-ta" id="commentText" maxlength="500" placeholder="Write a comment…"></textarea>'+
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:.5rem">'+
         '<span id="cmtCharCount" style="font-size:.73rem;color:var(--muted)">0 / 500</span>'+

@@ -468,6 +468,8 @@ module.exports = async function handler(req, res) {
         authorName = storedName || authorUuid.slice(0, 8);
       }
     } catch { return res.status(500).json({ error: 'Account lookup failed' }); }
+    // Prevent commenting on your own profile
+    if (authorUuid === cleanTarget) return res.status(403).json({ error: 'You cannot comment on your own profile.' });
     const trimmed = String(text).trim().slice(0, 500);
     if (!trimmed) return res.status(400).json({ error: 'Empty comment' });
     const now = Date.now();

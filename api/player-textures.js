@@ -573,10 +573,13 @@ module.exports = async function handler(req, res) {
       for (const m of members) { try { const c = JSON.parse(m); if (c.id === commentId) { targetComment = c; break; } } catch {} }
     }
     if (!targetComment) return res.status(404).json({ error: 'Comment not found' });
+    // Look up the profile owner's display name for the admin panel
+    const [profileNameRaw] = await kvPipeline([['GET', `pname:${cleanProfile}`]]);
+    const profileName = profileNameRaw || cleanProfile.slice(0, 8);
     const now = Date.now();
     const report = {
       id: `${now}-${Math.random().toString(36).slice(2, 8)}`,
-      commentId, profileUuid: cleanProfile,
+      commentId, profileUuid: cleanProfile, profileName,
       commentAuthorUuid: targetComment.authorUuid, commentAuthorName: targetComment.authorName,
       commentText: targetComment.text,
       reporterClerkId: clerkUserId, reporterUuid, reporterName,

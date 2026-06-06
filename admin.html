@@ -679,9 +679,9 @@ function loadReports() {
           '<div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-start">'+
             // Commented-on profile
             '<div style="flex:1;min-width:220px">'+
-              '<div style="font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.3rem">Profile</div>'+
-              '<a href="profile.html?name='+encodeURIComponent(r.commentAuthorName)+'" style="font-size:.82rem">'+
-                'View profile this comment is on &rarr;'+
+              '<div style="font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.3rem">Profile Comment Is On</div>'+
+              '<a href="profile.html?name='+encodeURIComponent(r.profileName||r.profileUuid)+'" style="font-size:.82rem;font-weight:600">'+
+                escR(r.profileName||r.profileUuid)+' &rarr;'+
               '</a>'+
             '</div>'+
             // Timestamp

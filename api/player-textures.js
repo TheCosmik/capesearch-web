@@ -415,6 +415,11 @@ module.exports = async function handler(req, res) {
     // Merge into existing settings so other keys (e.g. commentsEnabled) are preserved
     const existing = await kvGet(`profile-settings:${clean}`) || {};
     existing.hideOldNames = !!settings.hideOldNames;
+    if (settings.socialLinks && typeof settings.socialLinks === 'object') {
+      existing.socialLinks = settings.socialLinks;
+    } else if (settings.socialLinks === null) {
+      delete existing.socialLinks;
+    }
     await kvSet(`profile-settings:${clean}`, existing);
     res.setHeader('Cache-Control', 'no-store');
     return res.status(200).json({ ok: true });

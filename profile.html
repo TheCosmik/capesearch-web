@@ -1261,8 +1261,10 @@ function _renderComments(comments,isOwner,currentUserId){
   listEl.innerHTML=comments.map(function(c){
     var canDelete=isOwner||(currentUserId&&c.authorClerkId===currentUserId);
     return'<div class="comment" id="cmt-'+escHtml(c.id)+'">'+
-      '<img class="comment-av" src="https://mc-heads.net/avatar/'+encodeURIComponent(c.authorUuid)+'/36" '+
-        'onerror="this.src=\'https://mc-heads.net/avatar/Steve/36\'" alt="">'+
+      '<a href="profile.html?name='+encodeURIComponent(c.authorName)+'" style="flex-shrink:0;display:block">'+
+        '<img class="comment-av" src="https://mc-heads.net/avatar/'+encodeURIComponent(c.authorUuid)+'/36" '+
+          'onerror="this.src=\'https://mc-heads.net/avatar/Steve/36\'" alt="" style="display:block">'+
+      '</a>'+
       '<div class="comment-body">'+
         '<a class="comment-author" href="profile.html?name='+encodeURIComponent(c.authorName)+'" style="color:var(--txt);text-decoration:none" onmouseover="this.style.color=\'var(--green)\'" onmouseout="this.style.color=\'var(--txt)\'">'+escHtml(c.authorName)+'</a>'+
         '<div class="comment-text">'+escHtml(c.text)+'</div>'+

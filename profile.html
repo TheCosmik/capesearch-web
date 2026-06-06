@@ -1261,7 +1261,7 @@ function _renderComments(comments,isOwner,currentUserId){
   listEl.innerHTML=comments.map(function(c){
     var canDelete=isOwner||(currentUserId&&c.authorClerkId===currentUserId);
     return'<div class="comment" id="cmt-'+escHtml(c.id)+'">'+
-      '<img class="comment-av" src="https://crafatar.com/avatars/'+encodeURIComponent(c.authorUuid)+'?size=36&overlay" '+
+      '<img class="comment-av" src="https://mc-heads.net/avatar/'+encodeURIComponent(c.authorUuid)+'/36" '+
         'onerror="this.src=\'https://mc-heads.net/avatar/Steve/36\'" alt="">'+
       '<div class="comment-body">'+
         '<div class="comment-author">'+escHtml(c.authorName)+'</div>'+

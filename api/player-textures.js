@@ -461,8 +461,12 @@ module.exports = async function handler(req, res) {
       const accounts = Array.isArray(parsed) ? parsed : [parsed];
       if (!accounts.length) return res.status(403).json({ error: 'No Minecraft account linked' });
       authorUuid = accounts[0].minecraftUuid;
-      const [storedName] = await kvPipeline([['GET', `pname:${authorUuid}`]]);
-      authorName = storedName || authorUuid.slice(0, 8);
+      // Prefer the name stored on the account; fall back to pname key
+      authorName = accounts[0].minecraftName || null;
+      if (!authorName) {
+        const [storedName] = await kvPipeline([['GET', `pname:${authorUuid}`]]);
+        authorName = storedName || authorUuid.slice(0, 8);
+      }
     } catch { return res.status(500).json({ error: 'Account lookup failed' }); }
     const trimmed = String(text).trim().slice(0, 500);
     if (!trimmed) return res.status(400).json({ error: 'Empty comment' });

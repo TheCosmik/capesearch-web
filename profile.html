@@ -209,6 +209,17 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
 .mpc .pn{font-weight:700;font-size:.85rem}
 .mpc .pm{font-size:.72rem;color:var(--muted);margin-top:1px}
 @media(max-width:640px){.mbody{flex-direction:column}.mbody-left{min-width:unset;width:100%}}
+
+/* SOCIAL ICONS */
+.social-icons{display:flex;gap:.45rem;flex-wrap:wrap;margin-top:.55rem}
+.social-icon{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;text-decoration:none;transition:transform .15s,opacity .15s;flex-shrink:0}
+.social-icon:hover{transform:scale(1.15);opacity:.9;text-decoration:none}
+.social-icon svg{width:16px;height:16px;fill:currentColor}
+/* Social links modal */
+.social-platform-grid{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1rem}
+.spl-btn{background:var(--card);border:1px solid var(--bdr);color:var(--txt2);border-radius:999px;padding:.28rem .75rem;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .15s}
+.spl-btn:hover{border-color:var(--green);color:var(--green)}
+.spl-btn.on{color:#fff;border-color:transparent}
 </style>
 <script async crossorigin="anonymous"
   data-clerk-publishable-key="pk_test_c3RlYWR5LWZpbGx5LTY4LmNsZXJrLmFjY291bnRzLmRldiQ"
@@ -267,6 +278,7 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
       <div class="pbadges" id="pBadges"></div>
       <div id="pViews" style="font-size:.75rem;color:var(--muted);margin-bottom:.6rem"></div>
       <div class="pacts" id="pActs"></div>
+      <div class="social-icons" id="pSocials"></div>
     </div>
   </div>
 </div>
@@ -485,6 +497,29 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
         <div style="font-size:.85rem;font-weight:700;margin-bottom:.75rem;margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid var(--bdr)">Known Wearers</div>
         <div style="display:flex;flex-wrap:wrap;gap:.4rem" id="mWearers"></div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- SOCIAL LINKS MODAL -->
+<div class="overlay" id="socialOverlay">
+  <div class="modal" style="max-width:500px;padding:1.75rem;position:relative">
+    <button class="mclose" onclick="closeSocialModal()" style="position:absolute;top:1rem;right:1rem">✕</button>
+    <div style="font-size:1.1rem;font-weight:800;margin-bottom:.25rem">🔗 Social Links</div>
+    <div style="font-size:.82rem;color:var(--txt2);margin-bottom:1.1rem">Select a platform then paste your profile URL.</div>
+    <div class="social-platform-grid" id="socialPlatformGrid"></div>
+    <div id="socialInputArea" style="display:none;margin-top:.25rem">
+      <div style="font-size:.78rem;color:var(--muted);margin-bottom:.35rem" id="socialInputLabel"></div>
+      <input id="socialUrlInput" type="url" placeholder="https://…"
+        style="width:100%;background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--rad);color:var(--txt);
+               padding:.55rem .8rem;font-size:.875rem;outline:none;transition:border-color .2s;box-sizing:border-box"
+        onfocus="this.style.borderColor='var(--green)'" onblur="this.style.borderColor='var(--bdr)'"/>
+      <div style="display:flex;justify-content:flex-end;gap:.5rem;margin-top:.65rem">
+        <button class="btn btn-sm" id="socialRemoveBtn" onclick="removeSocialLink()"
+          style="background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);color:var(--red);display:none">Remove</button>
+        <button class="btn btn-p btn-sm" onclick="saveSocialLink()">Save Link</button>
+      </div>
+      <div id="socialSaveStatus" style="font-size:.76rem;margin-top:.4rem;min-height:1rem"></div>
     </div>
   </div>
 </div>
@@ -2169,6 +2204,8 @@ function loadProfileSettings(cleanUuid){
       if(cb) cb.checked = !!window._profileSettings.hideOldNames;
       // Re-render name history with updated settings
       if(window._lastNameHistory) renderNameHistory(window._lastNameHistory);
+      // Render social icons for all visitors
+      renderSocialIcons(window._profileSettings.socialLinks || {});
     })
     .catch(function(){});
 }
@@ -2317,6 +2354,15 @@ function _renderActsWithClaim(uuid, name, isClaimed, ownerUserId) {
             '</span>'+
           '</label>'+
           '<hr style="border:none;border-top:1px solid var(--bdr);margin:.85rem 0"/>'+
+          '<button onclick="openSocialModal()" '+
+            'style="width:100%;background:var(--card2);border:1px solid var(--bdr);'+
+            'color:var(--txt2);border-radius:.5rem;padding:.45rem .75rem;font-size:.82rem;font-weight:600;'+
+            'cursor:pointer;text-align:left;transition:background .15s;margin-bottom:.5rem" '+
+            'onmouseover="this.style.background=\'var(--bg2)\'" '+
+            'onmouseout="this.style.background=\'var(--card2)\'">'+
+            '🔗 Social Links'+
+          '</button>'+
+          '<hr style="border:none;border-top:1px solid var(--bdr);margin:.85rem 0"/>'+
           '<button onclick="openUnclaimConfirm()" '+
             'style="width:100%;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.25);'+
             'color:var(--red);border-radius:.5rem;padding:.45rem .75rem;font-size:.82rem;font-weight:600;'+
@@ -2457,6 +2503,182 @@ function closeClaimModal() {
 }
 document.getElementById('claimOverlay').addEventListener('click', function(e) {
   if (e.target === this) closeClaimModal();
+});
+</script>
+<!-- ── SOCIAL LINKS ───────────────────────────────────────────────────────── -->
+<script>
+var SOCIALS=[
+  {key:'bluesky',   label:'Bluesky',    color:'#0085ff', bg:'#0085ff22',
+   svg:'<path d="M12 2.4C8.7 5.5 3.8 11.4 3.8 15.6c0 2.5 1.6 4.1 3.9 4.1 1.3 0 2.4-.5 3.1-1.5.3-.4.5-.9.8-1.4.3.5.5 1 .8 1.4.7 1 1.8 1.5 3.1 1.5 2.3 0 3.9-1.6 3.9-4.1C19.4 11.4 15.3 5.5 12 2.4z"/>'},
+  {key:'discord',   label:'Discord',    color:'#5865F2', bg:'#5865F222',
+   svg:'<path d="M20.3 4.4a19 19 0 0 0-4.6-1.4.1.1 0 0 0-.1.1c-.2.4-.4.8-.5 1.2a17.5 17.5 0 0 0-5.2 0 12 12 0 0 0-.5-1.2c0-.1-.1-.1-.2-.1a19 19 0 0 0-4.6 1.4.1.1 0 0 0-.1.1C1.6 8.8.9 13 1.2 17.2c0 .1.1.1.1.2a19.1 19.1 0 0 0 5.7 2.9c.1 0 .2 0 .2-.1.4-.6.8-1.2 1.2-1.9.1-.1 0-.2-.1-.3-.6-.2-1.2-.5-1.7-.8-.1-.1-.1-.2 0-.3l.3-.3c.1 0 .1 0 .2.1 3.7 1.7 7.7 1.7 11.4 0h.2l.3.3c.1.1 0 .2 0 .3-.5.3-1.1.6-1.7.8-.1.1-.1.2-.1.3.4.7.8 1.3 1.2 1.9 0 .1.1.1.2.1a19 19 0 0 0 5.7-2.9.1.1 0 0 0 .1-.2c.4-4.8-.7-9-2.9-12.8a.1.1 0 0 0-.1-.1zM8.5 14.4c-1.1 0-2-1-2-2.3s.9-2.3 2-2.3 2 1 2 2.3-.9 2.3-2 2.3zm7 0c-1.1 0-2-1-2-2.3s.9-2.3 2-2.3 2 1 2 2.3-.9 2.3-2 2.3z"/>'},
+  {key:'facebook',  label:'Facebook',   color:'#1877F2', bg:'#1877F222',
+   svg:'<path d="M24 12a12 12 0 1 0-13.9 11.9v-8.4h-3V12h3V9.4c0-3 1.8-4.7 4.6-4.7l2.6.2v3h-1.5c-1.5 0-1.9.9-1.9 1.9V12h3.3l-.5 3.5H13.7v8.4A12 12 0 0 0 24 12z"/>'},
+  {key:'github',    label:'GitHub',     color:'#a0a0a0', bg:'#a0a0a022',
+   svg:'<path d="M12 2C6.5 2 2 6.5 2 12c0 4.4 2.9 8.2 6.9 9.5.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.4-3.4-1.4-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1.1 2.9.8.1-.6.3-1.1.6-1.4-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.8 1 .8-.2 1.7-.3 2.5-.3s1.7.1 2.5.3c2-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7 1 .7 2v3c0 .3.2.6.7.5C19.1 20.2 22 16.4 22 12c0-5.5-4.5-10-10-10z"/>'},
+  {key:'instagram', label:'Instagram',  color:'#E4405F', bg:'#E4405F22',
+   svg:'<path d="M12 2.2c3.2 0 3.6 0 4.9.1 3.3.2 4.8 1.7 5 5 .1 1.3.1 1.6.1 4.7s0 3.5-.1 4.7c-.2 3.3-1.7 4.8-5 5-1.3.1-1.6.1-4.9.1s-3.6 0-4.8-.1c-3.3-.2-4.8-1.7-5-5-.1-1.2-.1-1.6-.1-4.7s0-3.5.1-4.7c.2-3.3 1.7-4.8 5-5 1.2-.1 1.6-.1 4.8-.1zM12 0C8.7 0 8.3 0 7.1.1 2.7.3.3 2.7.1 7.1 0 8.3 0 8.7 0 12s0 3.7.1 4.9C.3 21.3 2.7 23.7 7.1 23.9c1.2.1 1.6.1 4.9.1s3.7 0 4.9-.1c4.4-.2 6.8-2.6 7-7 .1-1.2.1-1.6.1-4.9s0-3.7-.1-4.9C23.7 2.7 21.3.3 16.9.1 15.7 0 15.3 0 12 0zm0 5.8a6.2 6.2 0 1 0 0 12.4A6.2 6.2 0 0 0 12 5.8zm0 10.2a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.4-11.8a1.44 1.44 0 1 0 0 2.88 1.44 1.44 0 0 0 0-2.88z"/>'},
+  {key:'medal',     label:'Medal',      color:'#FDB52A', bg:'#FDB52A22',
+   svg:'<path d="M12 2l2.4 4.8 5.3.8-3.8 3.7.9 5.3L12 14l-4.8 2.6.9-5.3L4.3 7.6l5.3-.8L12 2zm0 13a5 5 0 1 0 0 10A5 5 0 0 0 12 15zm0 1.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7z"/>'},
+  {key:'reddit',    label:'Reddit',     color:'#FF4500', bg:'#FF450022',
+   svg:'<path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.9 13.2c0 2.4-2.6 4.3-5.9 4.3s-5.9-1.9-5.9-4.3c0-.1 0-.2.1-.4-.5-.3-.9-.8-.9-1.4 0-1 .8-1.8 1.7-1.8.5 0 .9.2 1.2.5 1-.7 2.4-1.1 4-1.1l.7-3.1 2.5.5c.2-.5.7-1 1.3-1 .8 0 1.4.6 1.4 1.4s-.6 1.4-1.4 1.4-1.4-.6-1.4-1.4l-2.2-.5-.6 2.7c1.5.1 2.9.5 3.9 1.2.3-.3.7-.5 1.2-.5.9 0 1.7.8 1.7 1.8 0 .6-.3 1.1-.9 1.4.1.2.1.3.1.4zM9.1 13a1 1 0 1 0 2 0 1 1 0 0 0-2 0zm2.7 2.7c.4-.4 1.1-.5 2.2-.5s1.8-.1 2.2.5c-.3.7-1.1 1.3-2.2 1.3s-1.9-.6-2.2-1.3zm2.1-1.7a1 1 0 1 0 2 0 1 1 0 0 0-2 0z"/>'},
+  {key:'snapchat',  label:'Snapchat',   color:'#FFFC00', bg:'#FFFC0022',
+   svg:'<path d="M12.2 2c2.4 0 5 1.4 6 3.8.3.8.4 1.6.4 2.5v.8c.4-.1.8-.3 1.1-.3.6 0 1.1.4 1.1 1s-.4.9-1 1.1c-.3.1-.7.2-1.2.2-.4 1.7-1.5 3.2-3 4.1.6.2 1.3.6 2 1.3.3.3.4.7.2 1-.6 1-2.9 1.3-5.6 1.7-.2.5-.5 1.3-1.2 1.3-.8 0-1.1-.8-1.3-1.3-2.7-.4-5-1-5.6-1.8-.2-.3-.1-.7.2-1 .7-.7 1.4-1.1 2-1.3-1.5-.9-2.6-2.4-3-4.1-.5 0-.9-.1-1.2-.2-.6-.2-1-.5-1-1.1 0-.6.5-1 1.1-1 .3 0 .7.1 1.1.3v-.8c0-.9.1-1.7.4-2.5C6.8 3.4 9.4 2 12.2 2z"/>'},
+  {key:'soundcloud',label:'SoundCloud', color:'#FF5500', bg:'#FF550022',
+   svg:'<path d="M1.2 13.5c0 1.5 1.2 2.7 2.8 2.7H18c1.7 0 3-1.3 3-2.9 0-1.3-.9-2.5-2.2-2.8v-.2c0-2.2-1.8-4-4.1-4-.8 0-1.6.2-2.3.6C11.8 5.3 10.3 4.5 8.7 4.5c-2.4 0-4.3 1.8-4.5 4.1C3 8.9 2.2 9.2 1.7 9.7c-.3.5-.5 1.1-.5 1.8zm4.7 1.1V9.8c0-.3.3-.6.6-.6s.6.3.6.6v4.8c0 .3-.3.6-.6.6s-.6-.3-.6-.6zm2 .8V8.5c0-.3.3-.6.6-.6s.6.3.6.6v6.9c0 .3-.3.6-.6.6s-.6-.3-.6-.6zm2 .1V9.1c0-.3.3-.6.6-.6s.6.3.6.6v6.4c0 .3-.3.6-.6.6s-.6-.3-.6-.6zm2-.3V9.8c0-.3.3-.6.6-.6s.6.3.6.6v5.4c0 .3-.3.6-.6.6s-.6-.3-.6-.6z"/>'},
+  {key:'spotify',   label:'Spotify',    color:'#1DB954', bg:'#1DB95422',
+   svg:'<path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm4.6 14.4c-.2.3-.6.4-.9.2-2.6-1.6-5.9-2-9.7-1.1-.4.1-.7-.1-.8-.5-.1-.4.1-.7.5-.8 4.2-.9 7.8-.5 10.7 1.3.3.2.4.6.2.9zm1.2-2.8c-.2.4-.7.5-1.1.3-3-1.8-7.5-2.3-11-1.3-.5.2-1-.1-1.1-.5-.2-.5.1-1 .5-1.1 4-.1 8.9.5 12.3 1.5.4.2.6.6.4 1.1zm.1-2.9c-3.5-2.1-9.4-2.3-12.7-1.3-.5.2-1.1-.1-1.2-.7-.2-.5.1-1.1.7-1.2 3.8-1.2 10.2-.9 14.2 1.5.5.3.7 1 .4 1.5-.3.5-1 .5-1.4.2z"/>'},
+  {key:'steam',     label:'Steam',      color:'#c2d4e0', bg:'#c2d4e022',
+   svg:'<path d="M12 2C6.5 2 2 6.5 2 12l5.4 2.2c.5-.3 1-.5 1.6-.5h.2l2.4-3.5v-.1c0-2 1.6-3.6 3.6-3.6S18.8 8.1 18.8 10.1s-1.6 3.6-3.6 3.6h-.1L11.7 16c0 .7-.2 1.4-.7 1.9s-1.1.8-1.8.8c-1.2 0-2.3-.9-2.5-2.1l-3.8-1.6A10 10 0 0 0 12 22c5.5 0 10-4.5 10-10S17.5 2 12 2zm-3.7 13.5c.2.8 1 1.4 1.9 1.4.5 0 1-.2 1.4-.5.4-.4.5-.9.5-1.4v-.1L8.8 16.3l-.5-.8zm6.9-5.8c-1.3 0-2.4-1.1-2.4-2.4s1.1-2.4 2.4-2.4 2.4 1.1 2.4 2.4-1.1 2.4-2.4 2.4zm0-4c-.9 0-1.6.7-1.6 1.6s.7 1.6 1.6 1.6 1.6-.7 1.6-1.6-.7-1.6-1.6-1.6z"/>'},
+  {key:'telegram',  label:'Telegram',   color:'#26A5E4', bg:'#26A5E422',
+   svg:'<path d="M9.4 16.6l-.4 5.5c.6 0 .9-.2 1.2-.6l2.9-2.8 6 4.4c1.1.6 1.9.3 2.1-.9l3.8-17.9c.3-1.4-.5-1.9-1.4-1.6L1.1 10.9C-.3 11.4-.3 12.3.8 12.6l5.1 1.6 11.9-7.5c.6-.4 1.1-.2.7.2L9.4 16.6z"/>'},
+  {key:'tiktok',    label:'TikTok',     color:'#ff0050', bg:'#ff005022',
+   svg:'<path d="M19.6 3.3A4.8 4.8 0 0 1 15.4 0h-3.7v16.6c-.1 1.7-1.5 3.1-3.2 3.1a3.2 3.2 0 0 1-3.2-3.2 3.2 3.2 0 0 1 3.2-3.2c.3 0 .6 0 .9.1V9.6a7 7 0 0 0-.9-.1C4.5 9.5 1 13 1 17.3 1 21.5 4.5 25 8.7 25s7.7-3.5 7.7-7.7V8.5c1.5 1 3.2 1.5 5 1.5V6.2a4.8 4.8 0 0 1-1.8-2.9z"/>'},
+  {key:'threads',   label:'Threads',    color:'#aaaaaa', bg:'#aaaaaa22',
+   svg:'<path d="M16.2 10.9c-.1-.1-.3-.2-.5-.2-1.3-.7-3.3-.7-4.6.1-1 .6-1.5 1.6-1.5 2.7 0 2.5 2 3.5 3.9 3.5.7 0 2.4-.2 3.1-1.8.3-.6.4-1.4.2-2.3-.2-.8-.6-1.5-.6-2zM12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c1.1 0 2.2-.2 3.2-.5-.7-.7-1.1-1.6-1.2-2.6-.6.2-1.3.3-2 .3-3.3 0-5.1-2.2-5.1-4.7 0-1.8.8-3.3 2.3-4.2 1.8-1.1 4.4-1.1 6.3 0 .6.4 1.1.8 1.4 1.4.5-1.1.6-2.4.2-3.7C16.2 6.2 14.2 5 12 5c-.7 0-1.4.1-2 .4V4.7A9.9 9.9 0 0 1 12 4.5c3.1 0 5.7 1.6 6.9 4-.3-3.9-3.4-6.5-6.9-6.5z"/>'},
+  {key:'twitch',    label:'Twitch',     color:'#9146FF', bg:'#9146FF22',
+   svg:'<path d="M11.6 5.8L11 10h2.4l-.6 4.2H15l1-8.4h-4.4zm-4.7 0l-.6 4.2H8.7L8 14.2h2.3l1-8.4H6.9zM4.8 2L2 9.2V20h4.1V22h2.3l2-2h3.1l4.2-4.2V2H4.8zm13.9 13.3-2.5 2.5h-3.8l-2 2v-2H6.9V4h11.8v11.3z"/>'},
+  {key:'x',         label:'X',          color:'#e7e9ea', bg:'#e7e9ea22',
+   svg:'<path d="M18.3 2h3.3L14.7 10 23 22h-6.6l-4.7-6.2L5.9 22H2.5l7.5-8.5L2 2h6.8l4.3 5.6L18.3 2zm-1.2 18h1.8L6.8 3.9H5L17.1 20z"/>'},
+  {key:'youtube',   label:'YouTube',    color:'#FF0000', bg:'#FF000022',
+   svg:'<path d="M23 7s-.3-2-1.2-2.7C20.7 3.1 19.4 3 18.7 3 15.6 2.9 12 2.9 12 2.9s-3.6 0-6.7.1c-.7 0-2 .1-3.1 1.3C1.3 5 1 7 1 7S.8 9 .8 11v2c0 2 .2 4 .2 4s.3 2 1.2 2.7c1.1 1.2 2.6 1.1 3.3 1.2C7.2 21 12 21 12 21s3.6 0 6.7-.2c.7-.1 2-.1 3.1-1.3.9-.7 1.2-2.7 1.2-2.7s.2-2 .2-4v-2c0-2-.2-4-.2-4zM9.8 15.5v-7l6.5 3.5-6.5 3.5z"/>'},
+];
+
+var _socialSelected = null;
+var _socialLinks = {};
+
+function openSocialModal() {
+  _socialSelected = null;
+  _socialLinks = (window._profileSettings && window._profileSettings.socialLinks) ? Object.assign({}, window._profileSettings.socialLinks) : {};
+  var grid = document.getElementById('socialPlatformGrid');
+  grid.innerHTML = SOCIALS.map(function(s) {
+    var has = !!_socialLinks[s.key];
+    return '<button class="spl-btn" id="splbtn-'+s.key+'" onclick="selectSocialPlatform(\''+s.key+'\')" '+
+      'style="'+(has ? 'background:'+s.color+';color:#fff;border-color:'+s.color : '')+'">' +
+      s.label + (has ? ' ✓' : '') + '</button>';
+  }).join('');
+  document.getElementById('socialInputArea').style.display = 'none';
+  document.getElementById('socialSaveStatus').textContent = '';
+  document.getElementById('socialOverlay').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeSocialModal() {
+  document.getElementById('socialOverlay').classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+function selectSocialPlatform(key) {
+  _socialSelected = key;
+  var s = SOCIALS.find(function(x){ return x.key === key; });
+  // Update button highlight
+  SOCIALS.forEach(function(p) {
+    var btn = document.getElementById('splbtn-' + p.key);
+    if (!btn) return;
+    var has = !!_socialLinks[p.key];
+    btn.className = 'spl-btn' + (p.key === key ? ' on' : '');
+    if (p.key === key) {
+      btn.style.background = s.color;
+      btn.style.borderColor = s.color;
+      btn.style.color = '#fff';
+    } else if (has) {
+      btn.style.background = p.color;
+      btn.style.borderColor = p.color;
+      btn.style.color = '#fff';
+    } else {
+      btn.style.background = '';
+      btn.style.borderColor = '';
+      btn.style.color = '';
+    }
+  });
+  var area = document.getElementById('socialInputArea');
+  var input = document.getElementById('socialUrlInput');
+  var removeBtn = document.getElementById('socialRemoveBtn');
+  document.getElementById('socialInputLabel').textContent = s.label + ' URL';
+  input.value = _socialLinks[key] || '';
+  removeBtn.style.display = _socialLinks[key] ? '' : 'none';
+  document.getElementById('socialSaveStatus').textContent = '';
+  area.style.display = '';
+  input.focus();
+}
+
+function saveSocialLink() {
+  if (!_socialSelected) return;
+  var url = document.getElementById('socialUrlInput').value.trim();
+  var statusEl = document.getElementById('socialSaveStatus');
+  if (url && !url.startsWith('http')) url = 'https://' + url;
+  if (url && !/^https?:\/\/.+/.test(url)) {
+    statusEl.style.color = 'var(--red)';
+    statusEl.textContent = 'Please enter a valid URL.';
+    return;
+  }
+  if (!window._profileSettings) window._profileSettings = {};
+  if (!window._profileSettings.socialLinks) window._profileSettings.socialLinks = {};
+  if (url) {
+    window._profileSettings.socialLinks[_socialSelected] = url;
+    _socialLinks[_socialSelected] = url;
+  } else {
+    delete window._profileSettings.socialLinks[_socialSelected];
+    delete _socialLinks[_socialSelected];
+  }
+  // Persist via existing settings API
+  var clerkUser = window.Clerk && window.Clerk.user && window.Clerk.user.id;
+  var uuid = window._currentProfileUuid || '';
+  fetch('/api/player-textures?action=set-settings', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ clerkUserId: clerkUser, uuid: uuid, settings: window._profileSettings }),
+  })
+  .then(function(r){ return r.ok ? r.json() : null; })
+  .then(function(d) {
+    if (d && d.ok) {
+      statusEl.style.color = 'var(--green)';
+      statusEl.textContent = '✓ Saved!';
+      // Refresh grid button state
+      var btn = document.getElementById('splbtn-' + _socialSelected);
+      var s = SOCIALS.find(function(x){ return x.key === _socialSelected; });
+      if (btn && s) {
+        var has = !!_socialLinks[_socialSelected];
+        btn.textContent = s.label + (has ? ' ✓' : '');
+        btn.style.background = has ? s.color : '';
+        btn.style.borderColor = has ? s.color : '';
+        btn.style.color = has ? '#fff' : '';
+      }
+      document.getElementById('socialRemoveBtn').style.display = _socialLinks[_socialSelected] ? '' : 'none';
+      // Re-render icons on profile
+      renderSocialIcons(window._profileSettings.socialLinks || {});
+    } else {
+      statusEl.style.color = 'var(--red)';
+      statusEl.textContent = '✗ Failed to save.';
+    }
+  })
+  .catch(function() {
+    statusEl.style.color = 'var(--red)';
+    statusEl.textContent = '✗ Network error.';
+  });
+}
+
+function removeSocialLink() {
+  document.getElementById('socialUrlInput').value = '';
+  saveSocialLink();
+}
+
+function renderSocialIcons(links) {
+  var el = document.getElementById('pSocials');
+  if (!el) return;
+  var html = '';
+  SOCIALS.forEach(function(s) {
+    var url = links && links[s.key];
+    if (!url) return;
+    html += '<a href="'+url+'" target="_blank" rel="noopener noreferrer" class="social-icon" '+
+      'title="'+s.label+'" style="background:'+s.bg+';color:'+s.color+';border:1px solid '+s.color+'44">'+
+      '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">'+s.svg+'</svg></a>';
+  });
+  el.innerHTML = html;
+}
+
+document.getElementById('socialOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeSocialModal();
 });
 </script>
 <script src="lang.js"></script>

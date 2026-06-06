@@ -222,6 +222,7 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.25rem 1re
           </tbody>
         </table>
       </div>
+      <div id="paginationBar" style="display:none;padding:.75rem 1.1rem;border-top:1px solid var(--bdr);display:flex;align-items:center;gap:.4rem;flex-wrap:wrap"></div>
     </div>
 
     <!-- Reports section -->
@@ -245,6 +246,8 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.25rem 1re
 <script>
 var _clerkUserId = null;
 var _allProfiles = [];
+var _currentPage  = 1;
+var _pageSize     = 25;
 
 // ── Access check ──────────────────────────────────────────────────────────────
 window.addEventListener('load', async function() {
@@ -327,14 +330,98 @@ function roleBadge(role, beta, vip) {
   return html || '<span style="color:var(--muted);font-size:.8rem">—</span>';
 }
 
-function renderTable(profiles) {
-  var tbody = document.getElementById('profilesTbody');
-  if (!profiles.length) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:2rem">No claimed profiles found.</td></tr>';
-    document.getElementById('resultsCount').textContent = '0 profiles';
+// ── Pagination-aware render ───────────────────────────────────────────────────
+function _filteredProfiles() {
+  var q    = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+  var role = document.getElementById('roleFilter').value;
+  return _allProfiles.filter(function(p) {
+    var matchSearch = !q || (p.name||'').toLowerCase().includes(q) || p.uuid.includes(q);
+    var matchRole   = !role ||
+      (role === 'none' ? !p.role && !p.beta && !p.vip :
+       role === 'beta' ? !!p.beta :
+       role === 'vip'  ? !!p.vip  :
+       p.role === role);
+    return matchSearch && matchRole;
+  });
+}
+
+function filterTable() {
+  _currentPage = 1;
+  document.getElementById('searchClear').style.display =
+    document.getElementById('searchInput').value ? '' : 'none';
+  renderTable(_filteredProfiles());
+}
+
+function clearSearch() {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('roleFilter').value  = '';
+  document.getElementById('searchClear').style.display = 'none';
+  filterTable();
+}
+
+function goToPage(page) {
+  _currentPage = page;
+  renderTable(_filteredProfiles());
+  document.getElementById('profilesTable').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderTable(filtered) {
+  var tbody   = document.getElementById('profilesTbody');
+  var pagBar  = document.getElementById('paginationBar');
+  var countEl = document.getElementById('resultsCount');
+
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:2rem">No profiles match your search.</td></tr>';
+    countEl.textContent = '0 profiles';
+    pagBar.style.display = 'none';
     return;
   }
 
+  // Pagination maths
+  var totalPages = Math.max(1, Math.ceil(filtered.length / _pageSize));
+  if (_currentPage > totalPages) _currentPage = totalPages;
+  var start    = (_currentPage - 1) * _pageSize;
+  var pageData = filtered.slice(start, start + _pageSize);
+
+  // Count label
+  var q = (document.getElementById('searchInput').value || '').trim();
+  var role = document.getElementById('roleFilter').value;
+  var total = _allProfiles.length;
+  if (q || role) {
+    countEl.textContent = filtered.length + ' of ' + total + ' profile' + (total !== 1 ? 's' : '');
+  } else {
+    countEl.textContent = total + ' profile' + (total !== 1 ? 's' : '');
+  }
+
+  // Pagination bar
+  if (totalPages <= 1) {
+    pagBar.style.display = 'none';
+  } else {
+    pagBar.style.display = 'flex';
+    var btns = '';
+    // Prev
+    btns += '<button class="btn btn-o btn-sm" onclick="goToPage('+(_currentPage-1)+')"'+(  _currentPage===1?' disabled style="opacity:.4;cursor:default"':'')+'>‹ Prev</button>';
+    // Page numbers — show up to 7 buttons with ellipsis
+    var pages = [];
+    for (var pg = 1; pg <= totalPages; pg++) {
+      if (pg === 1 || pg === totalPages || (pg >= _currentPage - 2 && pg <= _currentPage + 2)) {
+        pages.push(pg);
+      }
+    }
+    var last = 0;
+    pages.forEach(function(pg) {
+      if (last && pg - last > 1) btns += '<span style="color:var(--muted);padding:0 .2rem">…</span>';
+      var active = pg === _currentPage;
+      btns += '<button class="btn btn-sm" onclick="goToPage('+pg+')" style="'+(active?'background:var(--green);color:#0a1a0a':'border:1px solid var(--bdr);background:transparent;color:var(--txt2)')+'">' + pg + '</button>';
+      last = pg;
+    });
+    // Next
+    btns += '<button class="btn btn-o btn-sm" onclick="goToPage('+(_currentPage+1)+')"'+(_currentPage===totalPages?' disabled style="opacity:.4;cursor:default"':'')+'>Next ›</button>';
+    btns += '<span style="font-size:.78rem;color:var(--muted);margin-left:.25rem">Page '+_currentPage+' of '+totalPages+'</span>';
+    pagBar.innerHTML = btns;
+  }
+
+  var profiles = pageData;
   tbody.innerHTML = profiles.map(function(p) {
     var shortUuid = p.uuid.replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/, '$1-$2-$3-$4-$5');
     var dispUuid  = shortUuid.slice(0, 13) + '…';
@@ -379,8 +466,6 @@ function renderTable(profiles) {
       '</tr>';
   }).join('');
 
-  // Set initial results count
-  filterTable();
 }
 
 function onRoleChange(sel) {
@@ -433,65 +518,6 @@ function saveRole(btn) {
     btn.textContent = 'Save';
     btn.disabled = false;
   });
-}
-
-function filterTable() {
-  var q    = document.getElementById('searchInput').value.trim().toLowerCase();
-  var role = document.getElementById('roleFilter').value;
-
-  // Show/hide clear button
-  document.getElementById('searchClear').style.display = q ? '' : 'none';
-
-  var rows    = document.querySelectorAll('#profilesTbody tr[data-uuid]');
-  var visible = 0;
-
-  rows.forEach(function(row) {
-    var name     = row.dataset.name || '';
-    var uuid     = row.dataset.uuid || '';
-    var rowRole  = row.dataset.role || '';
-    var rowBeta  = row.dataset.beta || '';
-    var rowVip   = row.dataset.vip  || '';
-
-    var matchSearch = !q || name.includes(q) || uuid.includes(q);
-    var matchRole   = !role ||
-                      (role === 'none' ? !rowRole && !rowBeta && !rowVip :
-                       role === 'beta' ? rowBeta === '1' :
-                       role === 'vip'  ? rowVip  === '1' :
-                       rowRole === role);
-
-    var show = matchSearch && matchRole;
-    row.style.display = show ? '' : 'none';
-    if (show) visible++;
-  });
-
-  // Update result count
-  var total = rows.length;
-  var countEl = document.getElementById('resultsCount');
-  if (q || role) {
-    countEl.textContent = visible + ' of ' + total + ' profile' + (total !== 1 ? 's' : '');
-  } else {
-    countEl.textContent = total + ' profile' + (total !== 1 ? 's' : '');
-  }
-
-  // Show "no results" row if needed
-  var noRes = document.getElementById('noResultsRow');
-  if (visible === 0 && total > 0) {
-    if (!noRes) {
-      var tr = document.createElement('tr');
-      tr.id = 'noResultsRow';
-      tr.innerHTML = '<td colspan="6" style="text-align:center;color:var(--muted);padding:2rem">No profiles match your search.</td>';
-      document.getElementById('profilesTbody').appendChild(tr);
-    }
-  } else if (noRes) {
-    noRes.remove();
-  }
-}
-
-function clearSearch() {
-  document.getElementById('searchInput').value = '';
-  document.getElementById('roleFilter').value  = '';
-  document.getElementById('searchClear').style.display = 'none';
-  filterTable();
 }
 
 function copyUuid(uuid, btn) {

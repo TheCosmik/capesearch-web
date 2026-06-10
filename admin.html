@@ -365,7 +365,7 @@ function loadPanel(profiles) {
   // Owner-only UI elements
   var betaSection = document.getElementById('betaEnrollSection');
   var invSection  = document.getElementById('invItemsSection');
-  if (betaSection) betaSection.style.display = _isOwner ? '' : 'none';
+  if (betaSection) betaSection.style.display = _isOwner ? 'flex' : 'none';
   if (invSection)  invSection.style.display  = _isOwner ? '' : 'none';
   if (_isOwner) { loadBetaEnrollment(); renderItemGrid(); }
   renderTable(profiles);

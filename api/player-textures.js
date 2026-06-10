@@ -119,6 +119,24 @@ async function auditLog(actorName, actorUuid, action, targetName, targetUuid, de
   } catch {}
 }
 
+// ── Rate limiter (Redis INCR + EXPIRE, per IP) ───────────────────────────────
+// Returns true if the request is within limits, false if it should be blocked.
+async function rateLimit(req, action, maxPerWindow, windowSeconds) {
+  const ip = (req.headers['x-forwarded-for'] || '127.0.0.1').split(',')[0].trim();
+  const key = `rl:${action}:${ip}`;
+  const url   = process.env.UPSTASH_REDIS_REST_URL   || process.env.KV_REST_API_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+  if (!url || !token) return true; // no KV = no rate limiting (dev)
+  try {
+    const [incrRes, expireRes] = await kvPipeline([
+      ['INCR', key],
+      ['EXPIRE', key, String(windowSeconds), 'NX'], // only set TTL on first hit
+    ]);
+    const count = typeof incrRes === 'number' ? incrRes : parseInt(incrRes, 10);
+    return count <= maxPerWindow;
+  } catch { return true; }
+}
+
 // Resolves a clerkUserId to { name, uuid } for audit log actor info.
 async function resolveActor(clerkUserId) {
   const [raw] = await kvPipeline([['GET', `user-minecraft:${clerkUserId}`]]);
@@ -527,6 +545,7 @@ module.exports = async function handler(req, res) {
   if (req.method === 'POST' && req.query.action === 'post-comment') {
     const { clerkUserId, targetUuid, text } = req.body || {};
     if (!clerkUserId || !targetUuid || !text) return res.status(400).json({ error: 'missing fields' });
+    if (!(await rateLimit(req, 'post-comment', 5, 60))) return res.status(429).json({ error: 'Too many comments. Please wait a minute.' });
     const cleanTarget = targetUuid.replace(/-/g, '').toLowerCase();
     if (!/^[0-9a-f]{32}$/.test(cleanTarget)) return res.status(400).json({ error: 'invalid uuid' });
     // Profile must be claimed
@@ -638,6 +657,7 @@ module.exports = async function handler(req, res) {
   if (req.method === 'POST' && req.query.action === 'submit-report') {
     const { clerkUserId, profileUuid, commentId, reason } = req.body || {};
     if (!clerkUserId || !profileUuid || !commentId || !reason) return res.status(400).json({ error: 'missing fields' });
+    if (!(await rateLimit(req, 'submit-report', 3, 300))) return res.status(429).json({ error: 'Too many reports. Please wait a few minutes.' });
     const cleanProfile = profileUuid.replace(/-/g, '').toLowerCase();
     // Get reporter's Minecraft info
     let reporterUuid = '', reporterName = 'Unknown';

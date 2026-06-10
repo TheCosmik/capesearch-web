@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%234ade80'/><text x='50' y='87' font-size='74' text-anchor='middle' fill='white'>⛏</text></svg>"/>
+<title>Player Comparison – CapeSearch</title>
+<meta name="description" content="Compare two Minecraft players side by side — capes, skins, name history, and stats."/>
+<meta property="og:type" content="website"/>
+<meta property="og:site_name" content="CapeSearch"/>
+<meta property="og:title" content="Player Comparison – CapeSearch"/>
+<meta property="og:description" content="Compare two Minecraft players side by side — capes, skins, name history, and stats."/>
+<meta property="og:url" content="https://capesearch.net/compare.html"/>
+<meta property="og:image" content="https://capesearch.net/og-image.png"/>
+<link rel="canonical" href="https://capesearch.net/compare.html"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1923;--bg2:#131f2e;--card:#182030;--card2:#1e2b3f;
+  --green:#4ade80;--green2:#22c55e;--gdim:rgba(74,222,128,.13);
+  --txt:#f1f5f9;--txt2:#94a3b8;--muted:#64748b;
+  --bdr:#243347;--bdr2:#2d3f5e;--rad:8px;--rad2:12px;
+  --red:#f87171;--yellow:#fbbf24;--blue:#60a5fa;
+}
+html{font-size:16px}
+body{background:var(--bg);color:var(--txt);font-family:'Segoe UI',system-ui,sans-serif;line-height:1.5;min-height:100vh}
+a{color:var(--green);text-decoration:none}a:hover{text-decoration:underline}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg2)}::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:3px}
+
+.nav{background:var(--bg2);border-bottom:1px solid var(--bdr);position:sticky;top:0;z-index:99;padding:0 1rem}
+.nav-in{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:1rem;height:54px}
+.logo{display:flex;align-items:center;gap:.5rem;font-size:1.15rem;font-weight:800;color:var(--txt);text-decoration:none;flex-shrink:0}
+.logo-icon{width:30px;height:30px;background:var(--green);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.logo span{color:var(--green)}
+.nav-links{display:flex;gap:.15rem;margin-left:auto}
+.nav-links a{color:var(--txt2);font-size:.875rem;font-weight:500;padding:.35rem .7rem;border-radius:var(--rad);transition:all .2s}
+.nav-links a:hover,.nav-links a.on{color:var(--txt);background:var(--card);text-decoration:none}
+
+.phdr{background:var(--bg2);border-bottom:1px solid var(--bdr);padding:1.75rem 1rem}
+.phdr-in{max-width:1200px;margin:0 auto}
+.phdr h1{font-size:1.5rem;font-weight:800}
+.phdr p{color:var(--txt2);font-size:.875rem;margin-top:.15rem}
+
+.wrap{max-width:1200px;margin:0 auto;padding:1.5rem 1rem 3rem}
+
+.badge{display:inline-flex;align-items:center;padding:.12rem .5rem;border-radius:999px;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap}
+.bg{background:var(--gdim);color:var(--green)}
+.br{background:rgba(248,113,113,.14);color:var(--red)}
+.by{background:rgba(251,191,36,.14);color:var(--yellow)}
+.bb{background:rgba(96,165,250,.14);color:var(--blue)}
+.bv{background:rgba(167,139,250,.15);color:#a78bfa}
+
+.btn{display:inline-flex;align-items:center;gap:.35rem;padding:.45rem .9rem;border-radius:var(--rad);font-size:.8rem;font-weight:600;cursor:pointer;border:none;transition:all .2s;text-decoration:none}
+.btn-p{background:var(--green);color:#0a1a0a}.btn-p:hover{background:var(--green2)}
+.btn-o{background:transparent;border:1px solid var(--bdr);color:var(--txt2)}.btn-o:hover{border-color:var(--green);color:var(--green)}
+.btn-sm{padding:.3rem .7rem;font-size:.78rem}
+
+/* Search inputs */
+.search-row{display:grid;grid-template-columns:1fr auto 1fr;gap:1rem;align-items:center;margin-bottom:2rem}
+@media(max-width:640px){.search-row{grid-template-columns:1fr;}.vs-badge{display:none}}
+.vs-badge{text-align:center;font-size:1.5rem;font-weight:900;color:var(--muted);user-select:none}
+.si-wrap{position:relative}
+.si-wrap input{width:100%;background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad2);color:var(--txt);padding:.75rem 1rem .75rem 2.75rem;font-size:1rem;font-weight:600;outline:none;transition:border-color .25s}
+.si-wrap input:focus{border-color:var(--green)}
+.si-wrap input::placeholder{color:var(--muted);font-weight:400}
+.si-wrap .si-icon{position:absolute;left:.85rem;top:50%;transform:translateY(-50%);width:28px;height:28px;border-radius:4px;image-rendering:pixelated;display:none}
+.si-wrap .si-mag{position:absolute;left:.9rem;top:50%;transform:translateY(-50%);color:var(--muted);font-size:16px;pointer-events:none}
+.si-wrap.has-avatar .si-icon{display:block}
+.si-wrap.has-avatar .si-mag{display:none}
+.si-wrap .si-clear{position:absolute;right:.75rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:0;display:none;line-height:1}
+.si-wrap.has-input .si-clear{display:block}
+
+/* Player cards */
+.compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
+@media(max-width:700px){.compare-grid{grid-template-columns:1fr}}
+.player-card{background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad2);overflow:hidden}
+.pc-header{padding:1.5rem 1.25rem;display:flex;align-items:flex-start;gap:1rem;border-bottom:1px solid var(--bdr)}
+.pc-avatar{width:72px;height:72px;border-radius:var(--rad);image-rendering:pixelated;flex-shrink:0;background:var(--bg2)}
+.pc-info{flex:1;min-width:0}
+.pc-name{font-size:1.2rem;font-weight:800;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pc-uuid{font-size:.7rem;color:var(--muted);font-family:monospace;margin-top:.2rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pc-badges{display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.5rem}
+
+.pc-section{padding:1rem 1.25rem;border-bottom:1px solid var(--bdr)}
+.pc-section:last-child{border-bottom:none}
+.pc-label{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:.65rem}
+
+/* Cape strip */
+.cape-strip{display:flex;gap:.5rem;flex-wrap:wrap}
+.cape-thumb{text-align:center;cursor:default}
+.cape-thumb img{width:40px;height:auto;display:block;margin:0 auto;border-radius:3px;image-rendering:pixelated}
+.cape-thumb .ct-name{font-size:.65rem;color:var(--txt2);margin-top:.25rem;max-width:56px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cape-thumb.active img{outline:2px solid var(--green);border-radius:3px}
+
+/* Name history */
+.name-list{display:flex;flex-direction:column;gap:.25rem}
+.name-row{display:flex;align-items:center;justify-content:space-between;padding:.3rem 0;border-bottom:1px solid var(--bdr);font-size:.82rem}
+.name-row:last-child{border-bottom:none}
+.name-row .nr-name{font-weight:600}
+.name-row .nr-date{color:var(--muted);font-size:.75rem}
+
+/* Stats row */
+.stats-row{display:flex;gap:1rem;flex-wrap:wrap}
+.stat-item{flex:1;min-width:60px;text-align:center;padding:.6rem .5rem;background:var(--bg2);border-radius:var(--rad);border:1px solid var(--bdr)}
+.stat-item .sv{font-size:1.1rem;font-weight:800;color:var(--green)}
+.stat-item .sk{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-top:.1rem}
+
+/* Placeholder / loading */
+.pc-placeholder{padding:3rem 1.25rem;text-align:center;color:var(--muted)}
+.pc-placeholder .pp-icon{font-size:2.5rem;margin-bottom:.75rem}
+.pc-placeholder .pp-text{font-size:.875rem}
+.loading-shimmer{background:linear-gradient(90deg,var(--card) 25%,var(--card2) 50%,var(--card) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:4px;height:14px;margin:.4rem 0}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* Highlights bar */
+.highlights{background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad2);padding:1rem 1.25rem;margin-bottom:1.5rem;display:none}
+.hl-title{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:.75rem}
+.hl-row{display:flex;gap:.5rem;flex-wrap:wrap}
+.hl-chip{display:inline-flex;align-items:center;gap:.4rem;padding:.3rem .65rem;border-radius:999px;font-size:.78rem;font-weight:600;background:var(--bg2);border:1px solid var(--bdr)}
+
+.nav-burger{display:none;background:none;border:none;color:var(--txt);font-size:1.4rem;cursor:pointer;padding:.25rem .45rem;line-height:1;flex-shrink:0}
+.nav-mob{display:none;border-top:1px solid var(--bdr);flex-direction:column;gap:.1rem;padding:.5rem 0 .8rem}
+.nav-mob.open{display:flex}
+.nav-mob a{color:var(--txt2);font-size:.9rem;font-weight:500;padding:.5rem .75rem;border-radius:var(--rad);transition:all .2s;text-decoration:none;display:block}
+.nav-mob a:hover,.nav-mob a.on{color:var(--txt);background:var(--card)}
+@media(max-width:768px){.nav-links{display:none}.nav-burger{display:block}}
+</style>
+<script async crossorigin="anonymous"
+  data-clerk-publishable-key="pk_test_c3RlYWR5LWZpbGx5LTY4LmNsZXJrLmFjY291bnRzLmRldiQ"
+  src="https://steady-filly-68.clerk.accounts.dev/npm/@clerk/clerk-js@5/dist/clerk.browser.js"
+  type="text/javascript"></script>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-in">
+    <a href="index.html" class="logo"><div class="logo-icon">⛏</div><b>Cape<span>Search</span></b></a>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="capes.html">Capes</a>
+      <a href="servers.html">Servers</a>
+      <a href="https://discord.gg/g8AqWJaVEK" target="_blank" rel="noopener">Discord</a>
+      <a href="https://capesearch.tebex.io" target="_blank" rel="noopener">Store</a>
+    </div>
+    <button class="nav-burger" id="navBurger" aria-label="Toggle menu">☰</button>
+    <div style="display:flex;align-items:center;margin-left:.5rem;flex-shrink:0">
+      <button id="clerkSignIn" style="display:none;background:var(--green);color:#0f1923;border:none;border-radius:var(--rad);padding:.35rem .9rem;font-size:.875rem;font-weight:700;cursor:pointer" onclick="window.Clerk&&window.Clerk.openSignIn()">Log in</button>
+      <div id="clerkUser" style="display:none;align-items:center"></div>
+    </div>
+  </div>
+  <div class="nav-mob" id="navMob">
+    <a href="index.html">Home</a>
+    <a href="capes.html">Capes</a>
+    <a href="servers.html">Servers</a>
+    <a href="https://discord.gg/g8AqWJaVEK" target="_blank" rel="noopener">Discord</a>
+    <a href="https://capesearch.tebex.io" target="_blank" rel="noopener">Store</a>
+  </div>
+</nav>
+<script>
+(function(){
+  var btn=document.getElementById('navBurger'),mob=document.getElementById('navMob');
+  if(!btn||!mob)return;
+  btn.addEventListener('click',function(e){e.stopPropagation();var o=mob.classList.toggle('open');btn.textContent=o?'✕':'☰';});
+  document.addEventListener('click',function(e){if(!e.target.closest('.nav')){mob.classList.remove('open');btn.textContent='☰';}});
+  mob.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){mob.classList.remove('open');btn.textContent='☰';});});
+})();
+</script>
+
+<div class="phdr">
+  <div class="phdr-in">
+    <h1>⚔ Player Comparison</h1>
+    <p>Compare two Minecraft players side by side — capes, name history, and stats.</p>
+  </div>
+</div>
+
+<div class="wrap">
+  <!-- Search row -->
+  <div class="search-row">
+    <div class="si-wrap" id="wrapA">
+      <img class="si-icon" id="avatarA" src="" alt=""/>
+      <span class="si-mag">🔍</span>
+      <input id="inputA" type="text" placeholder="Player A username…" autocomplete="off" autocorrect="off" spellcheck="false"/>
+      <button class="si-clear" id="clearA" title="Clear">✕</button>
+    </div>
+    <div class="vs-badge">VS</div>
+    <div class="si-wrap" id="wrapB">
+      <img class="si-icon" id="avatarB" src="" alt=""/>
+      <span class="si-mag">🔍</span>
+      <input id="inputB" type="text" placeholder="Player B username…" autocomplete="off" autocorrect="off" spellcheck="false"/>
+      <button class="si-clear" id="clearB" title="Clear">✕</button>
+    </div>
+  </div>
+
+  <!-- Highlights bar (shown when both players loaded) -->
+  <div class="highlights" id="highlights">
+    <div class="hl-title">⚡ Highlights</div>
+    <div class="hl-row" id="hlRow"></div>
+  </div>
+
+  <!-- Side by side cards -->
+  <div class="compare-grid">
+    <div class="player-card" id="cardA">
+      <div class="pc-placeholder"><div class="pp-icon">👤</div><div class="pp-text">Enter a username above to load Player A</div></div>
+    </div>
+    <div class="player-card" id="cardB">
+      <div class="pc-placeholder"><div class="pp-icon">👤</div><div class="pp-text">Enter a username above to load Player B</div></div>
+    </div>
+  </div>
+</div>
+
+<footer style="background:var(--bg2);border-top:1px solid var(--bdr);padding:1.25rem 1rem;margin-top:2rem">
+  <div style="max-width:1200px;margin:0 auto;font-size:.7rem;color:var(--muted);text-align:center">© 2025 CapeSearch · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></div>
+</footer>
+
+<script src="clerk-auth.js"></script>
+<script>
+// ── Cape hash → name/image map (subset for display) ───────────────────────────
+var CAPE_HASH_DATA = {
+  '2340c0e03dd24a11b15a8b33c2a7e9e32abb2051b2481d0ba7defd635ca7a933':{name:'Migrator',img:'capes/migrator.png'},
+  '7658c5025c77cfac7574aab3af94a46a8886e3b7722a895255fbf22ab8652434':{name:'Experience',img:'capes/experience.png'},
+  '28de4a81688ad18b49e735a273e086c18f1e3966956123ccb574034c06f5d336':{name:'Pan',img:'capes/pan.png'},
+  '9e507afc56359978a3eb3e32367042b853cddd0995d17d0da995662913fb00f7':{name:'Mojang Studios',img:'capes/mojangstudios.png'},
+  'cb40a92e32b57fd732a00fc325e7afb00a7ca74936ad50d8e860152e482cfbde':{name:'Purple Heart',img:'capes/purpleheart.png'},
+  'dbc21e222528e30dc88445314f7be6ff12d3aeebc3c192054fba7e3b3f8c77b1':{name:'Menace',img:'capes/menace.png'},
+  'cd9d82ab17fd92022dbd4a86cde4c382a7540e117fae7b9a2853658505a80625':{name:'15th Anniversary',img:'capes/anniversary15.png'},
+  '5ec930cdd2629c8771655c60eebeb867b4b6559b0e6d3bc71c40c96347fa03f0':{name:'Common',img:'capes/common.png'},
+  'afd553b39358a24edfe3b8a9a939fa5fa4faa4d9a9c3d6af8eafb377fa05c2bb':{name:'Cherry Blossom',img:'capes/cherry.png'},
+  '308b32a9e303155a0b4262f9e5483ad4a22e3412e84fe8385a0bdd73dc41fa89':{name:'Yearn',img:'capes/yearn.png'},
+  '5048ea61566353397247d2b7d946034de926b997d5e66c86483dfb1e031aee95':{name:'Turtle',img:'capes/turtle.png'},
+  '70efffaf86fe5bc089608d3cb297d3e276b9eb7a8f9f2fe6659c23a2d8b18edf':{name:'Millionth',img:'capes/millionth.png'},
+  'd8f8d13a1adf9636a16c31d47f3ecc9bb8d8533108aa5ad2a01b13b1a0c55eac':{name:'Prismarine',img:'capes/prismarine.png'},
+  '569b7f2a1d00d26f30efe3f9ab9ac817b1e6d35f4f3cfb0324ef2d328223d350':{name:"Follower's",img:'capes/follower.png'},
+  '953cac8b779fe41383e675ee2b86071a71658f2180f56fbce8aa315ea70e2ed6':{name:'Minecon 2011',img:'capes/minecon11.png'},
+  'a2e8d97ec79100e90a75d369d1b3ba81273c4f82bc1b737e934eed4a854be1b6':{name:'Minecon 2012',img:'capes/minecon12.png'},
+  'b0cc08840700447322d953a02b965f1d65a13a603bf64b17c803c21446fe1635':{name:'Minecon 2015',img:'capes/minecon15.png'},
+  '153b1a0dfcbae953cdeb6f2c2bf6bf79943239b1372780da44bcbb29273131da':{name:'Minecon 2013',img:'capes/minecon13.png'},
+  'e7dfea16dc83c97df01a12fabbd1216359c0cd0ea42f9999b6e97c584963e980':{name:'Minecon 2016',img:'capes/minecon16.png'},
+  '5e6f3193e74cd16cdd6637d9bae5484e3a37ff2a14c2d157c659a07810b1bdca':{name:'Copper',img:'capes/copper.png'},
+  '1de21419009db483900da6298a1e6cbf9f1bc1523a0dcdc16263fab150693edd':{name:'Home',img:'capes/home.png'},
+  'f9a76537647989f9a0b6d001e320dac591c359e9e61a31f4ce11c88f207f0ad4':{name:'Vanilla',img:'capes/vanilla.png'},
+  '2056f2eebd759cce93460907186ef44e9192954ae12b227d817eb4b55627a7fc':{name:'Birthday',img:'capes/birthday.png'},
+  '7706b5f5fc90329691e59277dcc66ba20572219fa8e5da472afd5235fad12cc8':{name:'Oxeye',img:'capes/oxeye.png'},
+};
+
+var RARE_CAPES = {
+  'minecon11':true,'minecon12':true,'minecon13':true,'minecon15':true,'minecon16':true,
+  'mojangstudios':true,'mojangoffice':true,'mojangclassic':true,'db':true,'crafter':true,
+  'builder':true,'scrolls':true,'cobalt':true,'millionth':true,'founders':true,
+};
+
+// ── State ─────────────────────────────────────────────────────────────────────
+var _players = { A: null, B: null };
+var _debounce = { A: null, B: null };
+
+function escH(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── URL param sync ─────────────────────────────────────────────────────────────
+function updateURL() {
+  var a = document.getElementById('inputA').value.trim();
+  var b = document.getElementById('inputB').value.trim();
+  var p = new URLSearchParams();
+  if (a) p.set('a', a);
+  if (b) p.set('b', b);
+  var qs = p.toString();
+  history.replaceState(null, '', qs ? ('?' + qs) : location.pathname);
+}
+
+// ── Avatar debounce on input ──────────────────────────────────────────────────
+function onInput(side) {
+  var inp   = document.getElementById('input' + side);
+  var wrap  = document.getElementById('wrap'  + side);
+  var avEl  = document.getElementById('avatar'+ side);
+  var clrEl = document.getElementById('clear' + side);
+  var val   = inp.value.trim();
+
+  clrEl.style.display = val ? 'block' : 'none';
+  wrap.classList.toggle('has-input', !!val);
+
+  if (!val) {
+    wrap.classList.remove('has-avatar');
+    avEl.src = '';
+    _players[side] = null;
+    renderCard(side);
+    updateURL();
+    tryHighlights();
+    return;
+  }
+
+  // Show face preview after short delay
+  clearTimeout(_debounce[side]);
+  _debounce[side] = setTimeout(function() {
+    avEl.src = 'https://mc-heads.net/avatar/' + encodeURIComponent(val) + '/28';
+    avEl.onload  = function() { wrap.classList.add('has-avatar'); };
+    avEl.onerror = function() { wrap.classList.remove('has-avatar'); };
+  }, 350);
+}
+
+function clearSide(side) {
+  document.getElementById('input' + side).value = '';
+  document.getElementById('avatar'+ side).src    = '';
+  document.getElementById('wrap'  + side).classList.remove('has-avatar','has-input');
+  document.getElementById('clear' + side).style.display = 'none';
+  _players[side] = null;
+  renderCard(side);
+  updateURL();
+  tryHighlights();
+}
+
+// ── Load player on Enter or blur ──────────────────────────────────────────────
+function loadSide(side) {
+  var val = document.getElementById('input' + side).value.trim();
+  if (!val) return;
+  updateURL();
+  loadPlayer(side, val);
+}
+
+function showLoading(side) {
+  document.getElementById('card' + side).innerHTML =
+    '<div class="pc-header">' +
+      '<div style="width:72px;height:72px;border-radius:var(--rad);background:var(--bg2)"></div>' +
+      '<div style="flex:1;padding:.4rem 0">' +
+        '<div class="loading-shimmer" style="width:55%;height:18px"></div>' +
+        '<div class="loading-shimmer" style="width:80%;height:10px"></div>' +
+        '<div class="loading-shimmer" style="width:40%;height:10px"></div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="pc-section"><div class="loading-shimmer"></div><div class="loading-shimmer" style="width:70%"></div></div>' +
+    '<div class="pc-section"><div class="loading-shimmer"></div><div class="loading-shimmer" style="width:60%"></div></div>';
+}
+
+async function loadPlayer(side, nameOrUuid) {
+  showLoading(side);
+  _players[side] = null;
+
+  try {
+    // Step 1: resolve UUID via our proxy (Mojang session)
+    var texRes = await fetch('/api/player-textures?name=' + encodeURIComponent(nameOrUuid));
+    if (!texRes.ok) throw new Error('Player not found');
+    var tex = await texRes.json();
+    if (!tex.uuid) throw new Error('Player not found');
+
+    var uuid     = tex.uuid.replace(/-/g,'');
+    var hUuid    = tex.uuid; // hyphenated
+    var name     = tex.name || nameOrUuid;
+    var capeUrl  = tex.cape || null;
+    var skinUrl  = tex.skin || null;
+    var slim     = tex.slim || false;
+
+    // Step 2: cape hash → name
+    var capeInfo = null;
+    if (capeUrl) {
+      var hash = capeUrl.replace(/https?:\/\/textures\.minecraft\.net\/texture\//, '');
+      capeInfo = CAPE_HASH_DATA[hash] || { name: 'Unknown Cape', img: null };
+      capeInfo._hash = hash;
+    }
+
+    // Step 3: cape history from KV
+    var histData = [];
+    try {
+      var hRes = await fetch('/api/player-textures?action=get-history&uuid=' + encodeURIComponent(uuid));
+      if (hRes.ok) { var hd = await hRes.json(); histData = hd.history || []; }
+    } catch {}
+
+    // Step 4: name history via our proxy (laby.net)
+    var nameHistory = [];
+    try {
+      var nRes = await fetch('/api/player-textures?action=names&uuid=' + encodeURIComponent(hUuid));
+      if (nRes.ok) {
+        var nd = await nRes.json();
+        if (Array.isArray(nd.names) && nd.names.length) nameHistory = nd.names;
+      }
+    } catch {}
+    // Fallback: Ashcon
+    if (!nameHistory.length) {
+      try {
+        var aRes = await fetch('https://api.ashcon.app/mojang/v2/user/' + uuid);
+        if (aRes.ok) {
+          var ad = await aRes.json();
+          if (ad.username_history) {
+            nameHistory = ad.username_history.slice().map(function(e){
+              return { name: e.username, changed: e.changed_at ? fmtDate(e.changed_at) : null };
+            });
+          }
+        }
+      } catch {}
+    }
+    if (!nameHistory.length) nameHistory = [{ name: name, changed: null }];
+
+    // Step 5: stats (followers + views)
+    var stats = { followers: 0, views: 0 };
+    try {
+      var sRes = await fetch('/api/follow?action=status&targetUuid=' + encodeURIComponent(uuid));
+      if (sRes.ok) { var sd = await sRes.json(); stats.followers = sd.followersCount || 0; }
+    } catch {}
+    try {
+      var vRes = await fetch('/api/player-textures?action=get-stats&uuid=' + encodeURIComponent(uuid));
+      if (vRes.ok) { var vd = await vRes.json(); stats.views = vd.views || 0; }
+    } catch {}
+
+    // Step 6: role/vip/beta
+    var roleData = {};
+    try {
+      var rRes = await fetch('/api/player-textures?uuid=' + encodeURIComponent(hUuid));
+      if (rRes.ok) { var rd = await rRes.json(); roleData = { role: rd.role, vip: rd.vip, beta: rd.beta }; }
+    } catch {}
+
+    _players[side] = { uuid, hUuid, name, capeUrl, capeInfo, slim, skinUrl, histData, nameHistory, stats, roleData };
+    renderCard(side);
+    tryHighlights();
+  } catch(err) {
+    _players[side] = null;
+    document.getElementById('card' + side).innerHTML =
+      '<div class="pc-placeholder"><div class="pp-icon">❌</div><div class="pp-text" style="color:var(--red)">' + escH(err.message) + '</div></div>';
+    tryHighlights();
+  }
+}
+
+function fmtDate(iso) {
+  if (!iso) return null;
+  var d = new Date(iso);
+  return isNaN(d) ? null : d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+}
+
+function fmtCount(n) {
+  return n >= 1000000 ? (n/1000000).toFixed(1)+'M' : n >= 1000 ? (n/1000).toFixed(1)+'K' : String(n||0);
+}
+
+function renderCard(side) {
+  var p   = _players[side];
+  var el  = document.getElementById('card' + side);
+  var lbl = side === 'A' ? 'Player A' : 'Player B';
+
+  if (!p) {
+    el.innerHTML = '<div class="pc-placeholder"><div class="pp-icon">👤</div><div class="pp-text">Enter a username above to load ' + lbl + '</div></div>';
+    return;
+  }
+
+  var faceUrl = 'https://mc-heads.net/avatar/' + p.uuid + '/72';
+  var bodyUrl = 'https://mc-heads.net/player/' + p.uuid;
+
+  // Badges
+  var badges = '';
+  if (p.roleData.role === 'owner') badges += '<span class="badge by">👑 Owner</span>';
+  else if (p.roleData.role === 'admin') badges += '<span class="badge bb">🛡 Admin</span>';
+  if (p.roleData.vip)  badges += '<span class="badge bg">💎 VIP</span>';
+  if (p.roleData.beta) badges += '<span class="badge bv">🧪 Beta</span>';
+
+  // Current cape
+  var capeHtml = '<span style="color:var(--muted);font-size:.85rem">No cape equipped</span>';
+  if (p.capeInfo) {
+    var imgSrc = p.capeInfo.img || p.capeUrl;
+    capeHtml = '<div style="display:flex;align-items:center;gap:.75rem">' +
+      '<img src="' + escH(imgSrc) + '" style="height:48px;image-rendering:pixelated;border-radius:3px" onerror="this.style.display=\'none\'"/>' +
+      '<div>' +
+        '<div style="font-weight:700">' + escH(p.capeInfo.name) + '</div>' +
+        (RARE_CAPES[p.capeInfo._hash] ? '<span class="badge by" style="margin-top:.2rem">✨ Rare</span>' : '<span class="badge bg" style="margin-top:.2rem">Active</span>') +
+      '</div>' +
+    '</div>';
+  }
+
+  // Cape history
+  var histHtml = '';
+  if (p.histData.length > 1) {
+    var historical = p.histData.filter(function(h){ return h.url !== p.capeUrl; }).slice(0,6);
+    if (historical.length) {
+      histHtml = '<div class="pc-section">' +
+        '<div class="pc-label">Cape History (' + p.histData.length + ' total)</div>' +
+        '<div class="cape-strip">' +
+        historical.map(function(h) {
+          var hash = (h.url||'').replace(/https?:\/\/textures\.minecraft\.net\/texture\//,'');
+          var info = CAPE_HASH_DATA[hash] || { name:'Unknown', img:null };
+          return '<div class="cape-thumb"><img src="' + escH(info.img || h.url) + '" title="' + escH(info.name) + '" onerror="this.parentNode.style.display=\'none\'"/><div class="ct-name">' + escH(info.name) + '</div></div>';
+        }).join('') +
+        '</div></div>';
+    }
+  }
+
+  // Name history (top 6)
+  var names6 = p.nameHistory.slice(0, 6);
+  var nameHtml = '<div class="name-list">' +
+    names6.map(function(e, i) {
+      return '<div class="name-row">' +
+        '<span class="nr-name">' + escH(e.name) + (i===0?' <span class="badge bg" style="margin-left:4px">Current</span>':'') + '</span>' +
+        '<span class="nr-date">' + escH(e.changed || 'Original') + '</span>' +
+      '</div>';
+    }).join('') +
+    (p.nameHistory.length > 6 ? '<div style="font-size:.75rem;color:var(--muted);padding-top:.4rem">+ ' + (p.nameHistory.length-6) + ' more</div>' : '') +
+  '</div>';
+
+  el.innerHTML =
+    '<div class="pc-header">' +
+      '<img class="pc-avatar" src="' + faceUrl + '" alt="' + escH(p.name) + '" onerror="this.src=\'https://mc-heads.net/avatar/steve/72\'"/>' +
+      '<div class="pc-info">' +
+        '<div class="pc-name"><a href="profile.html?name=' + encodeURIComponent(p.name) + '" style="color:var(--txt);text-decoration:none" target="_blank">' + escH(p.name) + ' ↗</a></div>' +
+        '<div class="pc-uuid">' + p.uuid + '</div>' +
+        (badges ? '<div class="pc-badges">' + badges + '</div>' : '') +
+      '</div>' +
+      '<a href="profile.html?name=' + encodeURIComponent(p.name) + '" class="btn btn-o btn-sm" target="_blank" style="flex-shrink:0">Profile</a>' +
+    '</div>' +
+    '<div class="pc-section">' +
+      '<div class="pc-label">Stats</div>' +
+      '<div class="stats-row">' +
+        '<div class="stat-item"><div class="sv">' + fmtCount(p.stats.followers) + '</div><div class="sk">Followers</div></div>' +
+        '<div class="stat-item"><div class="sv">' + fmtCount(p.stats.views) + '</div><div class="sk">Profile Views</div></div>' +
+        '<div class="stat-item"><div class="sv">' + p.nameHistory.length + '</div><div class="sk">Usernames</div></div>' +
+        '<div class="stat-item"><div class="sv">' + (p.histData.length||'—') + '</div><div class="sk">Capes Tracked</div></div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="pc-section"><div class="pc-label">Current Cape</div>' + capeHtml + '</div>' +
+    histHtml +
+    '<div class="pc-section"><div class="pc-label">Name History</div>' + nameHtml + '</div>' +
+    '<div class="pc-section" style="text-align:center">' +
+      '<img src="' + bodyUrl + '" style="height:140px;image-rendering:pixelated" onerror="this.style.display=\'none\'"/>' +
+    '</div>';
+}
+
+function tryHighlights() {
+  var hl  = document.getElementById('highlights');
+  var row = document.getElementById('hlRow');
+  var a   = _players.A;
+  var b   = _players.B;
+  if (!a || !b) { hl.style.display = 'none'; return; }
+
+  var chips = [];
+
+  // More followers
+  if (a.stats.followers !== b.stats.followers) {
+    var winner = a.stats.followers > b.stats.followers ? a : b;
+    chips.push('<div class="hl-chip">⭐ More Followers: <strong style="margin-left:.25rem">' + escH(winner.name) + '</strong></div>');
+  }
+
+  // More name changes
+  if (a.nameHistory.length !== b.nameHistory.length) {
+    var moreNames = a.nameHistory.length > b.nameHistory.length ? a : b;
+    chips.push('<div class="hl-chip">📋 More Usernames: <strong style="margin-left:.25rem">' + escH(moreNames.name) + ' (' + moreNames.nameHistory.length + ')</strong></div>');
+  }
+
+  // Rare cape
+  [a, b].forEach(function(p) {
+    if (p.capeInfo && RARE_CAPES[p.capeInfo._hash]) {
+      chips.push('<div class="hl-chip">✨ Rare Cape: <strong style="margin-left:.25rem">' + escH(p.name) + ' — ' + escH(p.capeInfo.name) + '</strong></div>');
+    }
+  });
+
+  // No cape
+  [a, b].forEach(function(p) {
+    if (!p.capeUrl) chips.push('<div class="hl-chip" style="color:var(--muted)">🚫 No Cape: <strong style="margin-left:.25rem">' + escH(p.name) + '</strong></div>');
+  });
+
+  // Both same cape
+  if (a.capeUrl && b.capeUrl && a.capeUrl === b.capeUrl) {
+    chips.push('<div class="hl-chip" style="color:var(--green)">🎭 Same Cape Equipped!</div>');
+  }
+
+  // VIP / Beta / Role badges
+  [a, b].forEach(function(p) {
+    if (p.roleData.vip)  chips.push('<div class="hl-chip">💎 VIP: <strong style="margin-left:.25rem">' + escH(p.name) + '</strong></div>');
+  });
+
+  if (!chips.length) chips.push('<div class="hl-chip" style="color:var(--muted)">No notable differences found</div>');
+
+  row.innerHTML = chips.join('');
+  hl.style.display = 'block';
+}
+
+// ── Wire up inputs ─────────────────────────────────────────────────────────────
+['A','B'].forEach(function(side) {
+  var inp = document.getElementById('input' + side);
+  inp.addEventListener('input',  function(){ onInput(side); });
+  inp.addEventListener('keydown', function(e){ if(e.key==='Enter'){ inp.blur(); loadSide(side); } });
+  inp.addEventListener('blur',    function(){ if(inp.value.trim()) loadSide(side); });
+  document.getElementById('clear' + side).addEventListener('click', function(){ clearSide(side); });
+});
+
+// ── Load from URL params on init ───────────────────────────────────────────────
+(function() {
+  var p = new URLSearchParams(location.search);
+  var a = p.get('a');
+  var b = p.get('b');
+  if (a) {
+    var inpA = document.getElementById('inputA');
+    inpA.value = a;
+    document.getElementById('wrapA').classList.add('has-input');
+    document.getElementById('clearA').style.display = 'block';
+    document.getElementById('avatarA').src = 'https://mc-heads.net/avatar/' + encodeURIComponent(a) + '/28';
+    document.getElementById('avatarA').onload = function(){ document.getElementById('wrapA').classList.add('has-avatar'); };
+    loadPlayer('A', a);
+  }
+  if (b) {
+    var inpB = document.getElementById('inputB');
+    inpB.value = b;
+    document.getElementById('wrapB').classList.add('has-input');
+    document.getElementById('clearB').style.display = 'block';
+    document.getElementById('avatarB').src = 'https://mc-heads.net/avatar/' + encodeURIComponent(b) + '/28';
+    document.getElementById('avatarB').onload = function(){ document.getElementById('wrapB').classList.add('has-avatar'); };
+    loadPlayer('B', b);
+  }
+})();
+</script>
+</body>
+</html>

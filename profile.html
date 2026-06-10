@@ -2223,9 +2223,26 @@ function applyProfileCosmetics(equipped){
   var bannerEl   = document.getElementById('profileBanner');
   if(bannerEl){
     if(bannerItem && bannerItem.imageUrl){
-      bannerEl.style.background = 'linear-gradient(rgba(8,16,28,.6),rgba(8,16,28,.6)) center/cover no-repeat, url('+bannerItem.imageUrl+') center/cover no-repeat';
+      bannerEl.style.backgroundImage    = 'url('+bannerItem.imageUrl+')';
+      bannerEl.style.backgroundSize     = 'cover';
+      bannerEl.style.backgroundPosition = 'center';
+      bannerEl.style.backgroundRepeat   = 'no-repeat';
+      bannerEl.style.position           = 'relative';
+      // Inject overlay div if not already present
+      var ov = document.getElementById('bannerOverlay');
+      if(!ov){
+        ov = document.createElement('div');
+        ov.id = 'bannerOverlay';
+        ov.style.cssText = 'position:absolute;inset:0;background:rgba(8,16,28,.6);pointer-events:none;z-index:0';
+        bannerEl.insertBefore(ov, bannerEl.firstChild);
+      }
+      ov.style.display = 'block';
+      var phdrIn = bannerEl.querySelector('.phdr-in');
+      if(phdrIn){ phdrIn.style.position = 'relative'; phdrIn.style.zIndex = '1'; }
     } else {
-      bannerEl.style.background = '';
+      bannerEl.style.backgroundImage = '';
+      var ov = document.getElementById('bannerOverlay');
+      if(ov) ov.style.display = 'none';
     }
   }
   // Background — apply to body so it covers full page including footer gap

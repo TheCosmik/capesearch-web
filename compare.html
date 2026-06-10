@@ -314,8 +314,9 @@ var RARE_CAPES = {
 };
 
 // ── State ─────────────────────────────────────────────────────────────────────
-var _players = { A: null, B: null };
-var _debounce = { A: null, B: null };
+var _players      = { A: null, B: null };
+var _debounce     = { A: null, B: null }; // avatar preview debounce
+var _loadDebounce = { A: null, B: null }; // auto-load debounce
 
 function escH(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
@@ -351,13 +352,21 @@ function onInput(side) {
     return;
   }
 
-  // Show face preview after short delay
+  // Avatar preview after 350ms
   clearTimeout(_debounce[side]);
   _debounce[side] = setTimeout(function() {
     avEl.src = 'https://mc-heads.net/avatar/' + encodeURIComponent(val) + '/28';
     avEl.onload  = function() { wrap.classList.add('has-avatar'); };
     avEl.onerror = function() { wrap.classList.remove('has-avatar'); };
   }, 350);
+
+  // Auto-load player after 800ms of no typing
+  clearTimeout(_loadDebounce[side]);
+  _loadDebounce[side] = setTimeout(function() {
+    if (document.getElementById('input' + side).value.trim() === val) {
+      loadSide(side);
+    }
+  }, 800);
 }
 
 function clearSide(side) {
@@ -631,9 +640,13 @@ function tryHighlights() {
 // ── Wire up inputs ─────────────────────────────────────────────────────────────
 ['A','B'].forEach(function(side) {
   var inp = document.getElementById('input' + side);
-  inp.addEventListener('input',  function(){ onInput(side); });
-  inp.addEventListener('keydown', function(e){ if(e.key==='Enter'){ inp.blur(); loadSide(side); } });
-  inp.addEventListener('blur',    function(){ if(inp.value.trim()) loadSide(side); });
+  inp.addEventListener('input', function(){ onInput(side); });
+  inp.addEventListener('keydown', function(e){
+    if (e.key === 'Enter') {
+      clearTimeout(_loadDebounce[side]);
+      loadSide(side);
+    }
+  });
   document.getElementById('clear' + side).addEventListener('click', function(){ clearSide(side); });
 });
 

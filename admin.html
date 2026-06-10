@@ -239,7 +239,10 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.25rem 1re
       <div class="tbl-card">
         <div class="tbl-head">
           <span class="tbl-title">🚩 Reported Comments</span>
-          <button class="btn btn-o btn-sm" onclick="loadReports()">↻ Refresh</button>
+          <div style="display:flex;gap:.5rem">
+            <a href="reports-archive.html" target="_blank" class="btn btn-o btn-sm">📁 View Archive</a>
+            <button class="btn btn-o btn-sm" onclick="loadReports()">↻ Refresh</button>
+          </div>
         </div>
         <div id="reportsBody" style="padding:1.5rem;text-align:center;color:var(--muted);font-size:.85rem">Loading…</div>
       </div>

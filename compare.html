@@ -180,15 +180,17 @@ a{color:var(--green);text-decoration:none}a:hover{text-decoration:underline}
     <div class="si-wrap" id="wrapA">
       <img class="si-icon" id="avatarA" src="" alt=""/>
       <span class="si-mag">🔍</span>
-      <input id="inputA" type="text" placeholder="Player A username…" autocomplete="off" autocorrect="off" spellcheck="false"/>
-      <button class="si-clear" id="clearA" title="Clear">✕</button>
+      <input id="inputA" type="text" placeholder="Player A username…" autocomplete="off" autocorrect="off" spellcheck="false"
+        oninput="onInput('A')" onkeydown="if(event.key==='Enter'){clearTimeout(_loadDebounce['A']);loadSide('A');}"/>
+      <button class="si-clear" id="clearA" title="Clear" onclick="clearSide('A')">✕</button>
     </div>
     <div class="vs-badge">VS</div>
     <div class="si-wrap" id="wrapB">
       <img class="si-icon" id="avatarB" src="" alt=""/>
       <span class="si-mag">🔍</span>
-      <input id="inputB" type="text" placeholder="Player B username…" autocomplete="off" autocorrect="off" spellcheck="false"/>
-      <button class="si-clear" id="clearB" title="Clear">✕</button>
+      <input id="inputB" type="text" placeholder="Player B username…" autocomplete="off" autocorrect="off" spellcheck="false"
+        oninput="onInput('B')" onkeydown="if(event.key==='Enter'){clearTimeout(_loadDebounce['B']);loadSide('B');}"/>
+      <button class="si-clear" id="clearB" title="Clear" onclick="clearSide('B')">✕</button>
     </div>
   </div>
 
@@ -362,11 +364,7 @@ function onInput(side) {
 
   // Auto-load player after 800ms of no typing
   clearTimeout(_loadDebounce[side]);
-  _loadDebounce[side] = setTimeout(function() {
-    if (document.getElementById('input' + side).value.trim() === val) {
-      loadSide(side);
-    }
-  }, 800);
+  _loadDebounce[side] = setTimeout(function() { loadSide(side); }, 800);
 }
 
 function clearSide(side) {
@@ -637,18 +635,7 @@ function tryHighlights() {
   hl.style.display = 'block';
 }
 
-// ── Wire up inputs ─────────────────────────────────────────────────────────────
-['A','B'].forEach(function(side) {
-  var inp = document.getElementById('input' + side);
-  inp.addEventListener('input', function(){ onInput(side); });
-  inp.addEventListener('keydown', function(e){
-    if (e.key === 'Enter') {
-      clearTimeout(_loadDebounce[side]);
-      loadSide(side);
-    }
-  });
-  document.getElementById('clear' + side).addEventListener('click', function(){ clearSide(side); });
-});
+// Input events are wired via inline oninput/onkeydown/onclick attributes on the HTML elements.
 
 // ── Load from URL params on init ───────────────────────────────────────────────
 (function() {

@@ -355,12 +355,13 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ ok: true });
   }
 
-  // ── List claimed profiles (owner only) ────────────────────────────────────
+  // ── List claimed profiles (owner + admin) ────────────────────────────────────
   // GET /api/player-textures?action=list-claimed&clerkUserId={id}
   if (req.query.action === 'list-claimed') {
     const clerkUserId = req.query.clerkUserId || '';
     if (!clerkUserId) return res.status(400).json({ error: 'clerkUserId required' });
-    if (!(await isOwnerByClerkId(clerkUserId))) return res.status(403).json({ error: 'Owner access required' });
+    if (!(await isAdminOrOwnerByClerkId(clerkUserId))) return res.status(403).json({ error: 'Admin access required' });
+    const callerIsOwner = await isOwnerByClerkId(clerkUserId);
     const [raw] = await kvPipeline([
       ['ZREVRANGEBYSCORE', 'claimed-profiles', '+inf', '-inf', 'WITHSCORES', 'LIMIT', '0', '200'],
     ]);
@@ -395,7 +396,7 @@ module.exports = async function handler(req, res) {
       claimedAt: u.ts,
     }));
     res.setHeader('Cache-Control', 'no-store');
-    return res.status(200).json({ profiles });
+    return res.status(200).json({ profiles, isOwner: callerIsOwner });
   }
 
   // ── Profile settings SET ──────────────────────────────────────────────────

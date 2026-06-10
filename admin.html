@@ -236,6 +236,36 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.25rem 1re
       </div>
     </div>
 
+    <!-- Inventory Items section -->
+    <div style="margin-top:2rem">
+      <div class="tbl-card">
+        <div class="tbl-head">
+          <span class="tbl-title">🎒 Inventory Items</span>
+        </div>
+        <div style="padding:1.1rem">
+          <div id="itemGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:.85rem"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Grant Item Modal -->
+<div id="grantOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center">
+  <div style="background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad2);padding:1.75rem;max-width:420px;width:90%;position:relative">
+    <button onclick="closeGrantModal()" style="position:absolute;top:1rem;right:1rem;background:none;border:none;color:var(--txt2);font-size:1.2rem;cursor:pointer">✕</button>
+    <div style="font-size:1rem;font-weight:800;margin-bottom:.2rem">Give Item to Player</div>
+    <div id="grantItemLabel" style="font-size:.8rem;color:var(--txt2);margin-bottom:1.1rem"></div>
+    <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:.3rem">Username or UUID</label>
+    <input id="grantTarget" type="text" placeholder="e.g. C0smik or 97a449ca-635d…"
+      style="width:100%;background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--rad);color:var(--txt);padding:.55rem .75rem;font-size:.875rem;outline:none;margin-bottom:.85rem"
+      onfocus="this.style.borderColor='var(--green)'" onblur="this.style.borderColor='var(--bdr)'"/>
+    <div style="display:flex;gap:.6rem;justify-content:flex-end">
+      <button class="btn btn-o" onclick="closeGrantModal()">Cancel</button>
+      <button class="btn btn-p" id="grantSubmit" onclick="submitGrant()">Give Item</button>
+    </div>
+    <div id="grantMsg" style="margin-top:.75rem;font-size:.82rem;display:none"></div>
   </div>
 </div>
 
@@ -307,6 +337,7 @@ function loadPanel(profiles) {
   loadBetaEnrollment();
   renderTable(profiles);
   loadReports();
+  renderItemGrid();
 }
 
 function statCard(icon, label, val) {
@@ -675,6 +706,106 @@ async function toggleBetaEnrollment() {
   } catch {
     showToast('❌ Network error.');
     if (toggleBtn) toggleBtn.disabled = false;
+  }
+}
+
+// ── Inventory catalog (keep in sync with inventory.html) ─────────────────────
+var ADMIN_ITEM_CATALOG = [
+  { id:'bg-cherry-1',   name:'Cherry Blossom',   type:'background', imageUrl:'/cosmetics/bg-cherry-blossom.gif',   rarity:'rare' },
+  { id:'bg-cherry-2',   name:'Cherry Blossom 2', type:'background', imageUrl:'/cosmetics/bg-cherry-blossom-2.gif', rarity:'rare' },
+  { id:'bg-220234',     name:'Scenic Background', type:'background', imageUrl:'/cosmetics/bg-220234.gif',           rarity:'rare' },
+  { id:'bn-giphy123',   name:'Test Banner',       type:'banner',     imageUrl:'/cosmetics/bn-giphy123.gif',         rarity:'rare' },
+  { id:'bg-background1',name:'Background 1',      type:'background', imageUrl:'/cosmetics/bg-background1.gif',      rarity:'rare' },
+];
+
+function renderItemGrid() {
+  var grid = document.getElementById('itemGrid');
+  if (!grid) return;
+  if (!ADMIN_ITEM_CATALOG.length) {
+    grid.innerHTML = '<div style="color:var(--muted);font-size:.85rem">No items in catalog yet.</div>';
+    return;
+  }
+  grid.innerHTML = ADMIN_ITEM_CATALOG.map(function(item) {
+    var typeColor = item.type === 'banner' ? 'var(--blue)' : 'var(--green)';
+    var typeLabel = item.type === 'banner' ? '🖼 Banner' : '🌄 Background';
+    return '<div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--rad2);overflow:hidden">' +
+      '<div style="height:110px;background:var(--bg);overflow:hidden;display:flex;align-items:center;justify-content:center">' +
+        '<img src="' + item.imageUrl + '" style="width:100%;height:100%;object-fit:cover" onerror="this.style.opacity=\'.2\'"/>' +
+      '</div>' +
+      '<div style="padding:.75rem">' +
+        '<div style="font-weight:700;font-size:.875rem;margin-bottom:.25rem">' + escR(item.name) + '</div>' +
+        '<div style="display:flex;gap:.4rem;margin-bottom:.65rem;flex-wrap:wrap">' +
+          '<span style="font-size:.68rem;font-weight:700;color:'+typeColor+';background:rgba(255,255,255,.06);padding:.1rem .45rem;border-radius:999px">' + typeLabel + '</span>' +
+          '<span style="font-size:.68rem;font-weight:700;color:var(--yellow);background:rgba(251,191,36,.1);padding:.1rem .45rem;border-radius:999px">⭐ ' + item.rarity + '</span>' +
+        '</div>' +
+        '<div style="font-size:.7rem;color:var(--muted);margin-bottom:.6rem;font-family:monospace">' + item.id + '</div>' +
+        '<button class="btn btn-p btn-sm" style="width:100%" onclick="openGrantModal(\'' + item.id + '\',\'' + escR(item.name) + '\')">＋ Give to Player</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+// ── Grant modal ───────────────────────────────────────────────────────────────
+var _grantItemId = null;
+
+function openGrantModal(itemId, itemName) {
+  _grantItemId = itemId;
+  document.getElementById('grantItemLabel').textContent = 'Item: ' + itemName + ' (' + itemId + ')';
+  document.getElementById('grantTarget').value = '';
+  document.getElementById('grantMsg').style.display = 'none';
+  document.getElementById('grantSubmit').disabled = false;
+  document.getElementById('grantSubmit').textContent = 'Give Item';
+  var ov = document.getElementById('grantOverlay');
+  ov.style.display = 'flex';
+  setTimeout(function(){ document.getElementById('grantTarget').focus(); }, 50);
+}
+
+function closeGrantModal() {
+  document.getElementById('grantOverlay').style.display = 'none';
+  _grantItemId = null;
+}
+
+document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeGrantModal(); });
+
+async function submitGrant() {
+  var raw = (document.getElementById('grantTarget').value || '').trim();
+  if (!raw || !_grantItemId) return;
+  var btn = document.getElementById('grantSubmit');
+  var msg = document.getElementById('grantMsg');
+  btn.disabled = true; btn.textContent = '…';
+  msg.style.display = 'none';
+
+  try {
+    // Resolve username → UUID if needed
+    var targetUuid = raw.replace(/-/g,'');
+    if (!/^[0-9a-f]{32}$/i.test(targetUuid)) {
+      // Treat as username — resolve via Mojang
+      var nr = await fetch('/api/player-textures?name=' + encodeURIComponent(raw));
+      if (!nr.ok) throw new Error('Player "' + raw + '" not found.');
+      var nd = await nr.json();
+      targetUuid = nd.uuid;
+    }
+
+    var r = await fetch('/api/player-textures?action=grant-item', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clerkUserId: _clerkUserId, targetUuid: targetUuid, itemId: _grantItemId }),
+    });
+    var d = await r.json();
+    if (d.ok) {
+      msg.style.cssText = 'display:block;color:var(--green);margin-top:.75rem;font-size:.82rem';
+      msg.textContent = '✅ Item granted! They now own ' + d.items.length + ' item(s).';
+      btn.textContent = 'Give Item';
+      btn.disabled = false;
+      showToast('✅ Item granted successfully.');
+    } else {
+      throw new Error(d.error || 'Unknown error');
+    }
+  } catch(err) {
+    msg.style.cssText = 'display:block;color:var(--red);margin-top:.75rem;font-size:.82rem';
+    msg.textContent = '❌ ' + err.message;
+    btn.textContent = 'Give Item';
+    btn.disabled = false;
   }
 }
 

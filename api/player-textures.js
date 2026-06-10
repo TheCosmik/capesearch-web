@@ -664,6 +664,35 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ ok: true });
   }
 
+  // ── Admin: grant item to a player ────────────────────────────────────────────
+  // POST /api/player-textures?action=grant-item
+  // Body: { clerkUserId, targetUuid, itemId }
+  if (req.method === 'POST' && req.query.action === 'grant-item') {
+    const { clerkUserId, targetUuid, itemId } = req.body || {};
+    if (!clerkUserId || !targetUuid || !itemId) return res.status(400).json({ error: 'missing fields' });
+    // Verify caller is owner
+    const callerAccounts = await kvGet(`clerk-mc:${clerkUserId}`);
+    let callerUuids = [];
+    try { callerUuids = callerAccounts ? JSON.parse(callerAccounts) : []; } catch { callerUuids = []; }
+    let isOwner = false;
+    for (const cu of callerUuids) {
+      const role = await kvGet(`role:${cu}`);
+      if (role === 'owner') { isOwner = true; break; }
+    }
+    if (!isOwner) return res.status(403).json({ error: 'owner only' });
+    const clean = targetUuid.replace(/-/g, '').toLowerCase();
+    if (!/^[0-9a-f]{32}$/.test(clean)) return res.status(400).json({ error: 'invalid uuid' });
+    const [itemsRaw] = await kvPipeline([['GET', `perk-items:${clean}`]]);
+    let items = [];
+    try { items = itemsRaw ? JSON.parse(itemsRaw) : []; } catch { items = []; }
+    if (!items.includes(String(itemId))) {
+      items.push(String(itemId));
+      await kvSet(`perk-items:${clean}`, items);
+    }
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json({ ok: true, items });
+  }
+
   // ── TEMP: seed test inventory items for owner (remove after testing) ────────
   // GET /api/player-textures?action=seed-test-inventory
   if (req.method === 'GET' && req.query.action === 'seed-test-inventory') {

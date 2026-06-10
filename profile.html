@@ -143,6 +143,8 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
 .profile-layout{display:flex;gap:1.5rem;align-items:flex-start}
 .profile-sidebar{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:.75rem}
 .profile-main{flex:1;min-width:0}
+/* Cosmetic backdrop — only visible when a background image is equipped */
+.has-bg .profile-main,.has-bg .profile-sidebar>*{background:rgba(13,23,35,.72);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);border-radius:var(--rad2);padding:.75rem}
 .viewer-wrap{position:relative;display:inline-block}
 #skinViewer3d{display:block;cursor:grab;border-radius:var(--rad2);border:1px solid var(--bdr);background:var(--card)}
 .viewer-btns{position:absolute;bottom:10px;right:10px;display:flex;gap:6px;z-index:10}
@@ -2227,10 +2229,18 @@ function applyProfileCosmetics(equipped){
     }
   }
   // Background (main content area — full width wrapper)
-  var bgItem = COSMETIC_CATALOG.find(function(c){ return c.id === equipped.background; });
-  var bgEl   = document.getElementById('profileBackground');
+  var bgItem  = COSMETIC_CATALOG.find(function(c){ return c.id === equipped.background; });
+  var bgEl    = document.getElementById('profileBackground');
+  var layout  = document.querySelector('.profile-layout');
   if(bgEl){
     bgEl.style.backgroundImage = bgItem && bgItem.imageUrl ? 'url('+bgItem.imageUrl+')' : '';
+  }
+  if(layout){
+    if(bgItem && bgItem.imageUrl){
+      layout.classList.add('has-bg');
+    } else {
+      layout.classList.remove('has-bg');
+    }
   }
 }
 

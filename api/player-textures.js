@@ -669,9 +669,9 @@ module.exports = async function handler(req, res) {
   if (req.method === 'GET' && req.query.action === 'seed-test-inventory') {
     const OWNER = '97a449ca635d44da9e021fe62eef5bda';
     await kvPipeline([
-      ['SET', `perk-items:${OWNER}`, JSON.stringify(['bg-cherry-1','bg-cherry-2','bg-220234'])],
+      ['SET', `perk-items:${OWNER}`, JSON.stringify(['bg-cherry-1','bg-cherry-2','bg-220234','bn-giphy123'])],
     ]);
-    return res.status(200).json({ ok: true, seeded: ['bg-cherry-1','bg-cherry-2'] });
+    return res.status(200).json({ ok: true, seeded: ['bg-cherry-1','bg-cherry-2','bg-220234','bn-giphy123'] });
   }
 
   // ── Inventory: get owned items + equipped state ───────────────────────────

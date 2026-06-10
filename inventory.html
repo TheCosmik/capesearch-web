@@ -287,7 +287,7 @@ function unequipItem(pkgId, type){
 }
 
 function saveEquipped(){
-  fetch('/api/inventory?action=equip', {
+  fetch('/api/player-textures?action=equip-inventory', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ uuid: _activeUuid, equipped: _equipped })
@@ -297,7 +297,7 @@ function saveEquipped(){
 // ── Load inventory from API ───────────────────────────────────────────────────
 function loadInventory(uuid){
   _activeUuid = uuid;
-  fetch('/api/inventory?uuid='+encodeURIComponent(uuid))
+  fetch('/api/player-textures?action=get-inventory&uuid='+encodeURIComponent(uuid))
     .then(function(r){ return r.ok ? r.json() : null; })
     .then(function(d){
       if(!d) return;

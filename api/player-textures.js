@@ -664,6 +664,48 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ ok: true });
   }
 
+  // ── Inventory: get owned items + equipped state ───────────────────────────
+  // GET /api/player-textures?action=get-inventory&uuid={cleanUuid}
+  if (req.method === 'GET' && req.query.action === 'get-inventory') {
+    const raw = (req.query.uuid || '').replace(/-/g, '').toLowerCase();
+    if (!/^[0-9a-f]{32}$/.test(raw)) return res.status(400).json({ error: 'invalid uuid' });
+    const [itemsRaw, equippedRaw] = await kvPipeline([
+      ['GET', `perk-items:${raw}`],
+      ['GET', `inv-equipped:${raw}`],
+    ]);
+    let items = []; let equipped = {};
+    try { items    = itemsRaw    ? JSON.parse(itemsRaw)    : []; } catch { items = []; }
+    try { equipped = equippedRaw ? JSON.parse(equippedRaw) : {}; } catch { equipped = {}; }
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json({ items, equipped });
+  }
+
+  // ── Inventory: save equipped cosmetics ────────────────────────────────────
+  // POST /api/player-textures?action=equip-inventory
+  // Body: { clerkUserId, uuid, equipped: { background: pkgId, ... } }
+  if (req.method === 'POST' && req.query.action === 'equip-inventory') {
+    const { clerkUserId, uuid: rawUuid, equipped } = req.body || {};
+    if (!clerkUserId || !rawUuid) return res.status(400).json({ error: 'missing fields' });
+    const clean = rawUuid.replace(/-/g, '').toLowerCase();
+    if (!/^[0-9a-f]{32}$/.test(clean)) return res.status(400).json({ error: 'invalid uuid' });
+    const claim = await kvGet(`claimed:${clean}`);
+    if (!claim || claim.clerkUserId !== clerkUserId) return res.status(403).json({ error: 'not your profile' });
+    // Only allow equipping items the player actually owns
+    const [itemsRaw] = await kvPipeline([['GET', `perk-items:${clean}`]]);
+    let owned = [];
+    try { owned = itemsRaw ? JSON.parse(itemsRaw) : []; } catch { owned = []; }
+    const ownedSet = new Set(owned);
+    const safeEquipped = {};
+    if (equipped && typeof equipped === 'object') {
+      for (const [slot, pkgId] of Object.entries(equipped)) {
+        if (ownedSet.has(String(pkgId))) safeEquipped[slot] = String(pkgId);
+      }
+    }
+    await kvSet(`inv-equipped:${clean}`, safeEquipped);
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json({ ok: true, equipped: safeEquipped });
+  }
+
   // ── Name-only lookup mode (used by nav search on all pages) ───────────────
   // Called as /api/player-textures?name=SomePlayer
   // Returns { name, uuid } without fetching full profile or KV history.

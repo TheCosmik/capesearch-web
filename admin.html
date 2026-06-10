@@ -170,6 +170,14 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.25rem 1re
     <!-- Stats row -->
     <div id="statsRow" style="display:flex;gap:.85rem;margin-bottom:1.25rem;flex-wrap:wrap"></div>
 
+    <!-- Quick-jump nav -->
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.5rem">
+      <a href="#sec-profiles" class="btn btn-o btn-sm">👥 Profiles</a>
+      <a href="#sec-reports"  class="btn btn-o btn-sm">🚩 Reports</a>
+      <a href="#sec-audit"    class="btn btn-o btn-sm">📋 Audit Log</a>
+      <a href="#sec-items"    class="btn btn-o btn-sm" id="jumpItems">🎒 Inventory Items</a>
+    </div>
+
     <!-- Beta enrollment toggle -->
     <div id="betaEnrollSection" style="background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad2);padding:1rem 1.25rem;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
       <div>
@@ -201,7 +209,7 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.25rem 1re
     </div>
 
     <!-- Claimed profiles table -->
-    <div class="tbl-card">
+    <div class="tbl-card" id="sec-profiles">
       <div class="tbl-head">
         <span class="tbl-title">Claimed Profiles</span>
       </div>
@@ -227,7 +235,7 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.25rem 1re
     </div>
 
     <!-- Reports section -->
-    <div style="margin-top:2rem">
+    <div id="sec-reports" style="margin-top:2rem">
       <div class="tbl-card">
         <div class="tbl-head">
           <span class="tbl-title">🚩 Reported Comments</span>
@@ -238,24 +246,42 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.25rem 1re
     </div>
 
     <!-- Audit Log section -->
-    <div style="margin-top:2rem">
+    <div id="sec-audit" style="margin-top:2rem">
       <div class="tbl-card">
         <div class="tbl-head">
           <span class="tbl-title">📋 Audit Log</span>
-          <button class="btn btn-o btn-sm" onclick="loadAuditLog()">↻ Refresh</button>
+          <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+            <div class="search-wrap" style="min-width:180px">
+              <span class="si">🔍</span>
+              <input id="auditSearch" type="text" placeholder="Search by name or action…" oninput="filterAuditLog()" autocomplete="off"/>
+              <button class="sc" id="auditSearchClear" onclick="clearAuditSearch()" title="Clear">✕</button>
+            </div>
+            <select id="auditActionFilter" onchange="filterAuditLog()" style="background:var(--bg2);border:1px solid var(--bdr);color:var(--txt);border-radius:var(--rad);padding:.45rem .65rem;font-size:.8rem;outline:none;cursor:pointer">
+              <option value="">All Actions</option>
+              <option value="item">🎒 Items</option>
+              <option value="role">🛡 Roles</option>
+              <option value="vip">💎 VIP</option>
+              <option value="beta">🧪 Beta</option>
+              <option value="report">🚩 Reports</option>
+            </select>
+            <button class="btn btn-o btn-sm" onclick="loadAuditLog()">↻ Refresh</button>
+          </div>
         </div>
-        <div id="auditLogBody" style="padding:1.5rem;text-align:center;color:var(--muted);font-size:.85rem">Loading…</div>
+        <div id="auditLogBody"></div>
+        <div id="auditPagBar" style="display:none;padding:.75rem 1.1rem;border-top:1px solid var(--bdr);display:flex;align-items:center;gap:.4rem;flex-wrap:wrap"></div>
       </div>
     </div>
 
     <!-- Inventory Items section -->
-    <div id="invItemsSection" style="margin-top:2rem">
-      <div class="tbl-card">
-        <div class="tbl-head">
-          <span class="tbl-title">🎒 Inventory Items</span>
-        </div>
-        <div style="padding:1.1rem">
-          <div id="itemGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:.85rem"></div>
+    <div id="sec-items" style="margin-top:2rem">
+      <div id="invItemsSection">
+        <div class="tbl-card">
+          <div class="tbl-head">
+            <span class="tbl-title">🎒 Inventory Items</span>
+          </div>
+          <div style="padding:1.1rem">
+            <div id="itemGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:.85rem"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -984,17 +1010,21 @@ function escR(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;'
 
 // ── Audit Log ─────────────────────────────────────────────────────────────────
 var AUDIT_ACTION_META = {
-  'item.grant':            { label:'Item Granted',       color:'var(--green)' },
-  'item.revoke':           { label:'Item Revoked',       color:'var(--red)' },
-  'role.set.admin':        { label:'Admin Assigned',     color:'var(--blue)' },
-  'role.remove':           { label:'Role Removed',       color:'var(--muted)' },
-  'vip.grant':             { label:'VIP Granted',        color:'#a78bfa' },
-  'vip.remove':            { label:'VIP Removed',        color:'var(--muted)' },
-  'beta.grant':            { label:'Beta Granted',       color:'var(--yellow)' },
-  'beta.remove':           { label:'Beta Removed',       color:'var(--muted)' },
-  'report.dismiss':        { label:'Report Dismissed',   color:'var(--txt2)' },
-  'report.dismiss.delete': { label:'Report + Comment Deleted', color:'var(--red)' },
+  'item.grant':            { label:'Item Granted',            color:'var(--green)',  cat:'item' },
+  'item.revoke':           { label:'Item Revoked',            color:'var(--red)',    cat:'item' },
+  'role.set.admin':        { label:'Admin Assigned',          color:'var(--blue)',   cat:'role' },
+  'role.remove':           { label:'Role Removed',            color:'var(--muted)', cat:'role' },
+  'vip.grant':             { label:'VIP Granted',             color:'#a78bfa',       cat:'vip'  },
+  'vip.remove':            { label:'VIP Removed',             color:'var(--muted)', cat:'vip'  },
+  'beta.grant':            { label:'Beta Granted',            color:'var(--yellow)', cat:'beta' },
+  'beta.remove':           { label:'Beta Removed',            color:'var(--muted)', cat:'beta' },
+  'report.dismiss':        { label:'Report Dismissed',        color:'var(--txt2)',  cat:'report'},
+  'report.dismiss.delete': { label:'Report + Comment Deleted',color:'var(--red)',   cat:'report'},
 };
+
+var _auditAllEntries = [];
+var _auditPage       = 1;
+var _auditPageSize   = 10;
 
 function fmtTs(ts) {
   var d = new Date(ts);
@@ -1010,37 +1040,119 @@ async function loadAuditLog() {
     var r = await fetch('/api/player-textures?action=get-audit-log&clerkUserId=' + encodeURIComponent(_clerkUserId));
     if (!r.ok) throw new Error('Failed to load audit log.');
     var d = await r.json();
-    var entries = d.entries || [];
-    if (!entries.length) {
-      el.innerHTML = '<div style="text-align:center;padding:1.5rem;color:var(--muted);font-size:.85rem">No audit entries yet.</div>';
-      return;
-    }
-    el.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:.8rem">' +
-      '<thead><tr>' +
-        '<th style="background:var(--bg2);color:var(--muted);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:.5rem 1rem;text-align:left;border-bottom:1px solid var(--bdr);white-space:nowrap">Time</th>' +
-        '<th style="background:var(--bg2);color:var(--muted);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:.5rem 1rem;text-align:left;border-bottom:1px solid var(--bdr)">Action</th>' +
-        '<th style="background:var(--bg2);color:var(--muted);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:.5rem 1rem;text-align:left;border-bottom:1px solid var(--bdr)">By</th>' +
-        '<th style="background:var(--bg2);color:var(--muted);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:.5rem 1rem;text-align:left;border-bottom:1px solid var(--bdr)">Target</th>' +
-        '<th style="background:var(--bg2);color:var(--muted);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:.5rem 1rem;text-align:left;border-bottom:1px solid var(--bdr)">Detail</th>' +
-      '</tr></thead><tbody>' +
-      entries.map(function(e) {
-        var meta = AUDIT_ACTION_META[e.action] || { label: e.action, color: 'var(--txt2)' };
-        return '<tr style="border-bottom:1px solid var(--bdr)">' +
-          '<td style="padding:.6rem 1rem;color:var(--muted);white-space:nowrap">' + fmtTs(e.ts) + '</td>' +
-          '<td style="padding:.6rem 1rem"><span style="font-weight:700;color:' + meta.color + '">' + escR(meta.label) + '</span></td>' +
-          '<td style="padding:.6rem 1rem">' +
-            (e.actorUuid ? '<div style="display:flex;align-items:center;gap:.4rem"><img src="https://mc-heads.net/avatar/'+e.actorUuid+'/20" style="width:20px;height:20px;border-radius:3px;image-rendering:pixelated"/><span style="font-weight:600">'+escR(e.actorName)+'</span></div>' : escR(e.actorName)) +
-          '</td>' +
-          '<td style="padding:.6rem 1rem">' +
-            (e.targetUuid ? '<div style="display:flex;align-items:center;gap:.4rem"><img src="https://mc-heads.net/avatar/'+e.targetUuid+'/20" style="width:20px;height:20px;border-radius:3px;image-rendering:pixelated"/><span>'+escR(e.targetName)+'</span></div>' : escR(e.targetName || '—')) +
-          '</td>' +
-          '<td style="padding:.6rem 1rem;color:var(--txt2);font-family:monospace;font-size:.75rem">' + escR(e.detail || '') + '</td>' +
-        '</tr>';
-      }).join('') +
-      '</tbody></table>';
+    _auditAllEntries = d.entries || [];
+    _auditPage = 1;
+    renderAuditLog();
   } catch(err) {
     el.innerHTML = '<div style="text-align:center;padding:1.5rem;color:var(--red);font-size:.85rem">' + escR(err.message) + '</div>';
   }
+}
+
+function _filteredAudit() {
+  var q      = (document.getElementById('auditSearch') ? document.getElementById('auditSearch').value : '').toLowerCase().trim();
+  var cat    = document.getElementById('auditActionFilter') ? document.getElementById('auditActionFilter').value : '';
+  return _auditAllEntries.filter(function(e) {
+    var meta       = AUDIT_ACTION_META[e.action] || {};
+    var matchCat   = !cat || (meta.cat || '').startsWith(cat);
+    var matchText  = !q ||
+      (e.actorName  || '').toLowerCase().includes(q) ||
+      (e.targetName || '').toLowerCase().includes(q) ||
+      (e.detail     || '').toLowerCase().includes(q) ||
+      (meta.label   || '').toLowerCase().includes(q);
+    return matchCat && matchText;
+  });
+}
+
+function filterAuditLog() {
+  _auditPage = 1;
+  var clr = document.getElementById('auditSearchClear');
+  var inp = document.getElementById('auditSearch');
+  if (clr && inp) clr.style.display = inp.value ? '' : 'none';
+  renderAuditLog();
+}
+
+function clearAuditSearch() {
+  var inp = document.getElementById('auditSearch');
+  var sel = document.getElementById('auditActionFilter');
+  if (inp) inp.value = '';
+  if (sel) sel.value = '';
+  var clr = document.getElementById('auditSearchClear');
+  if (clr) clr.style.display = 'none';
+  filterAuditLog();
+}
+
+function auditGoToPage(p) {
+  _auditPage = p;
+  renderAuditLog();
+  document.getElementById('sec-audit').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function renderAuditLog() {
+  var el     = document.getElementById('auditLogBody');
+  var pagBar = document.getElementById('auditPagBar');
+  if (!el) return;
+
+  var filtered   = _filteredAudit();
+  var totalPages = Math.max(1, Math.ceil(filtered.length / _auditPageSize));
+  if (_auditPage > totalPages) _auditPage = totalPages;
+  var page = filtered.slice((_auditPage - 1) * _auditPageSize, _auditPage * _auditPageSize);
+
+  if (!filtered.length) {
+    el.innerHTML = '<div style="text-align:center;padding:1.5rem;color:var(--muted);font-size:.85rem">No matching entries.</div>';
+    if (pagBar) pagBar.style.display = 'none';
+    return;
+  }
+
+  var TH = 'background:var(--bg2);color:var(--muted);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:.5rem 1rem;text-align:left;border-bottom:1px solid var(--bdr)';
+  el.innerHTML = '<div style="padding:.5rem 1rem;font-size:.75rem;color:var(--muted);border-bottom:1px solid var(--bdr)">Showing ' +
+    ((_auditPage-1)*_auditPageSize+1) + '–' + Math.min(_auditPage*_auditPageSize, filtered.length) +
+    ' of ' + filtered.length + ' entr' + (filtered.length===1?'y':'ies') + '</div>' +
+    '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.8rem">' +
+    '<thead><tr>' +
+      '<th style="'+TH+';white-space:nowrap">Time</th>' +
+      '<th style="'+TH+'">Action</th>' +
+      '<th style="'+TH+'">By</th>' +
+      '<th style="'+TH+'">Target</th>' +
+      '<th style="'+TH+'">Detail</th>' +
+    '</tr></thead><tbody>' +
+    page.map(function(e) {
+      var meta = AUDIT_ACTION_META[e.action] || { label:e.action, color:'var(--txt2)' };
+      return '<tr style="border-bottom:1px solid var(--bdr)">' +
+        '<td style="padding:.6rem 1rem;color:var(--muted);white-space:nowrap;font-size:.75rem">' + fmtTs(e.ts) + '</td>' +
+        '<td style="padding:.6rem 1rem"><span style="font-weight:700;color:'+meta.color+'">' + escR(meta.label) + '</span></td>' +
+        '<td style="padding:.6rem 1rem">' +
+          (e.actorUuid
+            ? '<div style="display:flex;align-items:center;gap:.4rem"><img src="https://mc-heads.net/avatar/'+e.actorUuid+'/20" style="width:20px;height:20px;border-radius:3px;image-rendering:pixelated"/><span style="font-weight:600">'+escR(e.actorName)+'</span></div>'
+            : escR(e.actorName||'—')) +
+        '</td>' +
+        '<td style="padding:.6rem 1rem">' +
+          (e.targetUuid
+            ? '<div style="display:flex;align-items:center;gap:.4rem"><img src="https://mc-heads.net/avatar/'+e.targetUuid+'/20" style="width:20px;height:20px;border-radius:3px;image-rendering:pixelated"/><span>'+escR(e.targetName)+'</span></div>'
+            : escR(e.targetName||'—')) +
+        '</td>' +
+        '<td style="padding:.6rem 1rem;color:var(--txt2);font-family:monospace;font-size:.75rem">' + escR(e.detail||'') + '</td>' +
+      '</tr>';
+    }).join('') +
+    '</tbody></table></div>';
+
+  // Pagination bar
+  if (!pagBar) return;
+  if (totalPages <= 1) { pagBar.style.display = 'none'; return; }
+  pagBar.style.display = 'flex';
+  var btns = '<button class="btn btn-o btn-sm" onclick="auditGoToPage('+(_auditPage-1)+')"' + (_auditPage===1?' disabled style="opacity:.4;cursor:default"':'') + '>‹ Prev</button>';
+  var pages = [];
+  for (var pg = 1; pg <= totalPages; pg++) {
+    if (pg===1 || pg===totalPages || (pg>=_auditPage-2 && pg<=_auditPage+2)) pages.push(pg);
+  }
+  var last = 0;
+  pages.forEach(function(pg) {
+    if (last && pg-last>1) btns += '<span style="color:var(--muted);padding:0 .2rem">…</span>';
+    btns += '<button class="btn btn-sm" onclick="auditGoToPage('+pg+')" style="'+(pg===_auditPage?'background:var(--green);color:#0a1a0a':'border:1px solid var(--bdr);background:transparent;color:var(--txt2)')+'">'+pg+'</button>';
+    last = pg;
+  });
+  btns += '<button class="btn btn-o btn-sm" onclick="auditGoToPage('+(_auditPage+1)+')"' + (_auditPage===totalPages?' disabled style="opacity:.4;cursor:default"':'') + '>Next ›</button>';
+  btns += '<span style="font-size:.78rem;color:var(--muted);margin-left:.25rem">Page '+_auditPage+' of '+totalPages+'</span>';
+  pagBar.innerHTML = btns;
 }
 
 // ── Player Inventory Modal ────────────────────────────────────────────────────

@@ -269,7 +269,7 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
 })();
 </script>
 
-<div class="phdr">
+<div class="phdr" id="profileBanner">
   <div class="phdr-in">
     <div class="pskin"><img id="bodyImg" src="" alt="skin"/></div>
     <div class="pinfo">
@@ -287,7 +287,7 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
   <div style="max-width:1200px;margin:0 auto;padding:0 1rem"></div>
 </div>
 
-<div class="wrap" style="padding-top:1.5rem;padding-bottom:3rem">
+<div class="wrap" id="profileBackground" style="padding-top:1.5rem;padding-bottom:3rem">
   <div class="profile-layout">
 
     <!-- LEFT SIDEBAR: 3D skin viewer -->
@@ -2188,15 +2188,56 @@ function loadProfileSettings(cleanUuid){
     .then(function(r){return r.ok?r.json():null;})
     .then(function(d){
       window._profileSettings = d || {};
-      // Sync checkbox if the panel is already rendered
       var cb = document.getElementById('settingHideNames');
       if(cb) cb.checked = !!window._profileSettings.hideOldNames;
-      // Re-render name history with updated settings
       if(window._lastNameHistory) renderNameHistory(window._lastNameHistory);
-      // Render social icons for all visitors
       renderSocialIcons(window._profileSettings.socialLinks || {});
     })
     .catch(function(){});
+  // Load and apply equipped cosmetics
+  fetch('/api/player-textures?action=get-inventory&uuid='+encodeURIComponent(cleanUuid))
+    .then(function(r){return r.ok?r.json():null;})
+    .then(function(d){
+      if(!d || !d.equipped) return;
+      applyProfileCosmetics(d.equipped);
+    })
+    .catch(function(){});
+}
+
+// Item catalog — must match inventory.html ITEM_CATALOG
+var COSMETIC_CATALOG = [
+  // { id:'12345', type:'banner',     imageUrl:'https://...' },
+  // { id:'12346', type:'background', imageUrl:'https://...' },
+];
+
+function applyProfileCosmetics(equipped){
+  // Banner (phdr header section)
+  var bannerItem = COSMETIC_CATALOG.find(function(c){ return c.id === equipped.banner; });
+  var bannerEl   = document.getElementById('profileBanner');
+  if(bannerEl){
+    if(bannerItem && bannerItem.imageUrl){
+      bannerEl.style.backgroundImage    = 'url('+bannerItem.imageUrl+')';
+      bannerEl.style.backgroundSize     = 'cover';
+      bannerEl.style.backgroundPosition = 'center';
+      bannerEl.style.backgroundRepeat   = 'no-repeat';
+    } else {
+      bannerEl.style.backgroundImage = '';
+    }
+  }
+  // Background (main content area)
+  var bgItem = COSMETIC_CATALOG.find(function(c){ return c.id === equipped.background; });
+  var bgEl   = document.getElementById('profileBackground');
+  if(bgEl){
+    if(bgItem && bgItem.imageUrl){
+      bgEl.style.backgroundImage    = 'url('+bgItem.imageUrl+')';
+      bgEl.style.backgroundSize     = 'cover';
+      bgEl.style.backgroundPosition = 'center';
+      bgEl.style.backgroundRepeat   = bgItem.imageUrl.match(/\.(gif)$/i) ? 'repeat' : 'no-repeat';
+      bgEl.style.minHeight          = '100%';
+    } else {
+      bgEl.style.backgroundImage = '';
+    }
+  }
 }
 
 function toggleSettingsCog(){

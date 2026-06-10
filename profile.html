@@ -1892,23 +1892,6 @@ document.getElementById('tabBar').addEventListener('click',function(e){
   if(tabId==='t-saved') loadSavedPanel();
 });
 
-// ── LIVE CAPE COUNTS ──────────────────────────────────────────────────────────
-// Keeps CAPES[].wearers in sync with laby.net so the modal shows live numbers.
-(function(){
-  function refreshCapeCounts(){
-    fetch('/api/cape-counts')
-      .then(function(r){ return r.ok ? r.json() : null; })
-      .then(function(counts){
-        if(!counts) return;
-        CAPES.forEach(function(c){
-          if(typeof counts[c.id]==='number') c.wearers=counts[c.id];
-        });
-      })
-      .catch(function(){});
-  }
-  refreshCapeCounts();
-  setInterval(refreshCapeCounts, 5 * 60 * 1000);
-})();
 
 // ── SEARCH ────────────────────────────────────────────────────────────────────
 (function(){

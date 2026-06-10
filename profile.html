@@ -42,9 +42,7 @@ a:hover{text-decoration:underline}
 .sri .ss{font-size:.73rem;color:var(--muted)}
 
 /* PROFILE HEADER */
-.phdr{background:var(--bg2);border-bottom:1px solid var(--bdr);padding:2rem 1rem 1rem;position:relative}
-.phdr.has-banner .phdr-in{position:relative;z-index:1}
-.phdr.has-banner::before{content:'';position:absolute;inset:0;background:rgba(8,16,28,.55);backdrop-filter:blur(1px);-webkit-backdrop-filter:blur(1px);z-index:0}
+.phdr{background:var(--bg2);border-bottom:1px solid var(--bdr);padding:2rem 1rem 1rem}
 .phdr-in{max-width:1200px;margin:0 auto;display:flex;align-items:flex-start;gap:2rem}
 .pskin{flex-shrink:0;text-align:center}
 .pskin img{width:96px;image-rendering:pixelated}
@@ -2224,14 +2222,13 @@ function applyProfileCosmetics(equipped){
   var bannerEl   = document.getElementById('profileBanner');
   if(bannerEl){
     if(bannerItem && bannerItem.imageUrl){
-      bannerEl.style.backgroundImage    = 'url('+bannerItem.imageUrl+')';
+      bannerEl.style.backgroundImage    = 'linear-gradient(rgba(8,16,28,.55),rgba(8,16,28,.55)),url('+bannerItem.imageUrl+')';
       bannerEl.style.backgroundSize     = 'cover';
       bannerEl.style.backgroundPosition = 'center';
       bannerEl.style.backgroundRepeat   = 'no-repeat';
-      bannerEl.classList.add('has-banner');
     } else {
       bannerEl.style.backgroundImage = '';
-      bannerEl.classList.remove('has-banner');
+      bannerEl.style.backgroundSize  = '';
     }
   }
   // Background — apply to body so it covers full page including footer gap

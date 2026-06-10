@@ -287,7 +287,8 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
   <div style="max-width:1200px;margin:0 auto;padding:0 1rem"></div>
 </div>
 
-<div class="wrap" id="profileBackground" style="padding-top:1.5rem;padding-bottom:3rem">
+<div id="profileBackground" style="background-size:cover;background-position:center;background-repeat:no-repeat">
+<div class="wrap" style="padding-top:1.5rem;padding-bottom:3rem">
   <div class="profile-layout">
 
     <!-- LEFT SIDEBAR: 3D skin viewer -->
@@ -386,7 +387,8 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
     </div><!-- end profile-main -->
 
   </div><!-- end profile-layout -->
-</div>
+</div><!-- end wrap -->
+</div><!-- end profileBackground -->
 
 <footer>
   <div class="foot-in">
@@ -2224,19 +2226,11 @@ function applyProfileCosmetics(equipped){
       bannerEl.style.backgroundImage = '';
     }
   }
-  // Background (main content area)
+  // Background (main content area — full width wrapper)
   var bgItem = COSMETIC_CATALOG.find(function(c){ return c.id === equipped.background; });
   var bgEl   = document.getElementById('profileBackground');
   if(bgEl){
-    if(bgItem && bgItem.imageUrl){
-      bgEl.style.backgroundImage    = 'url('+bgItem.imageUrl+')';
-      bgEl.style.backgroundSize     = 'cover';
-      bgEl.style.backgroundPosition = 'center';
-      bgEl.style.backgroundRepeat   = bgItem.imageUrl.match(/\.(gif)$/i) ? 'repeat' : 'no-repeat';
-      bgEl.style.minHeight          = '100%';
-    } else {
-      bgEl.style.backgroundImage = '';
-    }
+    bgEl.style.backgroundImage = bgItem && bgItem.imageUrl ? 'url('+bgItem.imageUrl+')' : '';
   }
 }
 

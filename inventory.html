@@ -337,9 +337,7 @@ window.addEventListener('load', function(){
     var stored    = localStorage.getItem(activeKey);
 
     // Fetch linked Minecraft accounts to find active UUID
-    fetch('/api/get-user-minecraft', {
-      headers: { 'Authorization': 'Bearer ' + (window.Clerk.session ? window.Clerk.session.id : '') }
-    })
+    fetch('/api/get-user-minecraft?clerkUserId=' + encodeURIComponent(user.id))
     .then(function(r){ return r.ok ? r.json() : null; })
     .then(function(d){
       var accounts = (d && d.accounts) || [];

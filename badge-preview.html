@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Verified Badge Preview</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1923;--bg2:#131f2e;--card:#182030;--card2:#1e2b3f;
+  --green:#4ade80;--green2:#22c55e;
+  --txt:#f1f5f9;--txt2:#94a3b8;--muted:#64748b;
+  --bdr:#243347;--rad:8px;--rad2:12px;
+  --yellow:#fbbf24;--blue:#60a5fa;--purple:#a78bfa;
+}
+body{background:var(--bg);color:var(--txt);font-family:'Segoe UI',system-ui,sans-serif;padding:2rem;min-height:100vh}
+h2{color:var(--muted);font-size:.75rem;text-transform:uppercase;letter-spacing:.1em;margin-bottom:1.25rem;margin-top:2rem}
+h2:first-child{margin-top:0}
+
+.profile-card{background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad2);padding:1.5rem;display:flex;align-items:flex-start;gap:1.25rem;margin-bottom:1rem;max-width:600px}
+.avatar{width:64px;height:64px;background:var(--bg2);border-radius:8px;image-rendering:pixelated;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:2rem}
+.pname-row{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.35rem}
+.pname{font-size:1.5rem;font-weight:800}
+.puuid{font-size:.72rem;color:var(--muted);font-family:monospace}
+
+/* OPTION A — Blue checkmark (Twitter/X style) */
+.verified-a{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:22px;height:22px;border-radius:50%;
+  background:#1d9bf0;flex-shrink:0;
+}
+.verified-a svg{width:13px;height:13px;fill:white}
+
+/* OPTION B — Gold star badge with text */
+.verified-b{
+  display:inline-flex;align-items:center;gap:.3rem;
+  padding:.15rem .5rem;border-radius:999px;
+  background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.35);
+  color:var(--yellow);font-size:.65rem;font-weight:700;letter-spacing:.04em;flex-shrink:0;
+}
+
+/* OPTION C — Green CapeSearch branded */
+.verified-c{
+  display:inline-flex;align-items:center;gap:.3rem;
+  padding:.15rem .5rem;border-radius:999px;
+  background:rgba(74,222,128,.12);border:1px solid rgba(74,222,128,.3);
+  color:var(--green);font-size:.65rem;font-weight:700;letter-spacing:.04em;flex-shrink:0;
+}
+
+/* OPTION D — Purple Notable badge */
+.verified-d{
+  display:inline-flex;align-items:center;gap:.3rem;
+  padding:.15rem .5rem;border-radius:999px;
+  background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.3);
+  color:var(--purple);font-size:.65rem;font-weight:700;letter-spacing:.04em;flex-shrink:0;
+}
+
+/* OPTION E — Checkmark inside the name, shield icon */
+.verified-e{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:20px;height:20px;border-radius:50%;
+  background:linear-gradient(135deg,#4ade80,#22c55e);
+  flex-shrink:0;box-shadow:0 0 8px rgba(74,222,128,.4);
+}
+.verified-e svg{width:11px;height:11px;fill:#0a1a0a}
+
+.sub{font-size:.82rem;color:var(--txt2)}
+.dim{color:var(--muted);font-size:.75rem;margin-top:.2rem}
+</style>
+</head>
+<body>
+
+<h2>Option A — Blue Circle Checkmark (Twitter/X style)</h2>
+<div class="profile-card">
+  <div class="avatar">🧑</div>
+  <div>
+    <div class="pname-row">
+      <span class="pname">Dream</span>
+      <span class="verified-a">
+        <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+      </span>
+    </div>
+    <div class="puuid">UUID: 69e76b14-1d14-4b87-9b5b-01b32e9b6f4c</div>
+    <div class="dim">Notable Minecraft Creator</div>
+  </div>
+</div>
+
+<h2>Option B — Gold "Verified" Pill Badge</h2>
+<div class="profile-card">
+  <div class="avatar">🧑</div>
+  <div>
+    <div class="pname-row">
+      <span class="pname">Dream</span>
+      <span class="verified-b">★ VERIFIED</span>
+    </div>
+    <div class="puuid">UUID: 69e76b14-1d14-4b87-9b5b-01b32e9b6f4c</div>
+    <div class="dim">Notable Minecraft Creator</div>
+  </div>
+</div>
+
+<h2>Option C — Green CapeSearch Branded</h2>
+<div class="profile-card">
+  <div class="avatar">🧑</div>
+  <div>
+    <div class="pname-row">
+      <span class="pname">Dream</span>
+      <span class="verified-c">✓ VERIFIED</span>
+    </div>
+    <div class="puuid">UUID: 69e76b14-1d14-4b87-9b5b-01b32e9b6f4c</div>
+    <div class="dim">Notable Minecraft Creator</div>
+  </div>
+</div>
+
+<h2>Option D — Purple "Notable" Badge</h2>
+<div class="profile-card">
+  <div class="avatar">🧑</div>
+  <div>
+    <div class="pname-row">
+      <span class="pname">Dream</span>
+      <span class="verified-d">⬡ NOTABLE</span>
+    </div>
+    <div class="puuid">UUID: 69e76b14-1d14-4b87-9b5b-01b32e9b6f4c</div>
+    <div class="dim">Notable Minecraft Creator</div>
+  </div>
+</div>
+
+<h2>Option E — Green Glowing Checkmark Circle</h2>
+<div class="profile-card">
+  <div class="avatar">🧑</div>
+  <div>
+    <div class="pname-row">
+      <span class="pname">Dream</span>
+      <span class="verified-e">
+        <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+      </span>
+    </div>
+    <div class="puuid">UUID: 69e76b14-1d14-4b87-9b5b-01b32e9b6f4c</div>
+    <div class="dim">Notable Minecraft Creator</div>
+  </div>
+</div>
+
+</body>
+</html>

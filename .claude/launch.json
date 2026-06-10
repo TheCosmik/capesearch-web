@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "badge-preview",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["-e", "require('http').createServer((q,r)=>{require('fs').readFile(require('path').join('.',q.url==='/'?'/badge-preview.html':q.url),(e,d)=>{r.writeHead(e?404:200);r.end(e?'not found':d)})}).listen(4321)"],
+      "port": 4321
+    }
+  ]
+}

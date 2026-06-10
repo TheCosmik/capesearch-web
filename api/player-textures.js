@@ -664,6 +664,16 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ ok: true });
   }
 
+  // ── TEMP: seed test inventory items for owner (remove after testing) ────────
+  // GET /api/player-textures?action=seed-test-inventory
+  if (req.method === 'GET' && req.query.action === 'seed-test-inventory') {
+    const OWNER = '97a449ca635d44da9e021fe62eef5bda';
+    await kvPipeline([
+      ['SET', `perk-items:${OWNER}`, JSON.stringify(['bg-cherry-1','bg-cherry-2'])],
+    ]);
+    return res.status(200).json({ ok: true, seeded: ['bg-cherry-1','bg-cherry-2'] });
+  }
+
   // ── Inventory: get owned items + equipped state ───────────────────────────
   // GET /api/player-textures?action=get-inventory&uuid={cleanUuid}
   if (req.method === 'GET' && req.query.action === 'get-inventory') {

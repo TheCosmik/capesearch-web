@@ -189,6 +189,24 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:2rem 1rem;m
   </div>
 </div>
 
+<div style="background:linear-gradient(135deg,rgba(124,58,237,.1),rgba(16,185,129,.07));border-top:1px solid rgba(124,58,237,.2);border-bottom:1px solid rgba(16,185,129,.15);padding:1.25rem 1rem">
+  <div class="wrap" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;padding-top:0;padding-bottom:0">
+    <div style="display:flex;align-items:center;gap:.9rem">
+      <span style="font-size:2rem">🎭</span>
+      <div>
+        <div style="font-weight:700;font-size:1rem">Own your CapeSearch profile</div>
+        <div style="font-size:.85rem;color:var(--txt2);margin-top:.2rem">Search your Minecraft username, then claim your profile to customize it, link your socials, and manage comments.</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:.75rem;flex-shrink:0">
+      <div id="claimSearchWrap" style="display:flex;align-items:center;gap:.5rem">
+        <input id="claimSearchInput" type="text" placeholder="Your Minecraft username…" style="background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad);padding:.45rem .85rem;font-size:.875rem;color:var(--txt);outline:none;width:210px" onkeydown="if(event.key==='Enter')goClaimSearch()"/>
+        <button class="btn btn-p" style="white-space:nowrap" onclick="goClaimSearch()">Search & Claim →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="wrap" style="padding-top:2.5rem">
 
   <div class="g2" style="margin-bottom:2rem">
@@ -526,6 +544,11 @@ function setupSearch(qId,dropId){
   document.addEventListener('click',function(e){
     if(!inp.contains(e.target)&&!drop.contains(e.target))drop.classList.remove('show');
   });
+}
+
+function goClaimSearch(){
+  var val = document.getElementById('claimSearchInput').value.trim();
+  if(val) window.location.href = 'profile?player=' + encodeURIComponent(val);
 }
 
 function copyIp(btn){

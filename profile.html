@@ -283,6 +283,10 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
   </div>
 </div>
 
+<div id="unclaimedBanner" style="display:none;background:linear-gradient(135deg,rgba(124,58,237,.12),rgba(16,185,129,.08));border-bottom:1px solid rgba(124,58,237,.25);padding:.85rem 1rem">
+  <div style="max-width:1200px;margin:0 auto;padding:0 1rem"></div>
+</div>
+
 <div class="wrap" style="padding-top:1.5rem;padding-bottom:3rem">
   <div class="profile-layout">
 
@@ -2306,6 +2310,27 @@ function _renderActsWithClaim(uuid, name, isClaimed, ownerUserId) {
     }
   } else {
     claimHtml = '<button class="btn btn-o" onclick="openClaimModal(\''+uuid+'\',\''+name+'\')">🔗 Claim Profile</button>';
+  }
+  // Show unclaimed banner to anyone viewing an unclaimed profile
+  var bannerEl = document.getElementById('unclaimedBanner');
+  if (bannerEl) {
+    var isOwner2 = isClaimed && currentUserId && currentUserId === ownerUserId;
+    if (!isClaimed && !isOwner2) {
+      bannerEl.innerHTML =
+        '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem">'+
+          '<div style="display:flex;align-items:center;gap:.6rem">'+
+            '<span style="font-size:1.2rem">👋</span>'+
+            '<div>'+
+              '<div style="font-weight:600;font-size:.9rem">Is this your Minecraft profile?</div>'+
+              '<div style="font-size:.8rem;color:var(--txt2);margin-top:.15rem">Claim it to customize your page, link your socials, and manage comments.</div>'+
+            '</div>'+
+          '</div>'+
+          '<button class="btn btn-p" style="white-space:nowrap;font-size:.85rem" onclick="openClaimModal(\''+uuid+'\',\''+name+'\')">🔗 Claim This Profile</button>'+
+        '</div>';
+      bannerEl.style.display = 'block';
+    } else {
+      bannerEl.style.display = 'none';
+    }
   }
   var isOwner = isClaimed && currentUserId && currentUserId === ownerUserId;
   var cogHtml = '';

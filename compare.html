@@ -398,51 +398,60 @@ async function loadPlayer(side, nameOrUuid) {
   _players[side] = null;
 
   try {
-    // Step 1: resolve UUID via our proxy (Mojang session)
-    var texRes = await fetch('/api/player-textures?name=' + encodeURIComponent(nameOrUuid));
-    if (!texRes.ok) throw new Error('Player not found');
-    var tex = await texRes.json();
-    if (!tex.uuid) throw new Error('Player not found');
+    // Step 1: resolve name → uuid (Mojang username lookup)
+    var nameRes = await fetch('/api/player-textures?name=' + encodeURIComponent(nameOrUuid));
+    if (!nameRes.ok) throw new Error('Player not found');
+    var nameData = await nameRes.json();
+    if (!nameData.uuid) throw new Error('Player not found');
 
-    var uuid     = tex.uuid.replace(/-/g,'');
-    var hUuid    = tex.uuid; // hyphenated
-    var name     = tex.name || nameOrUuid;
-    var capeUrl  = tex.cape || null;
-    var skinUrl  = tex.skin || null;
-    var slim     = tex.slim || false;
+    var uuid  = nameData.uuid; // no-dash (Mojang format from ?name=)
+    var name  = nameData.name || nameOrUuid;
+    // Hyphenated UUID for APIs that require it
+    var hUuid = uuid.replace(/^([0-9a-f]{8})([0-9a-f]{4})([0-9a-f]{4})([0-9a-f]{4})([0-9a-f]{12})$/i,
+                             '$1-$2-$3-$4-$5');
 
-    // Step 2: cape hash → name
+    // Step 2: full profile — cape, skin, history[], role, vip, beta (all in one call)
+    var profRes = await fetch('/api/player-textures?uuid=' + encodeURIComponent(hUuid));
+    var prof    = profRes.ok ? await profRes.json() : {};
+
+    var capeUrl  = prof.cape  || null;
+    var skinUrl  = prof.skin  || null;
+    var slim     = prof.slim  || false;
+    var histData = Array.isArray(prof.history) ? prof.history : [];
+    var roleData = { role: prof.role || null, vip: !!prof.vip, beta: !!prof.beta };
+    // Use canonical name from Mojang profile if available
+    if (prof.name) name = prof.name;
+
+    // Cape info for current cape
     var capeInfo = null;
     if (capeUrl) {
       var hash = capeUrl.replace(/https?:\/\/textures\.minecraft\.net\/texture\//, '');
-      capeInfo = CAPE_HASH_DATA[hash] || { name: 'Unknown Cape', img: null };
-      capeInfo._hash = hash;
+      var cd   = CAPE_HASH_DATA[hash];
+      capeInfo = cd ? { name: cd.name, img: cd.img, id: cd.id, _hash: hash }
+                    : { name: 'Unknown Cape', img: null, id: null, _hash: hash };
     }
 
-    // Step 3: cape history from KV
-    var histData = [];
-    try {
-      var hRes = await fetch('/api/player-textures?action=get-history&uuid=' + encodeURIComponent(uuid));
-      if (hRes.ok) { var hd = await hRes.json(); histData = hd.history || []; }
-    } catch {}
-
-    // Step 4: name history via our proxy (laby.net)
+    // Step 3: name history via laby.net proxy, Ashcon fallback
     var nameHistory = [];
     try {
       var nRes = await fetch('/api/player-textures?action=names&uuid=' + encodeURIComponent(hUuid));
       if (nRes.ok) {
         var nd = await nRes.json();
-        if (Array.isArray(nd.names) && nd.names.length) nameHistory = nd.names;
+        // laby.net returns an array of {username, changed_at}
+        if (Array.isArray(nd) && nd.length) {
+          nameHistory = nd.slice().reverse().map(function(e) {
+            return { name: e.username, changed: e.changed_at ? fmtDate(e.changed_at) : null };
+          });
+        }
       }
     } catch {}
-    // Fallback: Ashcon
     if (!nameHistory.length) {
       try {
         var aRes = await fetch('https://api.ashcon.app/mojang/v2/user/' + uuid);
         if (aRes.ok) {
           var ad = await aRes.json();
           if (ad.username_history) {
-            nameHistory = ad.username_history.slice().map(function(e){
+            nameHistory = ad.username_history.slice().map(function(e) {
               return { name: e.username, changed: e.changed_at ? fmtDate(e.changed_at) : null };
             });
           }
@@ -451,22 +460,11 @@ async function loadPlayer(side, nameOrUuid) {
     }
     if (!nameHistory.length) nameHistory = [{ name: name, changed: null }];
 
-    // Step 5: stats (followers + views)
+    // Step 4: follower count
     var stats = { followers: 0, views: 0 };
     try {
       var sRes = await fetch('/api/follow?action=status&targetUuid=' + encodeURIComponent(uuid));
       if (sRes.ok) { var sd = await sRes.json(); stats.followers = sd.followersCount || 0; }
-    } catch {}
-    try {
-      var vRes = await fetch('/api/player-textures?action=get-stats&uuid=' + encodeURIComponent(uuid));
-      if (vRes.ok) { var vd = await vRes.json(); stats.views = vd.views || 0; }
-    } catch {}
-
-    // Step 6: role/vip/beta
-    var roleData = {};
-    try {
-      var rRes = await fetch('/api/player-textures?uuid=' + encodeURIComponent(hUuid));
-      if (rRes.ok) { var rd = await rRes.json(); roleData = { role: rd.role, vip: rd.vip, beta: rd.beta }; }
     } catch {}
 
     _players[side] = { uuid, hUuid, name, capeUrl, capeInfo, slim, skinUrl, histData, nameHistory, stats, roleData };

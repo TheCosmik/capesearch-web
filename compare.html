@@ -521,21 +521,23 @@ function renderCard(side) {
     '</div>';
   }
 
-  // Cape history
+  // Cape history — show ALL tracked capes, active one highlighted
   var histHtml = '';
-  if (p.histData.length > 1) {
-    var historical = p.histData.filter(function(h){ return h.url !== p.capeUrl; }).slice(0,6);
-    if (historical.length) {
-      histHtml = '<div class="pc-section">' +
-        '<div class="pc-label">Cape History (' + p.histData.length + ' total)</div>' +
-        '<div class="cape-strip">' +
-        historical.map(function(h) {
-          var hash = (h.url||'').replace(/https?:\/\/textures\.minecraft\.net\/texture\//,'');
-          var info = CAPE_HASH_DATA[hash] || { name:'Unknown', img:null };
-          return '<div class="cape-thumb"><img src="' + escH(info.img || h.url) + '" title="' + escH(info.name) + '" onerror="this.parentNode.style.display=\'none\'"/><div class="ct-name">' + escH(info.name) + '</div></div>';
-        }).join('') +
-        '</div></div>';
-    }
+  if (p.histData.length) {
+    histHtml = '<div class="pc-section">' +
+      '<div class="pc-label">Cape History (' + p.histData.length + ' total)</div>' +
+      '<div class="cape-strip">' +
+      p.histData.map(function(h) {
+        var isActive = h.url === p.capeUrl;
+        var hash = (h.url||'').replace(/https?:\/\/textures\.minecraft\.net\/texture\//,'');
+        var info = CAPE_HASH_DATA[hash] || { name:'Unknown Cape', img:null };
+        return '<div class="cape-thumb' + (isActive ? ' active' : '') + '" title="' + escH(info.name) + (isActive ? ' (Active)' : '') + '">' +
+          '<img src="' + escH(info.img || h.url) + '" onerror="this.parentNode.style.display=\'none\'"/>' +
+          '<div class="ct-name" style="' + (isActive ? 'color:var(--green);font-weight:700' : '') + '">' + escH(info.name) + '</div>' +
+        '</div>';
+      }).join('') +
+      '</div></div>';
+  }
   }
 
   // Name history (top 6)

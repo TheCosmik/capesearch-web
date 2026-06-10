@@ -2317,15 +2317,12 @@ function _renderActsWithClaim(uuid, name, isClaimed, ownerUserId) {
     var isOwner2 = isClaimed && currentUserId && currentUserId === ownerUserId;
     if (!isClaimed && !isOwner2) {
       bannerEl.innerHTML =
-        '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem">'+
-          '<div style="display:flex;align-items:center;gap:.6rem">'+
-            '<span style="font-size:1.2rem">👋</span>'+
-            '<div>'+
-              '<div style="font-weight:600;font-size:.9rem">Is this your Minecraft profile?</div>'+
-              '<div style="font-size:.8rem;color:var(--txt2);margin-top:.15rem">Claim it to customize your page, link your socials, and manage comments.</div>'+
-            '</div>'+
+        '<div style="display:flex;align-items:center;justify-content:center;gap:1rem;flex-wrap:wrap;text-align:center">'+
+          '<div>'+
+            '<div style="font-weight:600;font-size:.9rem">👋 Is this your Minecraft profile?</div>'+
+            '<div style="font-size:.8rem;color:var(--txt2);margin-top:.15rem">Claim it to customize your page, link your socials, and manage comments.</div>'+
           '</div>'+
-          '<button class="btn btn-p" style="white-space:nowrap;font-size:.85rem" onclick="openClaimModal(\''+uuid+'\',\''+name+'\')">🔗 Claim This Profile</button>'+
+          '<button class="btn btn-p" style="white-space:nowrap;font-size:.85rem;flex-shrink:0" onclick="openClaimModal(\''+uuid+'\',\''+name+'\')">🔗 Claim This Profile</button>'+
         '</div>';
       bannerEl.style.display = 'block';
     } else {

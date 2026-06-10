@@ -2213,7 +2213,8 @@ var COSMETIC_CATALOG = [
   { id:'bg-cherry-1', type:'background', imageUrl:'/cosmetics/bg-cherry-blossom.gif' },
   { id:'bg-cherry-2', type:'background', imageUrl:'/cosmetics/bg-cherry-blossom-2.gif' },
   { id:'bg-220234',   type:'background', imageUrl:'/cosmetics/bg-220234.gif' },
-  { id:'bn-giphy123', type:'banner',     imageUrl:'/cosmetics/bn-giphy123.gif' },
+  { id:'bn-giphy123',     type:'banner',     imageUrl:'/cosmetics/bn-giphy123.gif' },
+  { id:'bg-background1',  type:'background', imageUrl:'/cosmetics/bg-background1.gif' },
 ];
 
 function applyProfileCosmetics(equipped){
@@ -2222,13 +2223,9 @@ function applyProfileCosmetics(equipped){
   var bannerEl   = document.getElementById('profileBanner');
   if(bannerEl){
     if(bannerItem && bannerItem.imageUrl){
-      bannerEl.style.backgroundImage    = 'linear-gradient(rgba(8,16,28,.55),rgba(8,16,28,.55)),url('+bannerItem.imageUrl+')';
-      bannerEl.style.backgroundSize     = 'cover';
-      bannerEl.style.backgroundPosition = 'center';
-      bannerEl.style.backgroundRepeat   = 'no-repeat';
+      bannerEl.style.background = 'linear-gradient(rgba(8,16,28,.6),rgba(8,16,28,.6)) center/cover no-repeat, url('+bannerItem.imageUrl+') center/cover no-repeat';
     } else {
-      bannerEl.style.backgroundImage = '';
-      bannerEl.style.backgroundSize  = '';
+      bannerEl.style.background = '';
     }
   }
   // Background — apply to body so it covers full page including footer gap

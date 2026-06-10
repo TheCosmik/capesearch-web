@@ -670,16 +670,7 @@ module.exports = async function handler(req, res) {
   if (req.method === 'POST' && req.query.action === 'grant-item') {
     const { clerkUserId, targetUuid, itemId } = req.body || {};
     if (!clerkUserId || !targetUuid || !itemId) return res.status(400).json({ error: 'missing fields' });
-    // Verify caller is owner
-    const callerAccounts = await kvGet(`clerk-mc:${clerkUserId}`);
-    let callerUuids = [];
-    try { callerUuids = callerAccounts ? JSON.parse(callerAccounts) : []; } catch { callerUuids = []; }
-    let isOwner = false;
-    for (const cu of callerUuids) {
-      const role = await kvGet(`role:${cu}`);
-      if (role === 'owner') { isOwner = true; break; }
-    }
-    if (!isOwner) return res.status(403).json({ error: 'owner only' });
+    if (!(await isOwnerByClerkId(clerkUserId))) return res.status(403).json({ error: 'owner only' });
     const clean = targetUuid.replace(/-/g, '').toLowerCase();
     if (!/^[0-9a-f]{32}$/.test(clean)) return res.status(400).json({ error: 'invalid uuid' });
     const [itemsRaw] = await kvPipeline([['GET', `perk-items:${clean}`]]);

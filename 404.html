@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%234ade80'/><text x='50' y='87' font-size='74' text-anchor='middle' fill='white'>⛏</text></svg>"/>
+<title>404 – Page Not Found · CapeSearch</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1923;--bg2:#131f2e;--card:#182030;
+  --green:#4ade80;--green2:#22c55e;
+  --txt:#f1f5f9;--txt2:#94a3b8;--muted:#64748b;
+  --bdr:#243347;--rad:8px;--rad2:12px;
+}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:'Segoe UI',system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:2rem 1rem}
+.icon{font-size:4rem;margin-bottom:1.25rem;line-height:1}
+.code{font-size:5rem;font-weight:900;color:var(--green);letter-spacing:-.04em;line-height:1}
+.title{font-size:1.35rem;font-weight:700;margin:.5rem 0 .75rem}
+.sub{color:var(--txt2);font-size:.95rem;max-width:360px;line-height:1.6}
+.actions{display:flex;gap:.75rem;flex-wrap:wrap;justify-content:center;margin-top:2rem}
+.btn{display:inline-flex;align-items:center;gap:.4rem;padding:.55rem 1.1rem;border-radius:var(--rad);font-size:.875rem;font-weight:600;cursor:pointer;border:none;text-decoration:none;transition:all .2s}
+.btn-p{background:var(--green);color:#0a1a0a}
+.btn-p:hover{background:var(--green2)}
+.btn-o{background:transparent;border:1px solid var(--bdr);color:var(--txt2)}
+.btn-o:hover{border-color:var(--green);color:var(--green)}
+.divider{width:40px;height:2px;background:var(--bdr);margin:1.5rem auto}
+.search-hint{color:var(--muted);font-size:.8rem;margin-top:1.25rem}
+</style>
+</head>
+<body>
+  <div class="icon">⛏</div>
+  <div class="code">404</div>
+  <div class="divider"></div>
+  <div class="title">Page Not Found</div>
+  <div class="sub">This page doesn't exist or may have been moved. Try searching for a player instead.</div>
+  <div class="actions">
+    <a href="/" class="btn btn-p">🏠 Go Home</a>
+    <a href="/capes.html" class="btn btn-o">🗺 Browse Capes</a>
+  </div>
+  <div class="search-hint">Looking for a player? <a href="/" style="color:var(--green)">Search on the homepage →</a></div>
+</body>
+</html>

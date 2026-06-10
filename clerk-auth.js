@@ -225,6 +225,10 @@ function _buildDropdown(displayName, accounts, activeUuid) {
           +   'onmouseover="this.style.background=\'#182030\'" '
           +   'onmouseout="this.style.background=\'none\'">⚡ Admin Panel</a>'
           : '')
+    +   '<a href="inventory.html" style="display:flex;align-items:center;gap:.5rem;padding:.55rem .85rem;'
+    +     'font-size:.85rem;color:#94a3b8;text-decoration:none;border-bottom:1px solid #1e293b" '
+    +     'onmouseover="this.style.background=\'#182030\';this.style.color=\'#f1f5f9\'" '
+    +     'onmouseout="this.style.background=\'none\';this.style.color=\'#94a3b8\'">🎒 Inventory</a>'
     +   '<button onclick="_goManage()" style="width:100%;background:none;border:none;text-align:left;'
     +     'padding:.55rem .85rem;font-size:.85rem;color:#94a3b8;cursor:pointer;display:flex;align-items:center;gap:.5rem" '
     +     'onmouseover="this.style.background=\'#182030\';this.style.color=\'#f1f5f9\'" '

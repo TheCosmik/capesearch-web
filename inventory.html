@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%234ade80'/><text x='50' y='87' font-size='74' text-anchor='middle' fill='white'>⛏</text></svg>"/>
+<title>Inventory – CapeSearch</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1923;--bg2:#131f2e;--card:#182030;--card2:#1e2b3f;
+  --green:#4ade80;--green2:#22c55e;--gdim:rgba(74,222,128,.13);
+  --txt:#f1f5f9;--txt2:#94a3b8;--muted:#64748b;
+  --bdr:#243347;--bdr2:#2d3f5e;--rad:8px;--rad2:12px;
+  --red:#f87171;--yellow:#fbbf24;--blue:#60a5fa;--purple:#a78bfa;
+}
+html{font-size:16px}
+body{background:var(--bg);color:var(--txt);font-family:'Segoe UI',system-ui,sans-serif;line-height:1.5;min-height:100vh}
+a{color:var(--green);text-decoration:none}
+a:hover{text-decoration:underline}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg2)}::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:3px}
+
+.nav{background:var(--bg2);border-bottom:1px solid var(--bdr);position:sticky;top:0;z-index:99;padding:0 1rem}
+.nav-in{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:1rem;height:54px}
+.logo{display:flex;align-items:center;gap:.5rem;font-size:1.15rem;font-weight:800;color:var(--txt);text-decoration:none;flex-shrink:0}
+.logo-icon{width:30px;height:30px;background:var(--green);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.logo span{color:var(--green)}
+.nav-s{flex:1;max-width:400px;position:relative}
+.nav-s input{width:100%;background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad);color:var(--txt);padding:.4rem .75rem .4rem 2.2rem;font-size:.875rem;outline:none;transition:border-color .2s}
+.nav-s input:focus{border-color:var(--green)}
+.nav-s input::placeholder{color:var(--muted)}
+.nav-s .si{position:absolute;left:.6rem;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;pointer-events:none}
+.nav-links{display:flex;gap:.15rem;margin-left:auto}
+.nav-links a{color:var(--txt2);font-size:.875rem;font-weight:500;padding:.35rem .7rem;border-radius:var(--rad);transition:all .2s}
+.nav-links a:hover,.nav-links a.on{color:var(--txt);background:var(--card);text-decoration:none}
+.sdrop{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad);box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:200;display:none}
+.sdrop.show{display:block}
+.sri{display:flex;align-items:center;gap:.65rem;padding:.55rem .8rem;cursor:pointer;transition:background .15s}
+.sri:hover{background:var(--card2)}
+.sri img{width:30px;height:30px;image-rendering:pixelated;border-radius:4px;background:var(--bg2)}
+.sri .sn{font-size:.85rem;font-weight:600}
+.sri .ss{font-size:.73rem;color:var(--muted)}
+.nav-burger{display:none;background:none;border:none;color:var(--txt);font-size:1.4rem;cursor:pointer;padding:.25rem .45rem;line-height:1;flex-shrink:0}
+.nav-mob{display:none;border-top:1px solid var(--bdr);flex-direction:column;gap:.1rem;padding:.5rem 0 .8rem}
+.nav-mob.open{display:flex}
+.nav-mob a{color:var(--txt2);font-size:.9rem;font-weight:500;padding:.5rem .75rem;border-radius:var(--rad);transition:all .2s;text-decoration:none;display:block}
+.nav-mob a:hover,.nav-mob a.on{color:var(--txt);background:var(--card);text-decoration:none}
+@media(max-width:768px){.nav-links{display:none}.nav-burger{display:block}}
+
+.wrap{max-width:1200px;margin:0 auto;padding:0 1rem}
+.badge{display:inline-flex;align-items:center;padding:.12rem .45rem;border-radius:999px;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em}
+.bg{background:var(--gdim);color:var(--green)}
+.btn{display:inline-flex;align-items:center;gap:.35rem;padding:.55rem 1rem;border-radius:var(--rad);font-size:.82rem;font-weight:600;cursor:pointer;border:none;transition:all .2s}
+.btn-p{background:var(--green);color:#0f1923}
+.btn-p:hover{background:var(--green2)}
+.btn-o{background:transparent;border:1px solid var(--bdr);color:var(--txt2)}
+.btn-o:hover{border-color:var(--green);color:var(--green)}
+.btn-sm{padding:.3rem .75rem;font-size:.78rem}
+
+/* PAGE HEADER */
+.phdr{background:var(--bg2);border-bottom:1px solid var(--bdr);padding:1.75rem 1rem}
+.phdr h1{font-size:1.65rem;font-weight:800;margin-bottom:.2rem}
+.phdr p{color:var(--txt2);font-size:.875rem}
+
+/* TABS */
+.inv-tabs{display:flex;gap:.35rem;margin-bottom:1.5rem;flex-wrap:wrap}
+.inv-tab{background:var(--card);border:1px solid var(--bdr);color:var(--txt2);border-radius:999px;padding:.35rem 1rem;font-size:.82rem;font-weight:600;cursor:pointer;transition:all .15s}
+.inv-tab:hover,.inv-tab.on{border-color:var(--green);color:var(--green);background:var(--gdim)}
+
+/* ITEM GRID */
+.inv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem}
+.inv-item{background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad2);overflow:hidden;transition:border-color .2s;position:relative}
+.inv-item:hover{border-color:var(--bdr2)}
+.inv-item.equipped{border-color:var(--green);box-shadow:0 0 0 1px var(--green)}
+.inv-preview{width:100%;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;font-size:3.5rem;position:relative;overflow:hidden}
+.inv-info{padding:.75rem}
+.inv-name{font-size:.9rem;font-weight:700;margin-bottom:.2rem}
+.inv-type{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.6rem}
+.inv-equip{width:100%;justify-content:center}
+.equipped-badge{position:absolute;top:.5rem;right:.5rem;background:var(--green);color:#0f1923;font-size:.62rem;font-weight:800;padding:.15rem .45rem;border-radius:999px;text-transform:uppercase;letter-spacing:.04em}
+
+/* EMPTY STATE */
+.inv-empty{text-align:center;padding:4rem 2rem;color:var(--muted)}
+.inv-empty .big{font-size:3rem;margin-bottom:.75rem}
+.inv-empty h3{font-size:1.1rem;font-weight:700;color:var(--txt2);margin-bottom:.4rem}
+.inv-empty p{font-size:.875rem;margin-bottom:1.25rem}
+
+/* SIGN-IN PROMPT */
+.signin-prompt{background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad2);padding:3rem 2rem;text-align:center;margin-top:2rem}
+.signin-prompt .big{font-size:3rem;margin-bottom:.75rem}
+.signin-prompt h2{font-size:1.2rem;font-weight:700;margin-bottom:.5rem}
+.signin-prompt p{font-size:.875rem;color:var(--txt2);margin-bottom:1.25rem}
+
+/* NO ACCOUNT */
+.no-account{background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.2);border-radius:var(--rad2);padding:1rem 1.25rem;font-size:.85rem;color:var(--yellow);margin-bottom:1.5rem;display:none}
+
+footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1rem;margin-top:2.5rem}
+.foot-in{max-width:1200px;margin:0 auto;display:flex;flex-wrap:wrap;gap:2rem;justify-content:space-between}
+.foot-brand .fl{font-size:1rem;font-weight:800;color:var(--txt);margin-bottom:.3rem}
+.foot-brand .fl span{color:var(--green)}
+.foot-brand p{font-size:.76rem;color:var(--muted);max-width:200px}
+.foot-col h4{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.55rem}
+.foot-col ul{list-style:none;display:flex;flex-direction:column;gap:.3rem}
+.foot-col ul a{font-size:.82rem;color:var(--txt2)}
+.foot-col ul a:hover{color:var(--green)}
+</style>
+<script async crossorigin="anonymous"
+  data-clerk-publishable-key="pk_test_c3RlYWR5LWZpbGx5LTY4LmNsZXJrLmFjY291bnRzLmRldiQ"
+  src="https://steady-filly-68.clerk.accounts.dev/npm/@clerk/clerk-js@5/dist/clerk.browser.js"
+  type="text/javascript"></script>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-in">
+    <a href="index.html" class="logo"><div class="logo-icon">⛏</div><b>Cape<span>Search</span></b></a>
+    <div class="nav-s">
+      <span class="si">🔍</span>
+      <input id="navQ" type="text" placeholder="Search player…" autocomplete="off"/>
+      <div class="sdrop" id="navDrop"></div>
+    </div>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="capes.html">Capes</a>
+      <a href="servers.html">Servers</a>
+      <a href="https://discord.gg/g8AqWJaVEK" target="_blank" rel="noopener">Discord</a>
+      <a href="index.html#faq">FAQ</a>
+      <a href="https://capesearch.tebex.io" target="_blank" rel="noopener">Store</a>
+    </div>
+    <button class="nav-burger" id="navBurger" aria-label="Toggle menu">☰</button>
+    <div style="display:flex;align-items:center;margin-left:.5rem;flex-shrink:0">
+      <button id="clerkSignIn" style="display:none;background:var(--green);color:#0f1923;border:none;border-radius:var(--rad);padding:.35rem .9rem;font-size:.875rem;font-weight:700;cursor:pointer">Log in</button>
+      <div id="clerkUser" style="display:none;align-items:center"></div>
+    </div>
+  </div>
+  <div class="nav-mob" id="navMob">
+    <a href="index.html">Home</a>
+    <a href="capes.html">Capes</a>
+    <a href="servers.html">Servers</a>
+    <a href="https://discord.gg/g8AqWJaVEK" target="_blank" rel="noopener">Discord</a>
+    <a href="index.html#faq">FAQ</a>
+    <a href="https://capesearch.tebex.io" target="_blank" rel="noopener">Store</a>
+  </div>
+</nav>
+<script>
+(function(){
+  var btn=document.getElementById('navBurger'),mob=document.getElementById('navMob');
+  if(!btn||!mob)return;
+  btn.addEventListener('click',function(e){e.stopPropagation();var o=mob.classList.toggle('open');btn.textContent=o?'✕':'☰';});
+  document.addEventListener('click',function(e){if(!e.target.closest('.nav')){mob.classList.remove('open');btn.textContent='☰';}});
+  mob.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){mob.classList.remove('open');btn.textContent='☰';});});
+})();
+</script>
+
+<div class="phdr">
+  <div class="wrap">
+    <h1>🎒 Inventory</h1>
+    <p>Your owned cosmetic items. Equip them to customize your profile.</p>
+  </div>
+</div>
+
+<div class="wrap" style="padding-top:1.75rem;padding-bottom:3rem">
+
+  <!-- Sign-in prompt (shown when logged out) -->
+  <div id="signinPrompt" class="signin-prompt" style="display:none">
+    <div class="big">🎒</div>
+    <h2>Sign in to view your inventory</h2>
+    <p>Your purchased cosmetic items will appear here after signing in.</p>
+    <button class="btn btn-p" onclick="window.Clerk && window.Clerk.openSignIn()">Log in</button>
+  </div>
+
+  <!-- Main inventory (shown when signed in) -->
+  <div id="invMain" style="display:none">
+    <div class="no-account" id="noAccountWarn">
+      ⚠ You don't have a claimed Minecraft profile linked. <a href="index.html">Search your username</a> and claim your profile so items can be equipped.
+    </div>
+
+    <!-- Category tabs -->
+    <div class="inv-tabs" id="invTabs">
+      <button class="inv-tab on" onclick="filterCat('all',this)">All Items</button>
+      <button class="inv-tab" onclick="filterCat('background',this)">Backgrounds</button>
+      <button class="inv-tab" onclick="filterCat('border',this)">Avatar Borders</button>
+    </div>
+
+    <!-- Item grid -->
+    <div class="inv-grid" id="invGrid"></div>
+
+    <!-- Empty state -->
+    <div id="invEmpty" class="inv-empty" style="display:none">
+      <div class="big">📦</div>
+      <h3>No items yet</h3>
+      <p>Head to the store to pick up profile backgrounds, borders, and more.</p>
+      <a href="https://capesearch.tebex.io" target="_blank" rel="noopener" class="btn btn-p">Visit Store</a>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <div class="foot-in">
+    <div class="foot-brand">
+      <div class="fl">Cape<span>Search</span></div>
+      <p>Not affiliated with Mojang or Microsoft.</p>
+    </div>
+    <div class="foot-col">
+      <h4>Quick Links</h4>
+      <ul>
+        <li><a href="index.html">Home</a></li>
+        <li><a href="capes.html">Capes</a></li>
+        <li><a href="servers.html">Servers</a></li>
+        <li><a href="#">API</a></li>
+      </ul>
+    </div>
+  </div>
+</footer>
+
+<script>
+// ── Item catalog — maps Tebex package ID → item metadata ─────────────────────
+// Add new items here as you create them on Tebex. The id must match the
+// package ID Tebex sends in webhook payloads.
+var ITEM_CATALOG = [
+  // Example items — replace IDs with real Tebex package IDs when available
+  // { id:'12345', name:'Galaxy Background',  type:'background', preview:'🌌', previewBg:'linear-gradient(135deg,#0f0c29,#302b63,#24243e)', rarity:'rare' },
+  // { id:'12346', name:'Neon Border',         type:'border',     preview:'',   previewBg:'linear-gradient(135deg,#f093fb,#f5576c)',           rarity:'epic' },
+];
+
+var _allItems    = [];   // full owned list from API
+var _equipped    = {};   // { background: pkgId, border: pkgId, ... }
+var _activeUuid  = null; // claimed Minecraft UUID for this user
+var _curCat      = 'all';
+
+// ── Rarity colors ─────────────────────────────────────────────────────────────
+var RARITY_COLOR = { common:'#94a3b8', rare:'#60a5fa', epic:'#a78bfa', legendary:'#fbbf24' };
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function renderGrid(){
+  var grid  = document.getElementById('invGrid');
+  var empty = document.getElementById('invEmpty');
+  var list  = _curCat === 'all' ? _allItems : _allItems.filter(function(i){ return i.type === _curCat; });
+
+  if(!list.length){
+    grid.innerHTML  = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  grid.innerHTML = list.map(function(item){
+    var isEquipped = _equipped[item.type] === item.id;
+    var rarityCol  = RARITY_COLOR[item.rarity] || RARITY_COLOR.common;
+    return '<div class="inv-item'+(isEquipped?' equipped':'')+'" id="item-'+item.id+'">'
+      +'<div class="inv-preview" style="background:'+(item.previewBg||'var(--card2)')+'">'+
+        (item.preview||'🎨')+
+        (isEquipped?'<div class="equipped-badge">Equipped</div>':'')+
+      '</div>'
+      +'<div class="inv-info">'
+        +'<div class="inv-name">'+escHtml(item.name)+'</div>'
+        +'<div class="inv-type" style="color:'+rarityCol+'">'+ucFirst(item.rarity||'common')+' · '+ucFirst(item.type)+'</div>'
+        +(isEquipped
+          ? '<button class="btn btn-o btn-sm inv-equip" onclick="unequipItem(\''+item.id+'\',\''+item.type+'\')">Unequip</button>'
+          : '<button class="btn btn-p btn-sm inv-equip" onclick="equipItem(\''+item.id+'\',\''+item.type+'\')">Equip</button>'
+        )
+      +'</div>'
+    +'</div>';
+  }).join('');
+}
+
+function filterCat(cat, btn){
+  _curCat = cat;
+  document.querySelectorAll('.inv-tab').forEach(function(t){ t.classList.remove('on'); });
+  btn.classList.add('on');
+  renderGrid();
+}
+
+// ── Equip / Unequip ───────────────────────────────────────────────────────────
+function equipItem(pkgId, type){
+  if(!_activeUuid){ alert('You need a claimed Minecraft profile to equip items.'); return; }
+  _equipped[type] = pkgId;
+  saveEquipped();
+  renderGrid();
+}
+
+function unequipItem(pkgId, type){
+  if(!_activeUuid) return;
+  if(_equipped[type] === pkgId) delete _equipped[type];
+  saveEquipped();
+  renderGrid();
+}
+
+function saveEquipped(){
+  fetch('/api/inventory?action=equip', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ uuid: _activeUuid, equipped: _equipped })
+  }).catch(function(){});
+}
+
+// ── Load inventory from API ───────────────────────────────────────────────────
+function loadInventory(uuid){
+  _activeUuid = uuid;
+  fetch('/api/inventory?uuid='+encodeURIComponent(uuid))
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(d){
+      if(!d) return;
+      _equipped = d.equipped || {};
+      // Map owned package IDs to catalog entries
+      var ownedIds = new Set(d.items || []);
+      _allItems = ITEM_CATALOG.filter(function(c){ return ownedIds.has(c.id); });
+      renderGrid();
+    })
+    .catch(function(){
+      renderGrid();
+    });
+}
+
+// ── Utils ─────────────────────────────────────────────────────────────────────
+function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function ucFirst(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+
+// ── Auth + init ───────────────────────────────────────────────────────────────
+window.addEventListener('load', function(){
+  if(!window.Clerk){ return; }
+  window.Clerk.load().then(function(){
+    var user = window.Clerk.user;
+    if(!user){
+      document.getElementById('signinPrompt').style.display = 'block';
+      return;
+    }
+    document.getElementById('invMain').style.display = 'block';
+
+    // Get active claimed Minecraft UUID from localStorage (same logic as clerk-auth.js)
+    var activeKey = 'cs_active_' + user.id;
+    var stored    = localStorage.getItem(activeKey);
+
+    // Fetch linked Minecraft accounts to find active UUID
+    fetch('/api/get-user-minecraft', {
+      headers: { 'Authorization': 'Bearer ' + (window.Clerk.session ? window.Clerk.session.id : '') }
+    })
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(d){
+      var accounts = (d && d.accounts) || [];
+      var active   = accounts.find(function(a){ return a.minecraftUuid === stored; }) || accounts[0];
+      if(!active){
+        document.getElementById('noAccountWarn').style.display = 'block';
+        renderGrid(); // show empty state
+        return;
+      }
+      var cleanUuid = active.minecraftUuid.replace(/-/g,'').toLowerCase();
+      loadInventory(cleanUuid);
+    })
+    .catch(function(){
+      document.getElementById('noAccountWarn').style.display = 'block';
+      renderGrid();
+    });
+  });
+});
+</script>
+<script src="nav-search.js"></script>
+<script src="lang.js"></script>
+<script src="clerk-auth.js"></script>
+</body>
+</html>

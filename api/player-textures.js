@@ -91,6 +91,46 @@ async function kvSet(key, value) {
   await kvPipeline([['SET', key, JSON.stringify(value)]]);
 }
 
+// ── Audit log ────────────────────────────────────────────────────────────────
+// Stores up to 500 recent entries in a sorted set keyed by timestamp.
+async function auditLog(actorName, actorUuid, action, targetName, targetUuid, detail) {
+  const entry = JSON.stringify({
+    ts:         Date.now(),
+    actorName:  actorName  || 'Unknown',
+    actorUuid:  actorUuid  || '',
+    action,
+    targetName: targetName || '',
+    targetUuid: targetUuid || '',
+    detail:     detail     || '',
+  });
+  const url   = process.env.UPSTASH_REDIS_REST_URL   || process.env.KV_REST_API_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+  if (!url || !token) return;
+  try {
+    await fetch(`${url}/pipeline`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify([
+        ['ZADD', 'audit-log', String(Date.now()), entry],
+        ['ZREMRANGEBYRANK', 'audit-log', '0', '-501'], // keep newest 500
+      ]),
+      signal: AbortSignal.timeout(3000),
+    });
+  } catch {}
+}
+
+// Resolves a clerkUserId to { name, uuid } for audit log actor info.
+async function resolveActor(clerkUserId) {
+  const [raw] = await kvPipeline([['GET', `user-minecraft:${clerkUserId}`]]);
+  if (!raw || raw === KV_READ_ERROR) return { name: 'Unknown', uuid: '' };
+  try {
+    const parsed   = JSON.parse(raw);
+    const accounts = Array.isArray(parsed) ? parsed : [parsed];
+    const a = accounts[0] || {};
+    return { name: a.minecraftName || 'Unknown', uuid: a.minecraftUuid || '' };
+  } catch { return { name: 'Unknown', uuid: '' }; }
+}
+
 // ── Role helpers ──────────────────────────────────────────────────────────────
 // Returns 'owner' | 'admin' | null for a clean (no-dash) UUID.
 // C0smik is always owner — no KV write needed.
@@ -297,6 +337,9 @@ module.exports = async function handler(req, res) {
     await kvPipeline(newRole
       ? [['SET', `role:${targetClean}`, newRole]]
       : [['DEL', `role:${targetClean}`]]);
+    const actor = await resolveActor(clerkUserId);
+    const [tname] = await kvPipeline([['GET', `pname:${targetClean}`]]);
+    await auditLog(actor.name, actor.uuid, newRole ? `role.set.${newRole}` : 'role.remove', tname || targetClean, targetClean, newRole ? `Assigned ${newRole}` : 'Removed role');
     res.setHeader('Cache-Control', 'no-store');
     return res.status(200).json({ ok: true });
   }
@@ -313,6 +356,9 @@ module.exports = async function handler(req, res) {
     await kvPipeline(newVip
       ? [['SET', `perk-vip:${targetClean}`, '1']]
       : [['DEL', `perk-vip:${targetClean}`]]);
+    const actorV = await resolveActor(clerkUserId);
+    const [tnameV] = await kvPipeline([['GET', `pname:${targetClean}`]]);
+    await auditLog(actorV.name, actorV.uuid, newVip ? 'vip.grant' : 'vip.remove', tnameV || targetClean, targetClean, newVip ? 'Granted VIP' : 'Removed VIP');
     res.setHeader('Cache-Control', 'no-store');
     return res.status(200).json({ ok: true });
   }
@@ -329,6 +375,9 @@ module.exports = async function handler(req, res) {
     await kvPipeline(newBeta
       ? [['SET', `role-beta:${targetClean}`, '1']]
       : [['DEL', `role-beta:${targetClean}`]]);
+    const actorB = await resolveActor(clerkUserId);
+    const [tnameB] = await kvPipeline([['GET', `pname:${targetClean}`]]);
+    await auditLog(actorB.name, actorB.uuid, newBeta ? 'beta.grant' : 'beta.remove', tnameB || targetClean, targetClean, newBeta ? 'Granted Beta Tester' : 'Removed Beta Tester');
     res.setHeader('Cache-Control', 'no-store');
     return res.status(200).json({ ok: true });
   }
@@ -661,8 +710,25 @@ module.exports = async function handler(req, res) {
       }
     }
     await kvPipeline(cmds);
+    const actorD = await resolveActor(clerkUserId);
+    await auditLog(actorD.name, actorD.uuid, deleteComment ? 'report.dismiss.delete' : 'report.dismiss', reportObj ? (reportObj.commentAuthorName || '') : '', reportObj ? (reportObj.commentAuthorUuid || '') : '', deleteComment ? 'Dismissed + deleted comment' : 'Dismissed report');
     res.setHeader('Cache-Control', 'no-store');
     return res.status(200).json({ ok: true });
+  }
+
+  // ── Audit log: get entries (admin/owner only) ─────────────────────────────
+  // GET /api/player-textures?action=get-audit-log&clerkUserId={id}
+  if (req.query.action === 'get-audit-log') {
+    const clerkUserId = req.query.clerkUserId || '';
+    if (!clerkUserId) return res.status(400).json({ error: 'clerkUserId required' });
+    if (!(await isAdminOrOwnerByClerkId(clerkUserId))) return res.status(403).json({ error: 'Admin access required' });
+    const [members] = await kvPipeline([['ZREVRANGE', 'audit-log', 0, 199]]);
+    const entries = [];
+    if (Array.isArray(members)) {
+      for (const m of members) { try { entries.push(JSON.parse(m)); } catch {} }
+    }
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json({ entries });
   }
 
   // ── Admin: grant item to a player ────────────────────────────────────────────
@@ -677,10 +743,14 @@ module.exports = async function handler(req, res) {
     const [itemsRaw] = await kvPipeline([['GET', `perk-items:${clean}`]]);
     let items = [];
     try { items = itemsRaw ? JSON.parse(itemsRaw) : []; } catch { items = []; }
-    if (!items.includes(String(itemId))) {
+    const alreadyOwned = items.includes(String(itemId));
+    if (!alreadyOwned) {
       items.push(String(itemId));
       await kvSet(`perk-items:${clean}`, items);
     }
+    const actorG = await resolveActor(clerkUserId);
+    const [tnameG] = await kvPipeline([['GET', `pname:${clean}`]]);
+    await auditLog(actorG.name, actorG.uuid, 'item.grant', tnameG || clean, clean, itemId);
     res.setHeader('Cache-Control', 'no-store');
     return res.status(200).json({ ok: true, items });
   }
@@ -710,6 +780,9 @@ module.exports = async function handler(req, res) {
       ['SET', `perk-items:${clean}`, JSON.stringify(items)],
       ['SET', `inv-equipped:${clean}`, JSON.stringify(equipped)],
     ]);
+    const actorR = await resolveActor(clerkUserId);
+    const [tnameR] = await kvPipeline([['GET', `pname:${clean}`]]);
+    await auditLog(actorR.name, actorR.uuid, 'item.revoke', tnameR || clean, clean, itemId);
     res.setHeader('Cache-Control', 'no-store');
     return res.status(200).json({ ok: true, items });
   }

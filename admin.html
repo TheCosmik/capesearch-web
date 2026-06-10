@@ -237,6 +237,17 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.25rem 1re
       </div>
     </div>
 
+    <!-- Audit Log section -->
+    <div style="margin-top:2rem">
+      <div class="tbl-card">
+        <div class="tbl-head">
+          <span class="tbl-title">📋 Audit Log</span>
+          <button class="btn btn-o btn-sm" onclick="loadAuditLog()">↻ Refresh</button>
+        </div>
+        <div id="auditLogBody" style="padding:1.5rem;text-align:center;color:var(--muted);font-size:.85rem">Loading…</div>
+      </div>
+    </div>
+
     <!-- Inventory Items section -->
     <div id="invItemsSection" style="margin-top:2rem">
       <div class="tbl-card">
@@ -370,6 +381,7 @@ function loadPanel(profiles) {
   if (_isOwner) { loadBetaEnrollment(); renderItemGrid(); }
   renderTable(profiles);
   loadReports();
+  loadAuditLog();
 }
 
 function statCard(icon, label, val) {
@@ -969,6 +981,67 @@ function loadReports() {
 }
 
 function escR(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ── Audit Log ─────────────────────────────────────────────────────────────────
+var AUDIT_ACTION_META = {
+  'item.grant':            { label:'Item Granted',       color:'var(--green)' },
+  'item.revoke':           { label:'Item Revoked',       color:'var(--red)' },
+  'role.set.admin':        { label:'Admin Assigned',     color:'var(--blue)' },
+  'role.remove':           { label:'Role Removed',       color:'var(--muted)' },
+  'vip.grant':             { label:'VIP Granted',        color:'#a78bfa' },
+  'vip.remove':            { label:'VIP Removed',        color:'var(--muted)' },
+  'beta.grant':            { label:'Beta Granted',       color:'var(--yellow)' },
+  'beta.remove':           { label:'Beta Removed',       color:'var(--muted)' },
+  'report.dismiss':        { label:'Report Dismissed',   color:'var(--txt2)' },
+  'report.dismiss.delete': { label:'Report + Comment Deleted', color:'var(--red)' },
+};
+
+function fmtTs(ts) {
+  var d = new Date(ts);
+  return d.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })
+    + ' ' + d.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
+}
+
+async function loadAuditLog() {
+  var el = document.getElementById('auditLogBody');
+  if (!el) return;
+  el.innerHTML = '<div style="text-align:center;padding:1.5rem;color:var(--muted);font-size:.85rem">Loading…</div>';
+  try {
+    var r = await fetch('/api/player-textures?action=get-audit-log&clerkUserId=' + encodeURIComponent(_clerkUserId));
+    if (!r.ok) throw new Error('Failed to load audit log.');
+    var d = await r.json();
+    var entries = d.entries || [];
+    if (!entries.length) {
+      el.innerHTML = '<div style="text-align:center;padding:1.5rem;color:var(--muted);font-size:.85rem">No audit entries yet.</div>';
+      return;
+    }
+    el.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:.8rem">' +
+      '<thead><tr>' +
+        '<th style="background:var(--bg2);color:var(--muted);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:.5rem 1rem;text-align:left;border-bottom:1px solid var(--bdr);white-space:nowrap">Time</th>' +
+        '<th style="background:var(--bg2);color:var(--muted);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:.5rem 1rem;text-align:left;border-bottom:1px solid var(--bdr)">Action</th>' +
+        '<th style="background:var(--bg2);color:var(--muted);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:.5rem 1rem;text-align:left;border-bottom:1px solid var(--bdr)">By</th>' +
+        '<th style="background:var(--bg2);color:var(--muted);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:.5rem 1rem;text-align:left;border-bottom:1px solid var(--bdr)">Target</th>' +
+        '<th style="background:var(--bg2);color:var(--muted);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:.5rem 1rem;text-align:left;border-bottom:1px solid var(--bdr)">Detail</th>' +
+      '</tr></thead><tbody>' +
+      entries.map(function(e) {
+        var meta = AUDIT_ACTION_META[e.action] || { label: e.action, color: 'var(--txt2)' };
+        return '<tr style="border-bottom:1px solid var(--bdr)">' +
+          '<td style="padding:.6rem 1rem;color:var(--muted);white-space:nowrap">' + fmtTs(e.ts) + '</td>' +
+          '<td style="padding:.6rem 1rem"><span style="font-weight:700;color:' + meta.color + '">' + escR(meta.label) + '</span></td>' +
+          '<td style="padding:.6rem 1rem">' +
+            (e.actorUuid ? '<div style="display:flex;align-items:center;gap:.4rem"><img src="https://mc-heads.net/avatar/'+e.actorUuid+'/20" style="width:20px;height:20px;border-radius:3px;image-rendering:pixelated"/><span style="font-weight:600">'+escR(e.actorName)+'</span></div>' : escR(e.actorName)) +
+          '</td>' +
+          '<td style="padding:.6rem 1rem">' +
+            (e.targetUuid ? '<div style="display:flex;align-items:center;gap:.4rem"><img src="https://mc-heads.net/avatar/'+e.targetUuid+'/20" style="width:20px;height:20px;border-radius:3px;image-rendering:pixelated"/><span>'+escR(e.targetName)+'</span></div>' : escR(e.targetName || '—')) +
+          '</td>' +
+          '<td style="padding:.6rem 1rem;color:var(--txt2);font-family:monospace;font-size:.75rem">' + escR(e.detail || '') + '</td>' +
+        '</tr>';
+      }).join('') +
+      '</tbody></table>';
+  } catch(err) {
+    el.innerHTML = '<div style="text-align:center;padding:1.5rem;color:var(--red);font-size:.85rem">' + escR(err.message) + '</div>';
+  }
+}
 
 // ── Player Inventory Modal ────────────────────────────────────────────────────
 var _invModalUuid = null;

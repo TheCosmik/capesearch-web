@@ -188,8 +188,9 @@ function _buildBell() {
 }
 
 // ── Account dropdown HTML ─────────────────────────────────────────────────────
-function _buildDropdown(displayName, accounts, activeUuid) {
+function _buildDropdown(displayName, accounts, activeUuid, hasAdminAccess) {
   var isOwner = accounts && accounts.some(function(a) { return a.minecraftUuid === _OWNER_UUID; });
+  var showAdmin = isOwner || !!hasAdminAccess;
   var accountRows = '';
   if (accounts && accounts.length) {
     accountRows += '<div style="padding:.5rem .75rem .3rem;font-size:.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.07em">Minecraft Accounts</div>';
@@ -219,7 +220,7 @@ function _buildDropdown(displayName, accounts, activeUuid) {
     +     '<div style="font-size:.875rem;font-weight:700;color:#f1f5f9">' + _esc(displayName) + '</div>'
     +   '</div>'
     +   accountRows
-    +   (isOwner
+    +   (showAdmin
           ? '<a href="admin.html" style="display:flex;align-items:center;gap:.5rem;padding:.55rem .85rem;'
           +   'font-size:.85rem;color:#fbbf24;text-decoration:none;font-weight:600;border-bottom:1px solid #1e293b" '
           +   'onmouseover="this.style.background=\'#182030\'" '
@@ -316,8 +317,13 @@ window._refreshUserMcNav = async function() {
       localStorage.setItem(_activeKey(userId), validActive);
       if (avatarEl) { avatarEl.src = _mcFace(validActive); avatarEl.style.imageRendering = 'pixelated'; }
       if (dropEl) {
+        var adminAccess = false;
+        try {
+          var rr = await fetch('/api/player-textures?action=get-role&uuid=' + encodeURIComponent(validActive));
+          if (rr.ok) { var rd = await rr.json(); adminAccess = rd.role === 'admin' || rd.role === 'owner'; }
+        } catch {}
         var nd = document.createElement('div');
-        nd.innerHTML = _buildDropdown(displayName, d.accounts, validActive);
+        nd.innerHTML = _buildDropdown(displayName, d.accounts, validActive, adminAccess);
         var built = nd.firstChild; built.id = '_uDrop'; built.style.display = _menuOpen ? 'block' : 'none';
         dropEl.replaceWith(built);
       }
@@ -409,8 +415,13 @@ window.addEventListener('load', async function initClerkAuth() {
 
           var dropEl = document.getElementById('_uDrop');
           if (dropEl) {
+            var adminAccess2 = false;
+            try {
+              var rr2 = await fetch('/api/player-textures?action=get-role&uuid=' + encodeURIComponent(activeUuid));
+              if (rr2.ok) { var rd2 = await rr2.json(); adminAccess2 = rd2.role === 'admin' || rd2.role === 'owner'; }
+            } catch {}
             var newDrop = document.createElement('div');
-            newDrop.innerHTML = _buildDropdown(displayName, d.accounts, activeUuid);
+            newDrop.innerHTML = _buildDropdown(displayName, d.accounts, activeUuid, adminAccess2);
             var built = newDrop.firstChild;
             built.id    = '_uDrop';
             built.style.display = _menuOpen ? 'block' : 'none';

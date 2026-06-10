@@ -225,10 +225,11 @@ var ITEM_CATALOG = [
   { id:'bg-cherry-2', name:'Cherry Blossom 2', type:'background', imageUrl:'/cosmetics/bg-cherry-blossom-2.gif', rarity:'rare' },
 ];
 
-var _allItems    = [];   // full owned list from API
-var _equipped    = {};   // { background: pkgId, border: pkgId, ... }
-var _activeUuid  = null; // claimed Minecraft UUID for this user
-var _curCat      = 'all';
+var _allItems      = [];   // full owned list from API
+var _equipped      = {};   // { background: pkgId, banner: pkgId, ... }
+var _activeUuid    = null; // claimed Minecraft UUID for this user
+var _clerkUserId   = null; // Clerk user ID for auth
+var _curCat        = 'all';
 
 // ── Rarity colors ─────────────────────────────────────────────────────────────
 var RARITY_COLOR = { common:'#94a3b8', rare:'#60a5fa', epic:'#a78bfa', legendary:'#fbbf24' };
@@ -292,10 +293,11 @@ function unequipItem(pkgId, type){
 }
 
 function saveEquipped(){
+  if(!_activeUuid || !_clerkUserId) return;
   fetch('/api/player-textures?action=equip-inventory', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ uuid: _activeUuid, equipped: _equipped })
+    body: JSON.stringify({ clerkUserId: _clerkUserId, uuid: _activeUuid, equipped: _equipped })
   }).catch(function(){});
 }
 
@@ -331,6 +333,7 @@ window.addEventListener('load', function(){
       return;
     }
     document.getElementById('invMain').style.display = 'block';
+    _clerkUserId = user.id;
 
     // Get active claimed Minecraft UUID from localStorage (same logic as clerk-auth.js)
     var activeKey = 'cs_active_' + user.id;

@@ -215,6 +215,7 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.25rem 1re
               <th>Role</th>
               <th>Claimed</th>
               <th>Assign Role</th>
+              <th>Inv</th>
             </tr>
           </thead>
           <tbody id="profilesTbody">
@@ -276,6 +277,21 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.25rem 1re
       <button class="btn btn-p" id="grantSubmit" onclick="submitGrant()">Give Item</button>
     </div>
     <div id="grantMsg" style="margin-top:.75rem;font-size:.82rem;display:none"></div>
+  </div>
+</div>
+
+<!-- Inventory Modal -->
+<div id="invOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center">
+  <div style="background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad2);padding:1.75rem;max-width:500px;width:90%;position:relative;max-height:80vh;display:flex;flex-direction:column">
+    <button onclick="closeInvModal()" style="position:absolute;top:1rem;right:1rem;background:none;border:none;color:var(--txt2);font-size:1.2rem;cursor:pointer">✕</button>
+    <div style="display:flex;align-items:center;gap:.65rem;margin-bottom:1.1rem;flex-shrink:0">
+      <img id="invModalAvatar" src="" style="width:36px;height:36px;border-radius:5px;image-rendering:pixelated"/>
+      <div>
+        <div style="font-size:1rem;font-weight:800" id="invModalName"></div>
+        <div style="font-size:.72rem;color:var(--muted)">Inventory</div>
+      </div>
+    </div>
+    <div id="invModalBody" style="overflow-y:auto;flex:1"></div>
   </div>
 </div>
 
@@ -504,6 +520,7 @@ function renderTable(filtered) {
       '<td>' + roleBadge(p.role, p.beta, p.vip) + '</td>' +
       '<td style="font-size:.78rem;color:var(--txt2)">' + fmtDate(p.claimedAt) + '</td>' +
       '<td>' + roleSelector + '</td>' +
+      '<td><button class="btn btn-o btn-sm" onclick="openInvModal(\'' + p.uuid + '\',\'' + escR(p.name||p.uuid.slice(0,8)) + '\')" title="View inventory">🎒</button></td>' +
       '</tr>';
   }).join('');
 
@@ -939,6 +956,94 @@ function loadReports() {
 }
 
 function escR(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ── Player Inventory Modal ────────────────────────────────────────────────────
+var _invModalUuid = null;
+var _invModalName = null;
+
+function openInvModal(uuid, name) {
+  _invModalUuid = uuid;
+  _invModalName = name;
+  var clean = uuid.replace(/-/g,'');
+  document.getElementById('invModalAvatar').src = 'https://mc-heads.net/avatar/' + clean + '/36';
+  document.getElementById('invModalName').textContent = name;
+  document.getElementById('invModalBody').innerHTML = '<div style="text-align:center;padding:2rem;color:var(--muted);font-size:.85rem">Loading…</div>';
+  document.getElementById('invOverlay').style.display = 'flex';
+  loadInvModal(clean);
+}
+
+function closeInvModal() {
+  document.getElementById('invOverlay').style.display = 'none';
+  _invModalUuid = null;
+}
+
+document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeInvModal(); });
+
+async function loadInvModal(cleanUuid) {
+  var body = document.getElementById('invModalBody');
+  try {
+    var r = await fetch('/api/player-textures?action=get-inventory&uuid=' + encodeURIComponent(cleanUuid));
+    if (!r.ok) throw new Error('Failed to load inventory.');
+    var d = await r.json();
+    var items = d.items || [];
+    var equipped = d.equipped || {};
+
+    if (!items.length) {
+      body.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--muted);font-size:.85rem">No inventory items.</div>';
+      return;
+    }
+
+    body.innerHTML = items.map(function(itemId) {
+      var meta = ADMIN_ITEM_CATALOG.find(function(c){ return c.id === itemId; });
+      var name  = meta ? meta.name    : itemId;
+      var img   = meta ? meta.imageUrl : '';
+      var type  = meta ? meta.type    : 'unknown';
+      var equippedSlots = Object.entries(equipped).filter(function(e){ return e[1] === itemId; }).map(function(e){ return e[0]; });
+      var equippedLabel = equippedSlots.length ? '<span style="font-size:.68rem;color:var(--green);font-weight:700">● Equipped (' + equippedSlots.join(', ') + ')</span>' : '';
+      return '<div id="inv-row-'+itemId+'" style="display:flex;align-items:center;gap:.85rem;padding:.75rem;border-bottom:1px solid var(--bdr)">' +
+        '<div style="width:64px;height:40px;border-radius:var(--rad);overflow:hidden;flex-shrink:0;background:var(--bg)">' +
+          (img ? '<img src="'+img+'" style="width:100%;height:100%;object-fit:cover"/>' : '<div style="width:100%;height:100%;opacity:.2;display:flex;align-items:center;justify-content:center;font-size:1.2rem">🎨</div>') +
+        '</div>' +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="font-weight:700;font-size:.875rem">' + escR(name) + '</div>' +
+          '<div style="font-size:.7rem;color:var(--muted);font-family:monospace">' + itemId + '</div>' +
+          '<div style="margin-top:.15rem">' + equippedLabel + '</div>' +
+        '</div>' +
+        '<button class="btn btn-sm" style="background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.35);color:var(--red);flex-shrink:0" ' +
+          'onclick="revokeItem(\''+itemId+'\',\''+escR(name)+'\',this)">✕ Remove</button>' +
+      '</div>';
+    }).join('');
+  } catch(e) {
+    body.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--red);font-size:.85rem">' + e.message + '</div>';
+  }
+}
+
+async function revokeItem(itemId, itemName, btn) {
+  if (!confirm('Remove "' + itemName + '" from ' + _invModalName + '?')) return;
+  btn.disabled = true; btn.textContent = '…';
+  try {
+    var r = await fetch('/api/player-textures?action=revoke-item', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clerkUserId: _clerkUserId, targetUuid: _invModalUuid, itemId: itemId }),
+    });
+    var d = await r.json();
+    if (d.ok) {
+      var row = document.getElementById('inv-row-' + itemId);
+      if (row) row.remove();
+      var body = document.getElementById('invModalBody');
+      if (body && !body.querySelector('[id^="inv-row-"]')) {
+        body.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--muted);font-size:.85rem">No inventory items.</div>';
+      }
+      showToast('✅ "' + itemName + '" removed from ' + _invModalName + '.');
+    } else {
+      throw new Error(d.error || 'Failed');
+    }
+  } catch(e) {
+    showToast('❌ ' + e.message);
+    btn.disabled = false; btn.textContent = '✕ Remove';
+  }
+}
 
 function dismissReport(reportId, deleteComment) {
   var label = deleteComment ? 'Delete the comment and dismiss this report?' : 'Dismiss this report?';

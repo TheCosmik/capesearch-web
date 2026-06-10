@@ -684,6 +684,35 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ ok: true, items });
   }
 
+  // ── Admin: revoke item from a player ─────────────────────────────────────────
+  // POST /api/player-textures?action=revoke-item
+  // Body: { clerkUserId, targetUuid, itemId }
+  if (req.method === 'POST' && req.query.action === 'revoke-item') {
+    const { clerkUserId, targetUuid, itemId } = req.body || {};
+    if (!clerkUserId || !targetUuid || !itemId) return res.status(400).json({ error: 'missing fields' });
+    if (!(await isOwnerByClerkId(clerkUserId))) return res.status(403).json({ error: 'owner only' });
+    const clean = targetUuid.replace(/-/g, '').toLowerCase();
+    if (!/^[0-9a-f]{32}$/.test(clean)) return res.status(400).json({ error: 'invalid uuid' });
+    const [itemsRaw, equippedRaw] = await kvPipeline([
+      ['GET', `perk-items:${clean}`],
+      ['GET', `inv-equipped:${clean}`],
+    ]);
+    let items = []; let equipped = {};
+    try { items    = itemsRaw    ? JSON.parse(itemsRaw)    : []; } catch { items = []; }
+    try { equipped = equippedRaw ? JSON.parse(equippedRaw) : {}; } catch { equipped = {}; }
+    items = items.filter(i => i !== String(itemId));
+    // Also unequip if currently equipped in any slot
+    for (const slot of Object.keys(equipped)) {
+      if (equipped[slot] === String(itemId)) delete equipped[slot];
+    }
+    await kvPipeline([
+      ['SET', `perk-items:${clean}`, JSON.stringify(items)],
+      ['SET', `inv-equipped:${clean}`, JSON.stringify(equipped)],
+    ]);
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json({ ok: true, items });
+  }
+
   // ── TEMP: seed test inventory items for owner (remove after testing) ────────
   // GET /api/player-textures?action=seed-test-inventory
   if (req.method === 'GET' && req.query.action === 'seed-test-inventory') {

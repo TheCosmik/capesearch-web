@@ -5,6 +5,16 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%234ade80'/><text x='50' y='87' font-size='74' text-anchor='middle' fill='white'>⛏</text></svg>"/>
 <title>Player Profile – CapeSearch</title>
+<meta name="description" content="View this Minecraft player's cape, skin, name history, and profile on CapeSearch."/>
+<meta property="og:type" content="profile"/>
+<meta property="og:site_name" content="CapeSearch"/>
+<meta property="og:title" content="Player Profile – CapeSearch"/>
+<meta property="og:description" content="View this Minecraft player's cape, skin, name history, and profile on CapeSearch."/>
+<meta property="og:image" content="https://capesearch.net/og-image.png"/>
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Player Profile – CapeSearch"/>
+<meta name="twitter:description" content="View this Minecraft player's cape, skin, name history, and profile on CapeSearch."/>
+<meta name="twitter:image" content="https://capesearch.net/og-image.png"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -811,6 +821,23 @@ function av(uuid){return'https://crafatar.com/avatars/'+uuid+'?size=64&overlay'}
 function avN(name){return'https://mc-heads.net/avatar/'+encodeURIComponent(name)+'/32'}
 function body(uuid){return'https://mc-heads.net/player/'+uuid}
 
+function _setOG(name, uuid) {
+  var title = name + ' – CapeSearch';
+  var desc  = 'View ' + name + '\'s Minecraft cape, skin, name history, and profile on CapeSearch.';
+  var img   = uuid ? 'https://mc-heads.net/avatar/' + uuid + '/128' : 'https://capesearch.net/og-image.png';
+  var url   = 'https://capesearch.net/profile.html?name=' + encodeURIComponent(name);
+  document.title = title;
+  function sm(sel, val) { var el = document.querySelector(sel); if (el) el.setAttribute('content', val); }
+  sm('meta[name="description"]', desc);
+  sm('meta[property="og:title"]', title);
+  sm('meta[property="og:description"]', desc);
+  sm('meta[property="og:image"]', img);
+  sm('meta[property="og:url"]', url);
+  sm('meta[name="twitter:title"]', title);
+  sm('meta[name="twitter:description"]', desc);
+  sm('meta[name="twitter:image"]', img);
+}
+
 // ── INIT ──────────────────────────────────────────────────────────────────────
 var params=new URLSearchParams(location.search);
 var qn=(params.get('name')||'Dream').trim();
@@ -821,6 +848,7 @@ var resolvedUUID=UUIDS[key]||null;
 
 function applyUUID(uuid,canonName){
   var displayName=canonName||dname;
+  _setOG(displayName, uuid);
   document.title=displayName+' – CapeSearch';
   var _puEl=document.getElementById('pUser');
   _puEl.textContent=displayName;

@@ -2229,12 +2229,17 @@ function applyProfileCosmetics(equipped){
       bannerEl.style.backgroundImage = '';
     }
   }
-  // Background (main content area — full width wrapper)
+  // Background — apply to body so it covers full page including footer gap
   var bgItem  = COSMETIC_CATALOG.find(function(c){ return c.id === equipped.background; });
-  var bgEl    = document.getElementById('profileBackground');
   var layout  = document.querySelector('.profile-layout');
-  if(bgEl){
-    bgEl.style.backgroundImage = bgItem && bgItem.imageUrl ? 'url('+bgItem.imageUrl+')' : '';
+  if(bgItem && bgItem.imageUrl){
+    document.body.style.backgroundImage    = 'url('+bgItem.imageUrl+')';
+    document.body.style.backgroundSize     = 'cover';
+    document.body.style.backgroundPosition = 'center top';
+    document.body.style.backgroundRepeat   = 'no-repeat';
+    document.body.style.backgroundAttachment = 'fixed';
+  } else {
+    document.body.style.backgroundImage = '';
   }
   if(layout){
     if(bgItem && bgItem.imageUrl){

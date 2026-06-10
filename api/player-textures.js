@@ -702,7 +702,13 @@ module.exports = async function handler(req, res) {
       for (const m of members) { try { const r = JSON.parse(m); if (r.id === reportId) { toDelete = m; reportObj = r; break; } } catch {} }
     }
     if (!toDelete) return res.status(404).json({ error: 'Report not found' });
-    const cmds = [['ZREM', 'reports', toDelete]];
+    const actorD = await resolveActor(clerkUserId);
+    const archivedReport = { ...reportObj, dismissedAt: Date.now(), dismissedBy: actorD.name, dismissedByUuid: actorD.uuid, commentDeleted: !!deleteComment };
+    const cmds = [
+      ['ZREM', 'reports', toDelete],
+      ['ZADD', 'reports-dismissed', String(archivedReport.dismissedAt), JSON.stringify(archivedReport)],
+      ['ZREMRANGEBYRANK', 'reports-dismissed', '0', '-501'],
+    ];
     if (deleteComment && reportObj) {
       const [cmtMembers] = await kvPipeline([['ZRANGE', `comments:${reportObj.profileUuid}`, 0, -1]]);
       if (Array.isArray(cmtMembers)) {
@@ -710,10 +716,22 @@ module.exports = async function handler(req, res) {
       }
     }
     await kvPipeline(cmds);
-    const actorD = await resolveActor(clerkUserId);
-    await auditLog(actorD.name, actorD.uuid, deleteComment ? 'report.dismiss.delete' : 'report.dismiss', reportObj ? (reportObj.commentAuthorName || '') : '', reportObj ? (reportObj.commentAuthorUuid || '') : '', deleteComment ? 'Dismissed + deleted comment' : 'Dismissed report');
+    await auditLog(actorD.name, actorD.uuid, deleteComment ? 'report.dismiss.delete' : 'report.dismiss', reportObj ? (reportObj.commentAuthorName || '') : '', reportObj ? (reportObj.commentAuthorUuid || '') : '', reportObj ? reportObj.id : '');
     res.setHeader('Cache-Control', 'no-store');
     return res.status(200).json({ ok: true });
+  }
+
+  // ── Dismissed reports archive: get (admin/owner only) ────────────────────
+  // GET /api/player-textures?action=get-dismissed-reports&clerkUserId=
+  if (req.query.action === 'get-dismissed-reports') {
+    const clerkUserId = req.query.clerkUserId || '';
+    if (!clerkUserId) return res.status(400).json({ error: 'clerkUserId required' });
+    if (!(await isAdminOrOwnerByClerkId(clerkUserId))) return res.status(403).json({ error: 'Admin access required' });
+    const [members] = await kvPipeline([['ZREVRANGE', 'reports-dismissed', 0, 499]]);
+    const reports = [];
+    if (Array.isArray(members)) { for (const m of members) { try { reports.push(JSON.parse(m)); } catch {} } }
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json({ reports });
   }
 
   // ── Audit log: get entries (admin/owner only) ─────────────────────────────

@@ -1032,6 +1032,15 @@ function fmtTs(ts) {
     + ' ' + d.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
 }
 
+function fmtAuditDetail(e) {
+  if ((e.action === 'report.dismiss' || e.action === 'report.dismiss.delete') && e.detail) {
+    var label = e.action === 'report.dismiss.delete' ? 'Dismissed + deleted comment' : 'Dismissed report';
+    return '<a href="/reports-archive.html#report-' + encodeURIComponent(e.detail) + '" target="_blank" ' +
+      'style="color:#60a5fa;text-decoration:underline;font-weight:600">' + label + ' ↗</a>';
+  }
+  return '<span style="color:var(--txt2)">' + escR(e.detail || '') + '</span>';
+}
+
 async function loadAuditLog() {
   var el = document.getElementById('auditLogBody');
   if (!el) return;
@@ -1130,7 +1139,7 @@ function renderAuditLog() {
             ? '<div style="display:flex;align-items:center;gap:.4rem"><img src="https://mc-heads.net/avatar/'+e.targetUuid+'/20" style="width:20px;height:20px;border-radius:3px;image-rendering:pixelated"/><span>'+escR(e.targetName)+'</span></div>'
             : escR(e.targetName||'—')) +
         '</td>' +
-        '<td style="padding:.6rem 1rem;color:var(--txt2);font-family:monospace;font-size:.75rem">' + escR(e.detail||'') + '</td>' +
+        '<td style="padding:.6rem 1rem;font-family:monospace;font-size:.75rem">' + fmtAuditDetail(e) + '</td>' +
       '</tr>';
     }).join('') +
     '</tbody></table></div>';

@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%234ade80'/><text x='50' y='87' font-size='74' text-anchor='middle' fill='white'>⛏</text></svg>"/>
+<title>Report Archive – CapeSearch</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1923;--bg2:#131f2e;--card:#182030;--card2:#1e2b3f;
+  --green:#4ade80;--green2:#22c55e;--gdim:rgba(74,222,128,.13);
+  --txt:#f1f5f9;--txt2:#94a3b8;--muted:#64748b;
+  --bdr:#243347;--bdr2:#2d3f5e;--rad:8px;--rad2:12px;
+  --red:#f87171;--yellow:#fbbf24;--blue:#60a5fa;
+}
+html{font-size:16px}
+body{background:var(--bg);color:var(--txt);font-family:'Segoe UI',system-ui,sans-serif;line-height:1.5;min-height:100vh}
+a{color:var(--green);text-decoration:none}
+a:hover{text-decoration:underline}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg2)}::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:3px}
+
+.nav{background:var(--bg2);border-bottom:1px solid var(--bdr);position:sticky;top:0;z-index:99;padding:0 1rem}
+.nav-in{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:1rem;height:54px}
+.logo{display:flex;align-items:center;gap:.5rem;font-size:1.15rem;font-weight:800;color:var(--txt);text-decoration:none;flex-shrink:0}
+.logo-icon{width:30px;height:30px;background:var(--green);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.logo span{color:var(--green)}
+.nav-links{display:flex;gap:.15rem;margin-left:auto}
+.nav-links a{color:var(--txt2);font-size:.875rem;font-weight:500;padding:.35rem .7rem;border-radius:var(--rad);transition:all .2s}
+.nav-links a:hover,.nav-links a.on{color:var(--txt);background:var(--card);text-decoration:none}
+
+.phdr{background:var(--bg2);border-bottom:1px solid var(--bdr);padding:1.75rem 1rem}
+.phdr-in{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:1rem;justify-content:space-between;flex-wrap:wrap}
+.phdr h1{font-size:1.5rem;font-weight:800}
+.phdr p{color:var(--txt2);font-size:.875rem;margin-top:.15rem}
+
+.wrap{max-width:1200px;margin:0 auto;padding:1.5rem 1rem 3rem}
+
+.badge{display:inline-flex;align-items:center;padding:.12rem .5rem;border-radius:999px;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap}
+.bg{background:var(--gdim);color:var(--green)}
+.br{background:rgba(248,113,113,.14);color:var(--red)}
+.by{background:rgba(251,191,36,.14);color:var(--yellow)}
+.bb{background:rgba(96,165,250,.14);color:var(--blue)}
+.btn{display:inline-flex;align-items:center;gap:.35rem;padding:.45rem .9rem;border-radius:var(--rad);font-size:.8rem;font-weight:600;cursor:pointer;border:none;transition:all .2s}
+.btn-o{background:transparent;border:1px solid var(--bdr);color:var(--txt2)}
+.btn-o:hover{border-color:var(--green);color:var(--green)}
+.btn-sm{padding:.25rem .65rem;font-size:.75rem}
+
+.search-wrap{position:relative;flex:1;min-width:200px}
+.search-wrap input{width:100%;background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--rad);color:var(--txt);padding:.55rem .75rem .55rem 2.25rem;font-size:.9rem;outline:none;transition:border-color .2s}
+.search-wrap input:focus{border-color:var(--green)}
+.search-wrap input::placeholder{color:var(--muted)}
+.search-wrap .si{position:absolute;left:.65rem;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;pointer-events:none}
+.search-wrap .sc{position:absolute;right:.6rem;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;cursor:pointer;display:none;background:none;border:none;padding:0;line-height:1}
+.search-wrap .sc:hover{color:var(--txt)}
+
+.tbl-card{background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad2);overflow:hidden}
+.tbl-head{display:flex;align-items:center;justify-content:space-between;padding:.9rem 1.1rem;border-bottom:1px solid var(--bdr);gap:1rem;flex-wrap:wrap}
+.tbl-title{font-size:.85rem;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.05em}
+
+#toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--card2);border:1px solid var(--bdr);border-radius:var(--rad);padding:.65rem 1.1rem;font-size:.85rem;font-weight:600;z-index:999;display:none;box-shadow:0 8px 24px rgba(0,0,0,.5);max-width:260px}
+
+footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.25rem 1rem;margin-top:2rem}
+.foot-bot{max-width:1200px;margin:0 auto;font-size:.7rem;color:var(--muted);text-align:center}
+
+.report-card{background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad2);padding:1.25rem 1.4rem;margin-bottom:1rem;transition:border-color .3s,background .3s}
+.report-card.highlight{border-color:var(--blue);background:rgba(96,165,250,.07)}
+.report-card .rc-head{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:.75rem}
+.report-card .rc-meta{font-size:.75rem;color:var(--muted)}
+.report-card .rc-comment{background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--rad);padding:.7rem .9rem;font-size:.875rem;color:var(--txt2);line-height:1.6;margin:.6rem 0;word-break:break-word}
+.report-card .rc-reason{font-size:.8rem;color:var(--yellow);margin-top:.35rem}
+.report-card .rc-dismiss{font-size:.75rem;color:var(--muted);margin-top:.6rem;padding-top:.6rem;border-top:1px solid var(--bdr)}
+.nav-burger{display:none;background:none;border:none;color:var(--txt);font-size:1.4rem;cursor:pointer;padding:.25rem .45rem;line-height:1;flex-shrink:0}
+.nav-mob{display:none;border-top:1px solid var(--bdr);flex-direction:column;gap:.1rem;padding:.5rem 0 .8rem}
+.nav-mob.open{display:flex}
+.nav-mob a{color:var(--txt2);font-size:.9rem;font-weight:500;padding:.5rem .75rem;border-radius:var(--rad);transition:all .2s;text-decoration:none;display:block}
+.nav-mob a:hover,.nav-mob a.on{color:var(--txt);background:var(--card);text-decoration:none}
+@media(max-width:768px){.nav-links{display:none}.nav-burger{display:block}}
+</style>
+<script async crossorigin="anonymous"
+  data-clerk-publishable-key="pk_test_c3RlYWR5LWZpbGx5LTY4LmNsZXJrLmFjY291bnRzLmRldiQ"
+  src="https://steady-filly-68.clerk.accounts.dev/npm/@clerk/clerk-js@5/dist/clerk.browser.js"
+  type="text/javascript"></script>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-in">
+    <a href="index.html" class="logo"><div class="logo-icon">⛏</div><b>Cape<span>Search</span></b></a>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="capes.html">Capes</a>
+      <a href="servers.html">Servers</a>
+      <a href="https://discord.gg/g8AqWJaVEK" target="_blank" rel="noopener">Discord</a>
+      <a href="admin.html">Admin</a>
+      <a href="https://capesearch.tebex.io" target="_blank" rel="noopener">Store</a>
+    </div>
+    <button class="nav-burger" id="navBurger" aria-label="Toggle menu">☰</button>
+    <div style="display:flex;align-items:center;margin-left:.5rem;flex-shrink:0">
+      <button id="clerkSignIn" style="display:none;background:var(--green);color:#0f1923;border:none;border-radius:var(--rad);padding:.35rem .9rem;font-size:.875rem;font-weight:700;cursor:pointer" onclick="window.Clerk&&window.Clerk.openSignIn()">Log in</button>
+      <div id="clerkUser" style="display:none;align-items:center"></div>
+    </div>
+  </div>
+  <div class="nav-mob" id="navMob">
+    <a href="index.html">Home</a>
+    <a href="capes.html">Capes</a>
+    <a href="servers.html">Servers</a>
+    <a href="https://discord.gg/g8AqWJaVEK" target="_blank" rel="noopener">Discord</a>
+    <a href="admin.html">Admin</a>
+    <a href="https://capesearch.tebex.io" target="_blank" rel="noopener">Store</a>
+  </div>
+</nav>
+<script>
+(function(){
+  var btn=document.getElementById('navBurger'),mob=document.getElementById('navMob');
+  if(!btn||!mob)return;
+  btn.addEventListener('click',function(e){e.stopPropagation();var o=mob.classList.toggle('open');btn.textContent=o?'✕':'☰';});
+  document.addEventListener('click',function(e){if(!e.target.closest('.nav')){mob.classList.remove('open');btn.textContent='☰';}});
+  mob.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){mob.classList.remove('open');btn.textContent='☰';});});
+})();
+</script>
+
+<div class="phdr">
+  <div class="phdr-in">
+    <div>
+      <h1>🚩 Report Archive</h1>
+      <p>All dismissed reports — including those where the comment was deleted.</p>
+    </div>
+    <a href="admin.html#sec-reports" class="btn btn-o btn-sm">← Back to Admin</a>
+  </div>
+</div>
+
+<div class="wrap">
+  <div id="accessDenied" style="display:none;text-align:center;padding:3rem 1rem;color:var(--muted)">
+    <div style="font-size:2rem;margin-bottom:.75rem">🔒</div>
+    <div style="font-weight:700;margin-bottom:.35rem">Access Denied</div>
+    <div style="font-size:.875rem">You need admin or owner access to view this page.</div>
+  </div>
+
+  <div id="mainContent" style="display:none">
+    <!-- Filter bar -->
+    <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-bottom:1.25rem;padding:.85rem 1.1rem;background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad2)">
+      <div class="search-wrap" style="min-width:220px">
+        <span class="si">🔍</span>
+        <input id="archSearch" type="text" placeholder="Search reporter, author, or comment…" oninput="filterArchive()" autocomplete="off"/>
+        <button class="sc" id="archSearchClear" onclick="clearArchSearch()" title="Clear">✕</button>
+      </div>
+      <select id="archTypeFilter" onchange="filterArchive()" style="background:var(--bg2);border:1px solid var(--bdr);color:var(--txt);border-radius:var(--rad);padding:.5rem .75rem;font-size:.875rem;outline:none;cursor:pointer">
+        <option value="">All Types</option>
+        <option value="dismissed">🚩 Dismissed Only</option>
+        <option value="deleted">🗑 Comment Deleted</option>
+      </select>
+      <button class="btn btn-o btn-sm" onclick="loadArchive()">↻ Refresh</button>
+      <span id="archCount" style="font-size:.8rem;color:var(--muted);margin-left:auto"></span>
+    </div>
+
+    <!-- Paginated list -->
+    <div id="archiveList"></div>
+    <div id="archPagBar" style="display:none;display:flex;align-items:center;gap:.35rem;flex-wrap:wrap;padding:.9rem 0;justify-content:center"></div>
+  </div>
+</div>
+
+<footer><div class="foot-bot">© 2025 CapeSearch · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></div></footer>
+<div id="toast"></div>
+
+<script src="clerk-auth.js"></script>
+<script>
+var _clerkUserId = '';
+var _allReports  = [];
+var _archPage    = 1;
+var _archPageSize = 10;
+
+function escR(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function fmtTs(ts) {
+  var d = new Date(ts);
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) + ' ' +
+         d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+}
+
+function showToast(msg, color) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  t.style.borderColor = color || 'var(--bdr)';
+  clearTimeout(t._to);
+  t._to = setTimeout(function(){ t.style.display='none'; }, 3000);
+}
+
+function clearArchSearch() {
+  document.getElementById('archSearch').value = '';
+  document.getElementById('archSearchClear').style.display = 'none';
+  document.getElementById('archTypeFilter').value = '';
+  filterArchive();
+}
+
+function _filteredArchive() {
+  var q   = (document.getElementById('archSearch').value || '').toLowerCase().trim();
+  var typ = document.getElementById('archTypeFilter').value;
+  return _allReports.filter(function(r) {
+    var matchType = !typ ||
+      (typ === 'deleted'   && r.commentDeleted) ||
+      (typ === 'dismissed' && !r.commentDeleted);
+    var matchText = !q ||
+      (r.reporterName      || '').toLowerCase().includes(q) ||
+      (r.commentAuthorName || '').toLowerCase().includes(q) ||
+      (r.commentText       || '').toLowerCase().includes(q) ||
+      (r.reason            || '').toLowerCase().includes(q) ||
+      (r.dismissedBy       || '').toLowerCase().includes(q);
+    return matchType && matchText;
+  });
+}
+
+function filterArchive() {
+  var inp = document.getElementById('archSearch');
+  var clr = document.getElementById('archSearchClear');
+  clr.style.display = inp.value ? '' : 'none';
+  _archPage = 1;
+  renderArchive();
+}
+
+function archGoToPage(p) {
+  _archPage = p;
+  renderArchive();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function renderArchive() {
+  var list   = document.getElementById('archiveList');
+  var pagBar = document.getElementById('archPagBar');
+  var countEl = document.getElementById('archCount');
+  var filtered = _filteredArchive();
+  var total    = filtered.length;
+  var totalPgs = Math.max(1, Math.ceil(total / _archPageSize));
+  if (_archPage > totalPgs) _archPage = totalPgs;
+
+  countEl.textContent = total + ' entr' + (total === 1 ? 'y' : 'ies');
+
+  if (!total) {
+    list.innerHTML = '<div style="text-align:center;padding:2.5rem 1rem;color:var(--muted)">No matching reports.</div>';
+    pagBar.style.display = 'none';
+    return;
+  }
+
+  var page = filtered.slice((_archPage - 1) * _archPageSize, _archPage * _archPageSize);
+  var targetId = decodeURIComponent(window.location.hash.replace('#report-', ''));
+
+  list.innerHTML = page.map(function(r) {
+    var isTarget = r.id === targetId;
+    return '<div class="report-card' + (isTarget ? ' highlight' : '') + '" id="report-' + escR(r.id) + '">' +
+      '<div class="rc-head">' +
+        '<div style="display:flex;align-items:center;gap:.65rem;flex-wrap:wrap">' +
+          '<img src="https://mc-heads.net/avatar/' + escR(r.commentAuthorUuid||r.commentAuthorName||'steve') + '/32" ' +
+               'style="width:32px;height:32px;border-radius:4px;image-rendering:pixelated"/>' +
+          '<div>' +
+            '<div style="font-weight:700;font-size:.95rem">' + escR(r.commentAuthorName || 'Unknown') + '</div>' +
+            '<div class="rc-meta">Profile: <a href="profile.html?uuid=' + escR(r.profileUuid) + '" target="_blank" style="color:var(--blue)">' + escR(r.profileName || r.profileUuid) + '</a> · ' + fmtTs(r.ts) + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div style="display:flex;align-items:center;gap:.4rem;flex-shrink:0">' +
+          (r.commentDeleted
+            ? '<span class="badge br">🗑 Comment Deleted</span>'
+            : '<span class="badge bb">🚩 Dismissed</span>') +
+        '</div>' +
+      '</div>' +
+      '<div class="rc-comment">"' + escR(r.commentText || '') + '"</div>' +
+      '<div class="rc-reason">Reported for: ' + escR(r.reason || '—') + '</div>' +
+      '<div class="rc-dismiss">' +
+        'Reported by <strong>' + escR(r.reporterName || 'Unknown') + '</strong>' +
+        (r.dismissedBy ? ' · Dismissed by <strong>' + escR(r.dismissedBy) + '</strong> on ' + fmtTs(r.dismissedAt) : '') +
+        ' · <span style="font-family:monospace;font-size:.7rem;color:var(--muted)">' + escR(r.id) + '</span>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  // Scroll to highlighted card after render
+  if (targetId && page.some(function(r){ return r.id === targetId; })) {
+    setTimeout(function() {
+      var el = document.getElementById('report-' + targetId);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 80);
+  }
+
+  if (totalPgs <= 1) { pagBar.style.display = 'none'; return; }
+  pagBar.style.display = 'flex';
+  var btns = '<button class="btn btn-o btn-sm" onclick="archGoToPage(' + (_archPage - 1) + ')"' + (_archPage === 1 ? ' disabled style="opacity:.4;cursor:default"' : '') + '>‹ Prev</button>';
+  var pages = [];
+  for (var pg = 1; pg <= totalPgs; pg++) {
+    if (pg === 1 || pg === totalPgs || (pg >= _archPage - 2 && pg <= _archPage + 2)) pages.push(pg);
+  }
+  var last = 0;
+  pages.forEach(function(pg) {
+    if (last && pg - last > 1) btns += '<span style="color:var(--muted);padding:0 .2rem">…</span>';
+    btns += '<button class="btn btn-sm" onclick="archGoToPage(' + pg + ')" style="' + (pg === _archPage ? 'background:var(--green);color:#0a1a0a' : 'border:1px solid var(--bdr);background:transparent;color:var(--txt2)') + '">' + pg + '</button>';
+    last = pg;
+  });
+  btns += '<button class="btn btn-o btn-sm" onclick="archGoToPage(' + (_archPage + 1) + ')"' + (_archPage === totalPgs ? ' disabled style="opacity:.4;cursor:default"' : '') + '>Next ›</button>';
+  btns += '<span style="font-size:.78rem;color:var(--muted);margin-left:.25rem">Page ' + _archPage + ' of ' + totalPgs + '</span>';
+  pagBar.innerHTML = btns;
+}
+
+async function loadArchive() {
+  var list = document.getElementById('archiveList');
+  list.innerHTML = '<div style="text-align:center;padding:2.5rem 1rem;color:var(--muted)">Loading…</div>';
+  try {
+    var r = await fetch('/api/player-textures?action=get-dismissed-reports&clerkUserId=' + encodeURIComponent(_clerkUserId));
+    if (!r.ok) throw new Error('Failed to load archive.');
+    var d = await r.json();
+    _allReports = d.reports || [];
+    // If a specific report is linked via hash, find its page
+    var targetId = decodeURIComponent(window.location.hash.replace('#report-', ''));
+    if (targetId) {
+      var idx = _allReports.findIndex(function(r){ return r.id === targetId; });
+      if (idx >= 0) _archPage = Math.floor(idx / _archPageSize) + 1;
+    }
+    renderArchive();
+  } catch(err) {
+    list.innerHTML = '<div style="text-align:center;padding:2.5rem 1rem;color:var(--red)">' + escR(err.message) + '</div>';
+  }
+}
+
+async function initPage() {
+  if (!window.Clerk) { document.getElementById('accessDenied').style.display = 'block'; return; }
+  await window.Clerk.load();
+  if (!window.Clerk.user) {
+    document.getElementById('accessDenied').style.display = 'block';
+    window.Clerk.addListener(function(state) {
+      if (state.user) { _clerkUserId = state.user.id; checkAccess(); }
+    });
+    return;
+  }
+  _clerkUserId = window.Clerk.user.id;
+  checkAccess();
+}
+
+async function checkAccess() {
+  try {
+    var test = await fetch('/api/player-textures?action=get-dismissed-reports&clerkUserId=' + encodeURIComponent(_clerkUserId));
+    if (test.status === 403) { document.getElementById('accessDenied').style.display = 'block'; return; }
+    var d = await test.json();
+    _allReports = d.reports || [];
+    document.getElementById('mainContent').style.display = 'block';
+    var targetId = decodeURIComponent(window.location.hash.replace('#report-', ''));
+    if (targetId) {
+      var idx = _allReports.findIndex(function(rep){ return rep.id === targetId; });
+      if (idx >= 0) _archPage = Math.floor(idx / _archPageSize) + 1;
+    }
+    renderArchive();
+  } catch(e) {
+    document.getElementById('accessDenied').style.display = 'block';
+  }
+}
+
+window.addEventListener('load', initPage);
+</script>
+</body>
+</html>

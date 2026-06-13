@@ -1363,7 +1363,8 @@ function _renderComments(comments,isOwner,currentUserId){
     return;
   }
   listEl.innerHTML=comments.map(function(c){
-    var canDelete=isOwner||(currentUserId&&c.authorClerkId===currentUserId);
+    var _activeMcUuid=currentUserId?localStorage.getItem('cs-active-mc:'+currentUserId):null;
+    var canDelete=isOwner||(_activeMcUuid&&c.authorUuid&&c.authorUuid===_activeMcUuid);
     return'<div class="comment" id="cmt-'+escHtml(c.id)+'">'+
       '<a href="profile.html?name='+encodeURIComponent(c.authorName)+'" style="flex-shrink:0;display:block">'+
         '<img class="comment-av" src="https://mc-heads.net/avatar/'+encodeURIComponent(c.authorUuid)+'/36" '+

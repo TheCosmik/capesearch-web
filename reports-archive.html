@@ -303,7 +303,7 @@ async function loadArchive() {
   var list = document.getElementById('archiveList');
   list.innerHTML = '<div style="text-align:center;padding:2.5rem 1rem;color:var(--muted)">Loading…</div>';
   try {
-    var r = await fetch('/api/player-textures?action=get-dismissed-reports&clerkUserId=' + encodeURIComponent(_clerkUserId));
+    var r = await fetch('/api/player-textures?action=get-dismissed-reports', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clerkUserId: _clerkUserId }) });
     if (!r.ok) throw new Error('Failed to load archive.');
     var d = await r.json();
     _allReports = d.reports || [];
@@ -335,7 +335,7 @@ async function initPage() {
 
 async function checkAccess() {
   try {
-    var test = await fetch('/api/player-textures?action=get-dismissed-reports&clerkUserId=' + encodeURIComponent(_clerkUserId));
+    var test = await fetch('/api/player-textures?action=get-dismissed-reports', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clerkUserId: _clerkUserId }) });
     if (test.status === 403) { document.getElementById('accessDenied').style.display = 'block'; return; }
     var d = await test.json();
     _allReports = d.reports || [];

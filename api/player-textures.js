@@ -423,9 +423,9 @@ module.exports = async function handler(req, res) {
   }
 
   // ── List claimed profiles (owner + admin) ────────────────────────────────────
-  // GET /api/player-textures?action=list-claimed&clerkUserId={id}
-  if (req.query.action === 'list-claimed') {
-    const clerkUserId = req.query.clerkUserId || '';
+  // POST /api/player-textures?action=list-claimed  body: { clerkUserId }
+  if (req.method === 'POST' && req.query.action === 'list-claimed') {
+    const clerkUserId = (req.body || {}).clerkUserId || '';
     if (!clerkUserId) return res.status(400).json({ error: 'clerkUserId required' });
     if (!(await isAdminOrOwnerByClerkId(clerkUserId))) return res.status(403).json({ error: 'Admin access required' });
     const callerIsOwner = await isOwnerByClerkId(clerkUserId);
@@ -505,7 +505,7 @@ module.exports = async function handler(req, res) {
     const [members] = await kvPipeline([['ZREVRANGE', `comments:${raw}`, 0, 99]]);
     const comments = [];
     if (Array.isArray(members)) {
-      for (const m of members) { try { comments.push(JSON.parse(m)); } catch {} }
+      for (const m of members) { try { const c = JSON.parse(m); delete c.authorClerkId; comments.push(c); } catch {} }
     }
     // Enrich each comment with the author's current role/beta/vip
     const uniqueAuthorUuids = [...new Set(comments.map(c => c.authorUuid).filter(Boolean))];
@@ -697,9 +697,9 @@ module.exports = async function handler(req, res) {
   }
 
   // ── Comment report: get list (admin/owner only) ───────────────────────────
-  // GET /api/player-textures?action=get-reports&clerkUserId=
-  if (req.query.action === 'get-reports') {
-    const clerkUserId = req.query.clerkUserId || '';
+  // POST /api/player-textures?action=get-reports  body: { clerkUserId }
+  if (req.method === 'POST' && req.query.action === 'get-reports') {
+    const clerkUserId = (req.body || {}).clerkUserId || '';
     if (!clerkUserId) return res.status(400).json({ error: 'clerkUserId required' });
     if (!(await isAdminOrOwnerByClerkId(clerkUserId))) return res.status(403).json({ error: 'Admin access required' });
     const [members] = await kvPipeline([['ZREVRANGE', 'reports', 0, 199]]);
@@ -742,9 +742,9 @@ module.exports = async function handler(req, res) {
   }
 
   // ── Dismissed reports archive: get (admin/owner only) ────────────────────
-  // GET /api/player-textures?action=get-dismissed-reports&clerkUserId=
-  if (req.query.action === 'get-dismissed-reports') {
-    const clerkUserId = req.query.clerkUserId || '';
+  // POST /api/player-textures?action=get-dismissed-reports  body: { clerkUserId }
+  if (req.method === 'POST' && req.query.action === 'get-dismissed-reports') {
+    const clerkUserId = (req.body || {}).clerkUserId || '';
     if (!clerkUserId) return res.status(400).json({ error: 'clerkUserId required' });
     if (!(await isAdminOrOwnerByClerkId(clerkUserId))) return res.status(403).json({ error: 'Admin access required' });
     const [members] = await kvPipeline([['ZREVRANGE', 'reports-dismissed', 0, 499]]);
@@ -755,9 +755,9 @@ module.exports = async function handler(req, res) {
   }
 
   // ── Audit log: get entries (admin/owner only) ─────────────────────────────
-  // GET /api/player-textures?action=get-audit-log&clerkUserId={id}
-  if (req.query.action === 'get-audit-log') {
-    const clerkUserId = req.query.clerkUserId || '';
+  // POST /api/player-textures?action=get-audit-log  body: { clerkUserId }
+  if (req.method === 'POST' && req.query.action === 'get-audit-log') {
+    const clerkUserId = (req.body || {}).clerkUserId || '';
     if (!clerkUserId) return res.status(400).json({ error: 'clerkUserId required' });
     if (!(await isAdminOrOwnerByClerkId(clerkUserId))) return res.status(403).json({ error: 'Admin access required' });
     const [members] = await kvPipeline([['ZREVRANGE', 'audit-log', 0, 199]]);
@@ -823,17 +823,6 @@ module.exports = async function handler(req, res) {
     await auditLog(actorR.name, actorR.uuid, 'item.revoke', tnameR || clean, clean, itemId);
     res.setHeader('Cache-Control', 'no-store');
     return res.status(200).json({ ok: true, items });
-  }
-
-  // ── TEMP: seed test inventory items for owner (remove after testing) ────────
-  // GET /api/player-textures?action=seed-test-inventory
-  if (req.method === 'GET' && req.query.action === 'seed-test-inventory') {
-    const OWNER = '97a449ca635d44da9e021fe62eef5bda';
-    await kvPipeline([
-      ['SET', `perk-items:${OWNER}`, JSON.stringify([])],
-      ['DEL', `inv-equipped:${OWNER}`],
-    ]);
-    return res.status(200).json({ ok: true, cleared: true });
   }
 
   // ── Inventory: get owned items + equipped state ───────────────────────────

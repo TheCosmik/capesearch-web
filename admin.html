@@ -372,7 +372,7 @@ function showState(s) {
 
 async function checkOwnerAccess() {
   try {
-    var r = await fetch('/api/player-textures?action=list-claimed&clerkUserId=' + encodeURIComponent(_clerkUserId));
+    var r = await fetch('/api/player-textures?action=list-claimed', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clerkUserId: _clerkUserId }) });
     if (r.status === 403) { showState('denied'); return; }
     if (!r.ok) { showState('denied'); return; }
     var d = await r.json();
@@ -951,7 +951,7 @@ function loadReports() {
   var el = document.getElementById('reportsBody');
   if (!el) return;
   el.innerHTML = '<div style="padding:1.5rem;text-align:center;color:var(--muted);font-size:.85rem">Loading…</div>';
-  fetch('/api/player-textures?action=get-reports&clerkUserId=' + encodeURIComponent(_clerkUserId))
+  fetch('/api/player-textures?action=get-reports', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clerkUserId: _clerkUserId }) })
     .then(function(r){ return r.ok ? r.json() : null; })
     .then(function(d) {
       var reports = d && d.reports || [];
@@ -1049,7 +1049,7 @@ async function loadAuditLog() {
   if (!el) return;
   el.innerHTML = '<div style="text-align:center;padding:1.5rem;color:var(--muted);font-size:.85rem">Loading…</div>';
   try {
-    var r = await fetch('/api/player-textures?action=get-audit-log&clerkUserId=' + encodeURIComponent(_clerkUserId));
+    var r = await fetch('/api/player-textures?action=get-audit-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clerkUserId: _clerkUserId }) });
     if (!r.ok) throw new Error('Failed to load audit log.');
     var d = await r.json();
     _auditAllEntries = d.entries || [];

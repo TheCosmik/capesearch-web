@@ -178,6 +178,8 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
 .cape-card.c-clickable{cursor:pointer}
 .cape-card.c-clickable:hover{border-color:var(--green);background:rgba(74,222,128,.05);transform:translateY(-2px)}
 .cape-card.c-active{border-color:var(--green);background:rgba(74,222,128,.05)}
+.cape-card[data-cape-url]{cursor:pointer}
+.cape-card.c-previewing{border-color:#60a5fa;background:rgba(96,165,250,.08);box-shadow:0 0 0 1px rgba(96,165,250,.35)}
 .cape-card img{height:60px;width:auto;flex-shrink:0;border-radius:5px;object-fit:contain;border:1px solid var(--bdr)}
 .cape-card .cc-name{font-size:.72rem;font-weight:700;color:var(--txt);line-height:1.25;word-break:break-word;min-height:2.5em;display:flex;align-items:center;justify-content:center}
 .cape-card .cc-status{font-size:.63rem;color:var(--muted);line-height:1.3}
@@ -385,7 +387,7 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
 
       <!-- CAPES STRIP — always visible below tabs -->
       <div class="capes-section" id="capesSection">
-        <div class="capes-section-hdr">🎭 Capes<span id="capeCount" style="letter-spacing:0;margin-left:.3em">(0)</span></div>
+        <div class="capes-section-hdr">🎭 Capes<span id="capeCount" style="letter-spacing:0;margin-left:.3em">(0)</span><span style="letter-spacing:0;text-transform:none;font-weight:500;color:var(--muted);font-size:.72rem;margin-left:.75rem">Hover a cape to preview it on the model</span></div>
         <div class="capes-row" id="capesRow">
           <div style="color:var(--muted);font-size:.84rem;padding:.25rem 0">Loading…</div>
         </div>
@@ -1236,6 +1238,50 @@ function fetchPlayerData(uuid, canonName){
 // transiently. Previously any non-200 was swallowed and the 3D viewer stayed on
 // whatever default skin it started with. Now we retry with backoff, and only fall
 // back to a third-party skin render once the retries are exhausted.
+// ── CAPE HOVER PREVIEW ────────────────────────────────────────────────────────
+// Hovering a cape card puts that cape on the 3D model and turns it to show the back.
+// The last hovered cape deliberately sticks (no mouseleave revert) until another card
+// is hovered or the page is refreshed.
+function turnModelToBack(){
+  var v=window._profileViewer;
+  if(!v||!v.playerObject)return;
+  var po=v.playerObject, TWO_PI=Math.PI*2;
+  var from=po.rotation.y;
+  // nearest 'back' angle (PI + k*2PI) so it takes the shortest way round
+  var to=Math.PI+Math.round((from-Math.PI)/TWO_PI)*TWO_PI;
+  if(Math.abs(to-from)<0.35)return;
+  var t0=performance.now(), dur=400;
+  if(window._backTurnRaf)cancelAnimationFrame(window._backTurnRaf);
+  (function step(now){
+    var p=Math.min(1,(now-t0)/dur), e=1-Math.pow(1-p,3);
+    po.rotation.y=from+(to-from)*e;
+    if(p<1)window._backTurnRaf=requestAnimationFrame(step);
+  })(t0);
+}
+function previewCape(card){
+  var url=card&&card.getAttribute('data-cape-url');
+  var v=window._profileViewer;
+  if(!url||!v)return;
+  if(window._capePreviewed!==url){
+    window._capePreviewed=url;
+    v.loadCape(url).catch(function(){});
+    var prev=document.querySelector('#capesRow .c-previewing');
+    if(prev)prev.classList.remove('c-previewing');
+    card.classList.add('c-previewing');
+  }
+  turnModelToBack();
+}
+(function bindCapePreview(){
+  var row=document.getElementById('capesRow');
+  if(!row)return;
+  function handler(e){
+    var card=e.target.closest&&e.target.closest('.cape-card[data-cape-url]');
+    if(card&&row.contains(card))previewCape(card);
+  }
+  row.addEventListener('mouseover',handler);
+  row.addEventListener('touchstart',handler,{passive:true}); // no hover on touch screens
+})();
+
 function showViewerModel(){
   var v=window._profileViewer;
   if(v&&v.playerObject)v.playerObject.visible=true;
@@ -1268,7 +1314,7 @@ function fetchTextures(uuid,attempt){
         showViewerModel();
       }
       // 3D viewer: cape
-      if(data.cape&&window._profileViewer){
+      if(data.cape&&window._profileViewer&&!window._capePreviewed){
         window._profileViewer.loadCape(data.cape).catch(function(){});
       }
 
@@ -1316,7 +1362,8 @@ function fetchTextures(uuid,attempt){
         var isKnown=!!capeData.img;
         var clickable=!!capeId;
         var onclick=clickable?' onclick="openModal(\''+capeId+'\')"':'';
-        return'<div class="cape-card'+(isActive?' c-active':'')+(clickable?' c-clickable':'')+'"'+onclick+'>'+
+        var previewUrl=/^https?:\/\/textures\.minecraft\.net\//.test(url)?url.replace(/^http:/,'https:'):'';
+        return'<div class="cape-card'+(isActive?' c-active':'')+(clickable?' c-clickable':'')+'"'+(previewUrl?' data-cape-url="'+previewUrl+'"':'')+onclick+'>'+
           '<img src="'+imgSrc+'" style="'+(isKnown?'':'image-rendering:pixelated')+'" onerror="this.style.display=\'none\'"/>'+
           '<div class="cc-name">'+name+'</div>'+
           (isActive?'<div class="cc-status" style="color:var(--green);font-weight:600">Active</div>':'')+

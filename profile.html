@@ -448,7 +448,23 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
       </button>
       <div style="font-size:.78rem;color:var(--muted);line-height:1.5;margin-top:.7rem;text-align:center">Sign in with the Microsoft account that owns this Minecraft profile. We only read your Minecraft username &mdash; your password is never shown to us and nothing from your Microsoft account is stored.</div>
       <div id="claimMsError" style="display:none;margin-top:.7rem;font-size:.8rem;color:#f87171;text-align:center"></div>
-      <div style="text-align:center;margin-top:1rem"><a href="#" id="claimShowPlugin" onclick="showPluginClaim();return false" style="font-size:.78rem;color:var(--txt2)">Or verify on our Minecraft server instead</a></div>
+    </div>
+    <!-- Skin challenge (default method: no Microsoft app, plugin or server needed) -->
+    <div id="claimSkinSection" style="display:none;margin-bottom:1.25rem">
+      <div style="display:flex;gap:1rem;align-items:center;background:var(--bg);border:1px solid var(--bdr);border-radius:var(--rad2);padding:1rem;margin-bottom:1.1rem">
+        <img id="claimSkinPreview" alt="Your one-time verification skin" width="64" height="64" style="width:64px;height:64px;image-rendering:pixelated;border-radius:6px;background:var(--bg2);flex-shrink:0">
+        <div style="font-size:.82rem;color:var(--txt2);line-height:1.5">This is your <strong style="color:var(--txt)">one-time verification skin</strong>. It only works for you, only for <span id="claimSkinTimer" style="color:var(--txt);font-weight:600">15:00</span>, and you can switch back to your normal skin right after.</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.7rem;margin-bottom:1.1rem">
+        <div style="display:flex;gap:.85rem;align-items:flex-start"><div style="background:var(--green);color:#0f1923;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:800;flex-shrink:0;margin-top:1px">1</div>
+          <div style="font-size:.875rem;padding-top:2px"><a id="claimSkinDownload" download="capesearch-verify.png" href="#" style="color:var(--green);font-weight:700">Download the verification skin</a></div></div>
+        <div style="display:flex;gap:.85rem;align-items:flex-start"><div style="background:var(--green);color:#0f1923;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:800;flex-shrink:0;margin-top:1px">2</div>
+          <div style="font-size:.875rem;padding-top:2px">Upload it to <strong style="color:var(--txt)">this Minecraft account</strong> at <a href="https://www.minecraft.net/en-us/msaprofile/mygames/editskin" target="_blank" rel="noopener noreferrer" style="color:var(--green)">minecraft.net &rarr; Profile &rarr; Skin</a> (or in the Minecraft Launcher&rsquo;s Skins tab)</div></div>
+        <div style="display:flex;gap:.85rem;align-items:flex-start"><div style="background:var(--green);color:#0f1923;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:800;flex-shrink:0;margin-top:1px">3</div>
+          <div style="font-size:.875rem;padding-top:2px">Come back and press <strong style="color:var(--txt)">Check my skin</strong></div></div>
+      </div>
+      <button class="btn btn-p" id="claimSkinCheck" onclick="checkClaimSkin()" disabled style="width:100%;justify-content:center;padding:.7rem 1rem">Check my skin</button>
+      <div id="claimSkinStatus" role="status" style="min-height:1.2rem;margin-top:.7rem;font-size:.82rem;color:var(--txt2);text-align:center;line-height:1.5"></div>
     </div>
     <div id="claimPluginSection">
     <!-- Code display -->
@@ -473,6 +489,7 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
       </div>
     </div>
     </div><!-- /claimPluginSection -->
+    <div id="claimAlts" style="text-align:center;margin:-.25rem 0 1.1rem;font-size:.78rem;display:flex;flex-direction:column;gap:.35rem"></div>
     <button class="btn btn-o" style="width:100%;justify-content:center" onclick="closeClaimModal()">Cancel</button>
   </div>
 </div>
@@ -2658,32 +2675,154 @@ function openClaimModal(uuid, name) {
   document.getElementById('claimMsError').style.display = 'none';
   // Fresh state every time the modal opens (it may have been left on the in-game view)
   document.getElementById('claimMsSection').style.display = 'none';
+  document.getElementById('claimSkinSection').style.display = 'none';
   document.getElementById('claimPluginSection').style.display = 'none';
+  document.getElementById('claimAlts').innerHTML = '';
   document.getElementById('claimMsBtn').disabled = false;
   document.getElementById('claimMsBtnLabel').textContent = 'Verify with Microsoft';
-  document.getElementById('claimShowPlugin').parentNode.style.display = '';
-  // Prefer Microsoft sign-in when the server has it configured; otherwise fall back to the in-game code.
+  stopClaimTimers();
+  // Microsoft sign-in is the quickest method when the server has it configured; otherwise the skin challenge.
   fetch('/api/claim?action=ms-config')
     .then(function(r){return r.ok?r.json():{enabled:false};})
     .catch(function(){return {enabled:false};})
-    .then(function(cfg){ if (cfg && cfg.enabled) showMsClaim(); else showPluginClaim(); });
+    .then(function(cfg){
+      window._claimCtx.msEnabled = !!(cfg && cfg.enabled);
+      if (window._claimCtx.msEnabled) showMsClaim(); else showSkinClaim();
+    });
 }
 
-function showMsClaim() {
-  document.getElementById('claimMsSection').style.display = '';
-  document.getElementById('claimPluginSection').style.display = 'none';
-  document.getElementById('claimModalSub').textContent = 'Verify you own this Minecraft account';
+var _claimSkinTimer = null;
+function stopClaimTimers() {
+  if (_claimTimer)     { clearInterval(_claimTimer);     _claimTimer = null; }
+  if (_claimPoll)      { clearInterval(_claimPoll);      _claimPoll  = null; }
+  if (_claimSkinTimer) { clearInterval(_claimSkinTimer); _claimSkinTimer = null; }
 }
+
+// "or verify another way" links, always listing the methods other than the current one
+function renderClaimAlts(current) {
+  var ctx = window._claimCtx || {};
+  var defs = [
+    {id:'ms',     label:'Verify with Microsoft instead',            fn:showMsClaim,     show: !!ctx.msEnabled},
+    {id:'skin',   label:'Verify by changing your skin instead',     fn:showSkinClaim,   show: true},
+    {id:'plugin', label:'Verify on our Minecraft server instead',   fn:showPluginClaim, show: true}
+  ];
+  var box = document.getElementById('claimAlts');
+  box.innerHTML = '';
+  defs.forEach(function(d){
+    if (d.id === current || !d.show) return;
+    var a = document.createElement('a');
+    a.href = '#'; a.textContent = d.label; a.style.color = 'var(--txt2)';
+    a.onclick = function(e){ e.preventDefault(); d.fn(); };
+    box.appendChild(a);
+  });
+}
+function setClaimView(view) {
+  stopClaimTimers();
+  document.getElementById('claimMsSection').style.display     = view === 'ms'     ? '' : 'none';
+  document.getElementById('claimSkinSection').style.display   = view === 'skin'   ? '' : 'none';
+  document.getElementById('claimPluginSection').style.display = view === 'plugin' ? '' : 'none';
+  document.getElementById('claimModalSub').textContent = 'Verify you own this Minecraft account';
+  renderClaimAlts(view);
+}
+
+function showMsClaim() { setClaimView('ms'); }
 
 function showPluginClaim() {
   var ctx = window._claimCtx;
   if (!ctx) return;
-  var msBtn = document.getElementById('claimShowPlugin');
-  if (msBtn) msBtn.parentNode.style.display = 'none';
-  document.getElementById('claimPluginSection').style.display = '';
+  setClaimView('plugin');
   startPluginClaim(ctx.uuid, ctx.name, ctx.clerkUserId);
 }
 
+function showSkinClaim() {
+  var ctx = window._claimCtx;
+  if (!ctx) return;
+  setClaimView('skin');
+  startSkinChallenge();
+}
+
+function setSkinStatus(msg, kind) {
+  var el = document.getElementById('claimSkinStatus');
+  el.textContent = msg || '';
+  el.style.color = kind === 'ok' ? 'var(--green)' : kind === 'err' ? '#f87171' : 'var(--txt2)';
+}
+
+async function claimApi(action) {
+  var ctx = window._claimCtx;
+  var token = await getSessionToken();
+  if (!token) throw new Error('Please sign in again, then retry.');
+  var r = await fetch('/api/claim?action=' + action, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json', 'Authorization':'Bearer '+token},
+    body: JSON.stringify({expectUuid: String(ctx.uuid).replace(/-/g,''), expectName: ctx.name}),
+  });
+  var d = await r.json().catch(function(){return {};});
+  if (!r.ok) throw new Error(d.error || 'Something went wrong. Please try again.');
+  return d;
+}
+
+async function startSkinChallenge() {
+  var checkBtn = document.getElementById('claimSkinCheck');
+  checkBtn.disabled = true;
+  setSkinStatus('Preparing your verification skin…');
+  try {
+    var d = await claimApi('skin-start');
+    document.getElementById('claimSkinPreview').src = d.image;
+    document.getElementById('claimSkinDownload').href = d.image;
+    checkBtn.disabled = false;
+    setSkinStatus('');
+    var secsLeft = d.expiresIn || 900;
+    if (_claimSkinTimer) clearInterval(_claimSkinTimer);
+    var timerEl = document.getElementById('claimSkinTimer');
+    var paint = function(){ timerEl.textContent = Math.floor(secsLeft/60)+':'+(secsLeft%60<10?'0':'')+(secsLeft%60); };
+    paint();
+    _claimSkinTimer = setInterval(function(){
+      secsLeft--;
+      if (secsLeft <= 0) {
+        clearInterval(_claimSkinTimer); _claimSkinTimer = null;
+        timerEl.textContent = 'expired';
+        checkBtn.disabled = true;
+        setSkinStatus('This verification skin expired. Reopen this window to get a new one.', 'err');
+        return;
+      }
+      paint();
+    }, 1000);
+  } catch (e) {
+    setSkinStatus(e.message || 'Could not prepare your verification skin.', 'err');
+  }
+}
+
+async function checkClaimSkin() {
+  var ctx = window._claimCtx;
+  if (!ctx) return;
+  var checkBtn = document.getElementById('claimSkinCheck');
+  checkBtn.disabled = true;
+  setSkinStatus('Checking your skin with Mojang…');
+  try {
+    var d = await claimApi('skin-verify');
+    switch (d.status) {
+      case 'ok':
+        setSkinStatus('✅ Verified! ' + (d.name || ctx.name) + ' is now linked to your account. You can switch back to your normal skin.', 'ok');
+        stopClaimTimers();
+        setTimeout(function(){ closeClaimModal(); _renderActsWithClaim(ctx.uuid, ctx.name, true, ctx.clerkUserId); }, 2200);
+        return;
+      case 'no_match':
+        setSkinStatus('We can’t see the verification skin on this account yet. Make sure you uploaded it to the right account — it can take up to a minute to show up, then check again.', 'err'); break;
+      case 'busy':
+        setSkinStatus('Mojang is rate-limiting checks right now. Wait about a minute and try again.', 'err'); break;
+      case 'expired':
+        setSkinStatus('That verification expired — preparing a new skin…', 'err'); startSkinChallenge(); return;
+      case 'no_player':
+        setSkinStatus('Mojang could not find this account.', 'err'); break;
+      default:
+        setSkinStatus('Mojang did not respond. Please try again in a moment.', 'err');
+    }
+  } catch (e) {
+    setSkinStatus(e.message || 'Could not check your skin.', 'err');
+  }
+  // keep the button usable for a retry unless the challenge expired
+  if (_claimSkinTimer) checkBtn.disabled = false;
+}
 async function startMicrosoftClaim() {
   var ctx = window._claimCtx;
   if (!ctx) return;
@@ -2779,8 +2918,7 @@ function startPluginClaim(uuid, name, clerkUserId) {
 function closeClaimModal() {
   document.getElementById('claimOverlay').classList.remove('show');
   document.body.style.overflow = '';
-  if (_claimTimer) { clearInterval(_claimTimer); _claimTimer = null; }
-  if (_claimPoll)  { clearInterval(_claimPoll);  _claimPoll  = null; }
+  stopClaimTimers();
 }
 document.getElementById('claimOverlay').addEventListener('click', function(e) {
   if (e.target === this) closeClaimModal();

@@ -7,11 +7,16 @@
 // Microsoft sign-in verification (see lib/microsoft-claim.js):
 // GET  /api/claim?action=ms-config    → { enabled }  (are MS_CLIENT_ID/SECRET set?)
 // POST /api/claim?action=ms-start     → { url }      (Clerk-authenticated)
+//
+// Skin-challenge verification (see lib/skin-claim.js), no server/plugin/Microsoft app needed:
+// POST /api/claim?action=skin-start   → { image, expiresIn }  (Clerk-authenticated)
+// POST /api/claim?action=skin-verify  → { status }            (Clerk-authenticated)
 // GET  /api/ms-callback               → OAuth redirect target (rewritten to action=ms-callback)
 // Everything lives in this file's route because Vercel's free plan allows 12 functions.
 
 const crypto = require('crypto');
 const msClaim = require('../lib/microsoft-claim');
+const skinClaim = require('../lib/skin-claim');
 
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no I/O/0/1 — easy to read
 const CODE_LEN   = 6;
@@ -57,6 +62,8 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ enabled: msClaim.isConfigured() });
   }
   if (msAction === 'ms-start')    return msClaim.start(req, res, { kv: kvPipeline });
+  if (msAction === 'skin-start')  return skinClaim.start(req, res, { kv: kvPipeline });
+  if (msAction === 'skin-verify') return skinClaim.verify(req, res, { kv: kvPipeline });
   if (msAction === 'ms-callback') return msClaim.callback(req, res, { kv: kvPipeline });
 
   // ── GET /api/claim?action=rank&uuid=&secret= ──────────────────────────────

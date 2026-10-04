@@ -160,7 +160,7 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
 .has-bg .profile-main,.has-bg .profile-sidebar>*{background:rgba(13,23,35,.72);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);border-radius:var(--rad2);padding:.75rem}
 .viewer-wrap{position:relative;display:inline-block}
 #skinViewer3d{display:block;cursor:grab;border-radius:var(--rad2);border:1px solid var(--bdr);background:var(--card)}
-.viewer-btns{position:absolute;bottom:10px;right:10px;display:flex;gap:6px;z-index:10}
+.viewer-btns{position:absolute;bottom:10px;right:10px;display:flex;flex-direction:column;gap:6px;z-index:10}
 .viewer-btn{width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s,border-color .2s;padding:0;line-height:1}
 .viewer-btn:hover{background:rgba(74,222,128,.25);border-color:var(--green)}
 .viewer-btn.active{background:rgba(74,222,128,.2);border-color:var(--green)}
@@ -314,6 +314,7 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
       <div class="viewer-wrap">
         <canvas id="skinViewer3d" width="370" height="550"></canvas>
         <div class="viewer-btns">
+          <button id="resetViewBtn" class="viewer-btn" title="Reset view" aria-label="Reset view" style="font-size:16px">↺</button>
           <button id="walkBtn" class="viewer-btn" title="Toggle walking">🚶</button>
         </div>
       </div>
@@ -2312,6 +2313,46 @@ function initProfileViewer(uuid){
       viewer.animation=walking?new skinview3d.WalkingAnimation():null;
       walkBtn.classList.toggle('active',walking);
     });
+
+    // ── Reset view ─────────────────────────────────────────────────────────────
+    // Remember exactly how the character was posed and framed when this profile loaded,
+    // then put it back on demand. Dragging both orbits the camera (built-in controls) and
+    // spins the model (our handler), and the cape-hover preview also turns the model, so
+    // all of that is restored, plus zoom, the walk cycle and the limb pose.
+    var initialView={
+      rot: viewer.playerObject ? [viewer.playerObject.rotation.x, viewer.playerObject.rotation.y, viewer.playerObject.rotation.z] : [0,0,0],
+      zoom: viewer.zoom
+    };
+    if(viewer.controls&&viewer.controls.saveState)viewer.controls.saveState(); // camera position / target / zoom
+    var resetBtn=document.getElementById('resetViewBtn');
+    if(resetBtn){
+      resetBtn.onclick=function(){ // .onclick (not addEventListener) so re-initialising for another profile never stacks handlers
+        var po=viewer.playerObject;
+        // stop the walk cycle and any in-flight turn from the cape preview
+        walking=false; walkBtn.classList.remove('active'); viewer.animation=null;
+        if(window._backTurnRaf){cancelAnimationFrame(window._backTurnRaf);window._backTurnRaf=null;}
+        if(window._resetTurnRaf){cancelAnimationFrame(window._resetTurnRaf);window._resetTurnRaf=null;}
+        // camera: orbit position, target and zoom
+        if(viewer.controls&&viewer.controls.reset)viewer.controls.reset();
+        if(Math.abs(viewer.zoom-initialView.zoom)>1e-6)viewer.zoom=initialView.zoom;
+        if(!po)return;
+        // limbs back to the rest pose
+        ['head','body','rightArm','leftArm','rightLeg','leftLeg'].forEach(function(k){
+          var part=po.skin&&po.skin[k]; if(part&&part.rotation)part.rotation.set(0,0,0);
+        });
+        po.rotation.x=initialView.rot[0]; po.rotation.z=initialView.rot[2];
+        // facing: take the short way round, then land on the exact original angle
+        var from=po.rotation.y, to=initialView.rot[1], TWO_PI=Math.PI*2;
+        var delta=((to-from+Math.PI)%TWO_PI+TWO_PI)%TWO_PI-Math.PI;
+        if(document.hidden||Math.abs(delta)<0.01){po.rotation.y=to;return;}
+        var t0=performance.now(), dur=350;
+        (function step(now){
+          var p=Math.min(1,(now-t0)/dur), e=1-Math.pow(1-p,3);
+          if(p<1){po.rotation.y=from+delta*e;window._resetTurnRaf=requestAnimationFrame(step);}
+          else{po.rotation.y=to;window._resetTurnRaf=null;}
+        })(t0);
+      };
+    }
 
     var isDragging=false,prevX=0;
 

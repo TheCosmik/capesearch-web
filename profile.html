@@ -1325,23 +1325,26 @@ function fetchTextures(uuid,attempt){
 
       var cards='';
       var seenUrls={};
+      // Compare capes by texture hash, not full URL: the same texture can arrive as
+      // http:// (stored history) or https:// (live lookup) and must count as one cape.
+      function capeKey(u){return String(u).replace(/^https?:\/\/textures\.minecraft\.net\/texture\//,'');}
 
       // Current cape always first
       if(currentCape){
         var curEntry=null;
         for(var i=0;i<history.length;i++){
-          if(history[i].url===currentCape){curEntry=history[i];break;}
+          if(capeKey(history[i].url)===capeKey(currentCape)){curEntry=history[i];break;}
         }
         cards+=capeCard(currentCape,curEntry?curEntry.first_seen:null,null,true);
-        seenUrls[currentCape]=true;
+        seenUrls[capeKey(currentCape)]=true;
       }
 
       // Past capes from history
       for(var j=0;j<history.length;j++){
         var entry=history[j];
-        if(!seenUrls[entry.url]){
+        if(!seenUrls[capeKey(entry.url)]){
           cards+=capeCard(entry.url,entry.first_seen,entry.last_seen,false);
-          seenUrls[entry.url]=true;
+          seenUrls[capeKey(entry.url)]=true;
         }
       }
 

@@ -945,7 +945,8 @@ module.exports = async function handler(req, res) {
       res.setHeader('Cache-Control', stale ? 'no-store' : 's-maxage=15, stale-while-revalidate=5');
       return res.status(200).json({
         skin: httpsUrl(tex.skin) || null, cape: httpsUrl(tex.cape) || null, slim: !!tex.slim,
-        name: tex.name, history: Array.isArray(history) ? history : [],
+        name: tex.name,
+        history: Array.isArray(history) ? history.map(h => ({ ...h, url: httpsUrl(h.url) })) : [],
         role: role || null, beta: !!beta, vip: !!vip, stale: !!stale,
       });
     };

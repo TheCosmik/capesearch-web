@@ -15,8 +15,7 @@
 //   POST action=delete-cat   { catId }       → { ok: true }
 //   POST action=save-profile { catId, targetUuid, targetName, action:'add'|'remove' } → { ok: true }
 
-const CLERK_SECRET = process.env.CLERK_SECRET_KEY;
-const CLERK_PK     = process.env.CLERK_PUBLISHABLE_KEY || 'pk_test_c3RlYWR5LWZpbGx5LTY4LmNsZXJrLmFjY291bnRzLmRldiQ';
+const { authUser } = require('../lib/auth');
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -42,37 +41,9 @@ async function kvCmd(commands) {
   }
 }
 
-// Verify the Clerk session token and return the userId, or null on failure.
+// Identity is the verified Clerk session token (see lib/auth.js).
 async function getClerkUserId(authHeader) {
-  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
-  const token = authHeader.slice(7);
-  // Decode the JWT header/payload without verification first (to extract kid + issuer)
-  try {
-    const parts = token.split('.');
-    if (parts.length !== 3) return null;
-    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
-    // Use Clerk's verify endpoint (JWKS) via the frontend API
-    // Simplest: hit Clerk's own /oauth/token introspect, or use the session token directly.
-    // We'll verify by calling Clerk's backend API.
-    if (!CLERK_SECRET) {
-      // No secret — trust the sub claim (only safe in dev / when Clerk middleware is in front)
-      return payload.sub || null;
-    }
-    const r = await fetch('https://api.clerk.com/v1/sessions/' + payload.sid + '/verify', {
-      method:  'POST',
-      headers: {
-        Authorization:  'Bearer ' + CLERK_SECRET,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body:   'token=' + encodeURIComponent(token),
-      signal: AbortSignal.timeout(5000),
-    });
-    if (!r.ok) return null;
-    const data = await r.json();
-    return data.user_id || data.userId || null;
-  } catch {
-    return null;
-  }
+  return authUser({ headers: { authorization: authHeader } });
 }
 
 function nanoid8() {

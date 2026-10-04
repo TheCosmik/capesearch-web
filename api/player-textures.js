@@ -5,6 +5,8 @@
 // (e.g. before you connect a KV store in the Vercel dashboard) the function
 // still works — it just returns an empty history array.
 
+const { authUser } = require('../lib/auth');
+
 // ── Cape texture hash → cape ID lookup (kept in sync with CAPE_HASH_DATA in profile.html) ──
 const CAPE_HASH_IDS = {
   '2340c0e03dd24a11b15a8b33c2a7e9e32abb2051b2481d0ba7defd635ca7a933': 'migrator',
@@ -331,7 +333,9 @@ module.exports = async function handler(req, res) {
   // POST /api/player-textures?action=unclaim
   // Body: { clerkUserId, uuid }
   if (req.method === 'POST' && req.query.action === 'unclaim') {
-    const { clerkUserId, uuid: unclaimUuid } = req.body || {};
+    const { uuid: unclaimUuid } = req.body || {};
+    const clerkUserId = await authUser(req); // verified from the Authorization token, never from the body
+    if (!clerkUserId) return res.status(401).json({ error: 'Please sign in.' });
     if (!clerkUserId || !unclaimUuid) return res.status(400).json({ error: 'missing fields' });
     const unclaimClean = unclaimUuid.replace(/-/g, '').toLowerCase();
     if (!/^[0-9a-f]{32}$/.test(unclaimClean)) return res.status(400).json({ error: 'invalid uuid' });
@@ -373,7 +377,9 @@ module.exports = async function handler(req, res) {
   // POST /api/player-textures?action=set-role
   // Body: { clerkUserId, targetUuid, role: 'admin' | null }
   if (req.method === 'POST' && req.query.action === 'set-role') {
-    const { clerkUserId, targetUuid, role: newRole } = req.body || {};
+    const { targetUuid, role: newRole } = req.body || {};
+    const clerkUserId = await authUser(req); // verified from the Authorization token, never from the body
+    if (!clerkUserId) return res.status(401).json({ error: 'Please sign in.' });
     if (!clerkUserId || !targetUuid) return res.status(400).json({ error: 'missing fields' });
     if (!(await isOwnerByClerkId(clerkUserId))) return res.status(403).json({ error: 'Owner access required' });
     const targetClean = targetUuid.replace(/-/g, '').toLowerCase();
@@ -395,7 +401,9 @@ module.exports = async function handler(req, res) {
   // POST /api/player-textures?action=set-vip
   // Body: { clerkUserId, targetUuid, vip: true|false }
   if (req.method === 'POST' && req.query.action === 'set-vip') {
-    const { clerkUserId, targetUuid, vip: newVip } = req.body || {};
+    const { targetUuid, vip: newVip } = req.body || {};
+    const clerkUserId = await authUser(req); // verified from the Authorization token, never from the body
+    if (!clerkUserId) return res.status(401).json({ error: 'Please sign in.' });
     if (!clerkUserId || !targetUuid) return res.status(400).json({ error: 'missing fields' });
     if (!(await isAdminOrOwnerByClerkId(clerkUserId))) return res.status(403).json({ error: 'Admin access required' });
     const targetClean = targetUuid.replace(/-/g, '').toLowerCase();
@@ -414,7 +422,9 @@ module.exports = async function handler(req, res) {
   // POST /api/player-textures?action=set-beta
   // Body: { clerkUserId, targetUuid, beta: true|false }
   if (req.method === 'POST' && req.query.action === 'set-beta') {
-    const { clerkUserId, targetUuid, beta: newBeta } = req.body || {};
+    const { targetUuid, beta: newBeta } = req.body || {};
+    const clerkUserId = await authUser(req); // verified from the Authorization token, never from the body
+    if (!clerkUserId) return res.status(401).json({ error: 'Please sign in.' });
     if (!clerkUserId || !targetUuid) return res.status(400).json({ error: 'missing fields' });
     if (!(await isOwnerByClerkId(clerkUserId))) return res.status(403).json({ error: 'Owner access required' });
     const targetClean = targetUuid.replace(/-/g, '').toLowerCase();
@@ -441,7 +451,9 @@ module.exports = async function handler(req, res) {
   // POST /api/player-textures?action=set-beta-enrollment
   // Body: { clerkUserId, enabled: true|false }
   if (req.method === 'POST' && req.query.action === 'set-beta-enrollment') {
-    const { clerkUserId, enabled } = req.body || {};
+    const { enabled } = req.body || {};
+    const clerkUserId = await authUser(req); // verified from the Authorization token, never from the body
+    if (!clerkUserId) return res.status(401).json({ error: 'Please sign in.' });
     if (!clerkUserId) return res.status(400).json({ error: 'clerkUserId required' });
     if (!(await isOwnerByClerkId(clerkUserId))) return res.status(403).json({ error: 'Owner access required' });
     await kvPipeline(enabled
@@ -454,7 +466,8 @@ module.exports = async function handler(req, res) {
   // ── List claimed profiles (owner + admin) ────────────────────────────────────
   // POST /api/player-textures?action=list-claimed  body: { clerkUserId }
   if (req.method === 'POST' && req.query.action === 'list-claimed') {
-    const clerkUserId = (req.body || {}).clerkUserId || '';
+    const clerkUserId = await authUser(req); // verified from the Authorization token, never from the body
+    if (!clerkUserId) return res.status(401).json({ error: 'Please sign in.' });
     if (!clerkUserId) return res.status(400).json({ error: 'clerkUserId required' });
     if (!(await isAdminOrOwnerByClerkId(clerkUserId))) return res.status(403).json({ error: 'Admin access required' });
     const callerIsOwner = await isOwnerByClerkId(clerkUserId);
@@ -502,7 +515,9 @@ module.exports = async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     if (req.method === 'OPTIONS') return res.status(200).end();
-    const { clerkUserId, uuid, settings } = req.body || {};
+    const { uuid, settings } = req.body || {};
+    const clerkUserId = await authUser(req); // verified from the Authorization token, never from the body
+    if (!clerkUserId) return res.status(401).json({ error: 'Please sign in.' });
     if (!clerkUserId || !uuid || !settings) return res.status(400).json({ error: 'missing fields' });
     const clean = uuid.replace(/-/g, '').toLowerCase();
     if (!/^[0-9a-f]{32}$/.test(clean)) return res.status(400).json({ error: 'invalid uuid' });
@@ -572,7 +587,9 @@ module.exports = async function handler(req, res) {
   // POST /api/player-textures?action=post-comment
   // Body: { clerkUserId, targetUuid, text }
   if (req.method === 'POST' && req.query.action === 'post-comment') {
-    const { clerkUserId, targetUuid, text } = req.body || {};
+    const { targetUuid, text } = req.body || {};
+    const clerkUserId = await authUser(req); // verified from the Authorization token, never from the body
+    if (!clerkUserId) return res.status(401).json({ error: 'Please sign in.' });
     if (!clerkUserId || !targetUuid || !text) return res.status(400).json({ error: 'missing fields' });
     if (!(await rateLimit(req, 'post-comment', 5, 60))) return res.status(429).json({ error: 'Too many comments. Please wait a minute.' });
     const cleanTarget = targetUuid.replace(/-/g, '').toLowerCase();
@@ -645,7 +662,9 @@ module.exports = async function handler(req, res) {
   // POST /api/player-textures?action=delete-comment
   // Body: { clerkUserId, targetUuid, commentId }
   if (req.method === 'POST' && req.query.action === 'delete-comment') {
-    const { clerkUserId, targetUuid, commentId } = req.body || {};
+    const { targetUuid, commentId } = req.body || {};
+    const clerkUserId = await authUser(req); // verified from the Authorization token, never from the body
+    if (!clerkUserId) return res.status(401).json({ error: 'Please sign in.' });
     if (!clerkUserId || !targetUuid || !commentId) return res.status(400).json({ error: 'missing fields' });
     const cleanTarget = targetUuid.replace(/-/g, '').toLowerCase();
     const [members] = await kvPipeline([['ZRANGE', `comments:${cleanTarget}`, 0, -1]]);
@@ -668,7 +687,9 @@ module.exports = async function handler(req, res) {
   // POST /api/player-textures?action=toggle-comments
   // Body: { clerkUserId, targetUuid, enabled: bool }
   if (req.method === 'POST' && req.query.action === 'toggle-comments') {
-    const { clerkUserId, targetUuid, enabled } = req.body || {};
+    const { targetUuid, enabled } = req.body || {};
+    const clerkUserId = await authUser(req); // verified from the Authorization token, never from the body
+    if (!clerkUserId) return res.status(401).json({ error: 'Please sign in.' });
     if (!clerkUserId || !targetUuid) return res.status(400).json({ error: 'missing fields' });
     const cleanTarget = targetUuid.replace(/-/g, '').toLowerCase();
     const claim = await kvGet(`claimed:${cleanTarget}`);
@@ -684,7 +705,9 @@ module.exports = async function handler(req, res) {
   // POST /api/player-textures?action=submit-report
   // Body: { clerkUserId, profileUuid, commentId, reason }
   if (req.method === 'POST' && req.query.action === 'submit-report') {
-    const { clerkUserId, profileUuid, commentId, reason } = req.body || {};
+    const { profileUuid, commentId, reason } = req.body || {};
+    const clerkUserId = await authUser(req); // verified from the Authorization token, never from the body
+    if (!clerkUserId) return res.status(401).json({ error: 'Please sign in.' });
     if (!clerkUserId || !profileUuid || !commentId || !reason) return res.status(400).json({ error: 'missing fields' });
     if (!(await rateLimit(req, 'submit-report', 3, 300))) return res.status(429).json({ error: 'Too many reports. Please wait a few minutes.' });
     const cleanProfile = profileUuid.replace(/-/g, '').toLowerCase();
@@ -728,7 +751,8 @@ module.exports = async function handler(req, res) {
   // ── Comment report: get list (admin/owner only) ───────────────────────────
   // POST /api/player-textures?action=get-reports  body: { clerkUserId }
   if (req.method === 'POST' && req.query.action === 'get-reports') {
-    const clerkUserId = (req.body || {}).clerkUserId || '';
+    const clerkUserId = await authUser(req); // verified from the Authorization token, never from the body
+    if (!clerkUserId) return res.status(401).json({ error: 'Please sign in.' });
     if (!clerkUserId) return res.status(400).json({ error: 'clerkUserId required' });
     if (!(await isAdminOrOwnerByClerkId(clerkUserId))) return res.status(403).json({ error: 'Admin access required' });
     const [members] = await kvPipeline([['ZREVRANGE', 'reports', 0, 199]]);
@@ -742,7 +766,9 @@ module.exports = async function handler(req, res) {
   // POST /api/player-textures?action=dismiss-report
   // Body: { clerkUserId, reportId, deleteComment: bool }
   if (req.method === 'POST' && req.query.action === 'dismiss-report') {
-    const { clerkUserId, reportId, deleteComment } = req.body || {};
+    const { reportId, deleteComment } = req.body || {};
+    const clerkUserId = await authUser(req); // verified from the Authorization token, never from the body
+    if (!clerkUserId) return res.status(401).json({ error: 'Please sign in.' });
     if (!clerkUserId || !reportId) return res.status(400).json({ error: 'missing fields' });
     if (!(await isAdminOrOwnerByClerkId(clerkUserId))) return res.status(403).json({ error: 'Admin access required' });
     const [members] = await kvPipeline([['ZRANGE', 'reports', 0, -1]]);
@@ -773,7 +799,8 @@ module.exports = async function handler(req, res) {
   // ── Dismissed reports archive: get (admin/owner only) ────────────────────
   // POST /api/player-textures?action=get-dismissed-reports  body: { clerkUserId }
   if (req.method === 'POST' && req.query.action === 'get-dismissed-reports') {
-    const clerkUserId = (req.body || {}).clerkUserId || '';
+    const clerkUserId = await authUser(req); // verified from the Authorization token, never from the body
+    if (!clerkUserId) return res.status(401).json({ error: 'Please sign in.' });
     if (!clerkUserId) return res.status(400).json({ error: 'clerkUserId required' });
     if (!(await isAdminOrOwnerByClerkId(clerkUserId))) return res.status(403).json({ error: 'Admin access required' });
     const [members] = await kvPipeline([['ZREVRANGE', 'reports-dismissed', 0, 499]]);
@@ -786,7 +813,8 @@ module.exports = async function handler(req, res) {
   // ── Audit log: get entries (admin/owner only) ─────────────────────────────
   // POST /api/player-textures?action=get-audit-log  body: { clerkUserId }
   if (req.method === 'POST' && req.query.action === 'get-audit-log') {
-    const clerkUserId = (req.body || {}).clerkUserId || '';
+    const clerkUserId = await authUser(req); // verified from the Authorization token, never from the body
+    if (!clerkUserId) return res.status(401).json({ error: 'Please sign in.' });
     if (!clerkUserId) return res.status(400).json({ error: 'clerkUserId required' });
     if (!(await isAdminOrOwnerByClerkId(clerkUserId))) return res.status(403).json({ error: 'Admin access required' });
     const [members] = await kvPipeline([['ZREVRANGE', 'audit-log', 0, 199]]);
@@ -802,7 +830,9 @@ module.exports = async function handler(req, res) {
   // POST /api/player-textures?action=grant-item
   // Body: { clerkUserId, targetUuid, itemId }
   if (req.method === 'POST' && req.query.action === 'grant-item') {
-    const { clerkUserId, targetUuid, itemId } = req.body || {};
+    const { targetUuid, itemId } = req.body || {};
+    const clerkUserId = await authUser(req); // verified from the Authorization token, never from the body
+    if (!clerkUserId) return res.status(401).json({ error: 'Please sign in.' });
     if (!clerkUserId || !targetUuid || !itemId) return res.status(400).json({ error: 'missing fields' });
     if (!(await isOwnerByClerkId(clerkUserId))) return res.status(403).json({ error: 'owner only' });
     const clean = targetUuid.replace(/-/g, '').toLowerCase();
@@ -826,7 +856,9 @@ module.exports = async function handler(req, res) {
   // POST /api/player-textures?action=revoke-item
   // Body: { clerkUserId, targetUuid, itemId }
   if (req.method === 'POST' && req.query.action === 'revoke-item') {
-    const { clerkUserId, targetUuid, itemId } = req.body || {};
+    const { targetUuid, itemId } = req.body || {};
+    const clerkUserId = await authUser(req); // verified from the Authorization token, never from the body
+    if (!clerkUserId) return res.status(401).json({ error: 'Please sign in.' });
     if (!clerkUserId || !targetUuid || !itemId) return res.status(400).json({ error: 'missing fields' });
     if (!(await isOwnerByClerkId(clerkUserId))) return res.status(403).json({ error: 'owner only' });
     const clean = targetUuid.replace(/-/g, '').toLowerCase();
@@ -874,7 +906,9 @@ module.exports = async function handler(req, res) {
   // POST /api/player-textures?action=equip-inventory
   // Body: { clerkUserId, uuid, equipped: { background: pkgId, ... } }
   if (req.method === 'POST' && req.query.action === 'equip-inventory') {
-    const { clerkUserId, uuid: rawUuid, equipped } = req.body || {};
+    const { uuid: rawUuid, equipped } = req.body || {};
+    const clerkUserId = await authUser(req); // verified from the Authorization token, never from the body
+    if (!clerkUserId) return res.status(401).json({ error: 'Please sign in.' });
     if (!clerkUserId || !rawUuid) return res.status(400).json({ error: 'missing fields' });
     const clean = rawUuid.replace(/-/g, '').toLowerCase();
     if (!/^[0-9a-f]{32}$/.test(clean)) return res.status(400).json({ error: 'invalid uuid' });

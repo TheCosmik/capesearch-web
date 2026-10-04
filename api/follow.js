@@ -1,22 +1,22 @@
 // Unified follow API — all follow endpoints in one file (Vercel Hobby = 12 fn limit).
 //
 // POST /api/follow
-//   Body: { clerkUserId, targetUuid, displayName, mcUuid }
+//   Body: { targetUuid, mcUuid }   (who is following comes from the Authorization token)
 //   Returns: { following: bool, followersCount: number }
 //
-// GET /api/follow?action=status&targetUuid=&clerkUserId=
+// GET /api/follow?action=status&targetUuid=       (token optional: only needed for "am I following?")
 //   Returns: { following: bool, followersCount: N }
 //
-// GET /api/follow?action=following&clerkUserId=&limit=50
+// GET /api/follow?action=following&uuid=&limit=50  (public: who the OWNER of profile `uuid` follows)
 //   Returns: { following: [{uuid, name}] }
 //
 // GET /api/follow?action=followers&uuid=&limit=50
-//   Returns: { followers: [{clerkUserId, name, mcUuid}] }
+//   Returns: { followers: [{name, mcUuid}] }
 //
-// GET /api/follow?action=notifications&clerkUserId=
+// GET /api/follow?action=notifications           (Authorization token required)
 //   Returns: { notifications: [{type,fromName,fromMcUuid,profileUuid,ts,seen}], unseenCount: N }
 //
-// GET /api/follow?action=mark-seen&clerkUserId=
+// GET /api/follow?action=mark-seen              (Authorization token required)
 //   Marks all notifications as seen. Returns: { ok: true }
 //
 // KV keys:
@@ -25,6 +25,8 @@
 //   follower-display:{targetUuid}:{clerkUserId} STRING JSON {name, mcUuid}
 //   notifs:{clerkUserId}                        ZSET  score=ts, member=JSON notif (last 50)
 //   notifs-seen:{clerkUserId}                   STRING last-seen timestamp
+
+const { authUser, unauthorized } = require('../lib/auth');
 
 async function kvPipeline(url, token, commands) {
   try {
@@ -45,7 +47,7 @@ async function kvPipeline(url, token, commands) {
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const url   = process.env.UPSTASH_REDIS_REST_URL   || process.env.KV_REST_API_URL;
@@ -53,8 +55,10 @@ module.exports = async function handler(req, res) {
 
   // ── POST — toggle follow ───────────────────────────────────────────────────
   if (req.method === 'POST') {
-    const { clerkUserId, targetUuid, mcUuid } = req.body || {};
-    if (!clerkUserId || !targetUuid) return res.status(400).json({ error: 'clerkUserId and targetUuid required' });
+    const { targetUuid, mcUuid } = req.body || {};
+    const clerkUserId = await authUser(req); // verified; a clerkUserId in the body is ignored
+    if (!clerkUserId) return unauthorized(res);
+    if (!targetUuid) return res.status(400).json({ error: 'targetUuid required' });
     if (!url || !token) return res.status(500).json({ error: 'KV not configured' });
 
     const cleanTarget = targetUuid.replace(/-/g, '').toLowerCase();
@@ -150,7 +154,8 @@ module.exports = async function handler(req, res) {
 
   // action=status
   if (action === 'status') {
-    const { clerkUserId, targetUuid } = req.query;
+    const { targetUuid } = req.query;
+    const clerkUserId = await authUser(req); // optional
     if (!targetUuid) return res.status(400).json({ error: 'targetUuid required' });
     const cleanTarget = targetUuid.replace(/-/g, '').toLowerCase();
     if (!url || !token) return res.status(200).json({ following: false, followersCount: 0, followingCount: 0 });
@@ -186,9 +191,16 @@ module.exports = async function handler(req, res) {
 
   // action=following
   if (action === 'following') {
-    const { clerkUserId } = req.query;
-    if (!clerkUserId) return res.status(400).json({ error: 'clerkUserId required' });
+    const { uuid: profileUuid } = req.query;
+    if (!profileUuid) return res.status(400).json({ error: 'uuid required' });
     if (!url || !token) return res.status(200).json({ following: [] });
+    const cleanProfile = String(profileUuid).replace(/-/g, '').toLowerCase();
+    if (!/^[0-9a-f]{32}$/.test(cleanProfile)) return res.status(400).json({ error: 'invalid uuid' });
+    // the profile's owner is whoever claimed it; their account id never leaves the server
+    const [ownerClaimRaw] = await kvPipeline(url, token, [['GET', `claimed:${cleanProfile}`]]);
+    let clerkUserId = null;
+    try { clerkUserId = ownerClaimRaw ? JSON.parse(ownerClaimRaw).clerkUserId : null; } catch {}
+    if (!clerkUserId) return res.status(200).json({ following: [] });
 
     const limit = Math.min(parseInt(req.query.limit) || 50, 100);
     const [uuids] = await kvPipeline(url, token, [
@@ -219,13 +231,13 @@ module.exports = async function handler(req, res) {
     const displayResults = await kvPipeline(url, token,
       clerkIds.map(id => ['GET', `follower-display:${cleanUuid}:${id}`])
     );
-    const followers = clerkIds.map((clerkUserId, i) => {
+    const followers = clerkIds.map((followerId, i) => {
       let name = 'Unknown', mcUuid = '';
       try {
         const parsed = displayResults[i] ? JSON.parse(displayResults[i]) : null;
         if (parsed) { name = parsed.name || name; mcUuid = parsed.mcUuid || ''; }
       } catch {}
-      return { clerkUserId, name, mcUuid };
+      return { name, mcUuid }; // the follower's account id stays private
     });
 
     res.setHeader('Cache-Control', 'no-store');
@@ -234,8 +246,8 @@ module.exports = async function handler(req, res) {
 
   // action=notifications
   if (action === 'notifications') {
-    const { clerkUserId } = req.query;
-    if (!clerkUserId) return res.status(400).json({ error: 'clerkUserId required' });
+    const clerkUserId = await authUser(req);
+    if (!clerkUserId) return unauthorized(res);
     if (!url || !token) return res.status(200).json({ notifications: [], unseenCount: 0 });
 
     const [members, seenRaw] = await kvPipeline(url, token, [
@@ -263,8 +275,8 @@ module.exports = async function handler(req, res) {
 
   // action=mark-seen
   if (action === 'mark-seen') {
-    const { clerkUserId } = req.query;
-    if (!clerkUserId) return res.status(400).json({ error: 'clerkUserId required' });
+    const clerkUserId = await authUser(req);
+    if (!clerkUserId) return unauthorized(res);
     if (url && token) {
       await kvPipeline(url, token, [
         ['SET', `notifs-seen:${clerkUserId}`, String(Date.now())],

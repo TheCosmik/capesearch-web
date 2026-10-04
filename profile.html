@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<script src="/auth-fetch.js"></script>
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png"/>
 <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png"/>
 <link rel="apple-touch-icon" href="/apple-touch-icon.png"/>
@@ -1123,7 +1124,7 @@ function toggleFollow() {
   });
 }
 
-// Load following list for a profile (needs the profile owner's clerkUserId)
+// Load the following list for a profile (looked up by profile uuid; the server finds the owner)
 function loadFollowing(ownerClerkId) {
   var grid = document.getElementById('followingGrid');
   if (!grid) return;
@@ -1132,7 +1133,7 @@ function loadFollowing(ownerClerkId) {
     return;
   }
   grid.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:.5rem 0">Loading…</div>';
-  fetch('/api/follow?action=following&clerkUserId=' + encodeURIComponent(ownerClerkId))
+  fetch('/api/follow?action=following&uuid=' + encodeURIComponent(_currentProfileUuid))
     .then(function(r){ return r.ok ? r.json() : null; })
     .then(function(d) {
       var list = d && d.following ? d.following : [];
@@ -2700,14 +2701,20 @@ function checkClaimStatus(uuid, name) {
     .then(function(r){return r.ok?r.json():null;})
     .then(function(d){
       if(!d) return;
-      window._profileOwnerClerkId = d.claimed ? (d.clerkUserId || null) : null;
+      // The server no longer reveals WHO claimed a profile, only whether the signed-in visitor is the owner.
+      // The page keeps its existing convention without ever holding someone else's id: the visitor's own id
+      // when they own the profile, '__other__' when someone else does, null when unclaimed.
+      window._profileOwnerClerkId = d.claimed ? '__other__' : null; // refined once Clerk has loaded
 
       // Always wait for Clerk.load() before checking window.Clerk.user.
       // Clerk.load() is idempotent — resolves immediately if already done,
       // otherwise waits until Clerk has finished identifying the user.
       // This eliminates the race condition that made the cog appear inconsistently.
       var render = function(){
-        _renderActsWithClaim(uuid, name, d.claimed, d.clerkUserId||null);
+        var me = window.Clerk && window.Clerk.user ? window.Clerk.user.id : null;
+        var ownerMarker = d.claimed ? (d.isOwner && me ? me : '__other__') : null;
+        window._profileOwnerClerkId = ownerMarker;
+        _renderActsWithClaim(uuid, name, d.claimed, ownerMarker);
         loadFollowStatus(uuid);
       };
       if(window.Clerk && typeof window.Clerk.load === 'function'){
@@ -2876,7 +2883,7 @@ function showClaimRestore(name) {
 function finishClaim() {
   var ctx = window._claimCtx;
   closeClaimModal();
-  if (ctx) _renderActsWithClaim(ctx.uuid, ctx.name, true, ctx.clerkUserId);
+  if (ctx) { window._profileOwnerClerkId = ctx.clerkUserId; _renderActsWithClaim(ctx.uuid, ctx.name, true, ctx.clerkUserId); }
 }
 
 function setSkinStatus(msg, kind) {
@@ -2941,6 +2948,7 @@ async function checkClaimSkin() {
     switch (d.status) {
       case 'ok':
         showClaimRestore(d.name || ctx.name);
+        window._profileOwnerClerkId = ctx.clerkUserId;
         _renderActsWithClaim(ctx.uuid, ctx.name, true, ctx.clerkUserId);
         return;
       case 'no_match':

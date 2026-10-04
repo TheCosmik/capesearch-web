@@ -13,6 +13,7 @@
 // GET  /api/ms-callback               → OAuth redirect target (rewritten to action=ms-callback)
 // Everything lives in this file's route because Vercel's free plan allows 12 functions.
 
+const { authUser } = require('../lib/auth');
 const msClaim = require('../lib/microsoft-claim');
 const skinClaim = require('../lib/skin-claim');
 
@@ -92,7 +93,7 @@ module.exports = async function handler(req, res) {
     }
 
     const [stored] = await kvPipeline([['GET', `claimed:${cleanUuid}`]]);
-    if (!stored) return res.status(200).json({ claimed: false });
+    if (!stored) { res.setHeader('Cache-Control', 'private, no-store'); return res.status(200).json({ claimed: false, isOwner: false }); }
 
     let info;
     try { info = JSON.parse(stored); } catch {
@@ -102,10 +103,13 @@ module.exports = async function handler(req, res) {
     // Keep claimed-profiles index up-to-date
     kvPipeline([['ZADD', 'claimed-profiles', 'NX', String(info.claimedAt || Date.now()), cleanUuid]]).catch(() => {});
 
-    res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=10');
+    // The claimer's account id is private. Visitors only learn whether THEY are the owner, which the
+    // server decides from their verified login token. Never cached: the answer depends on who asks.
+    const me = await authUser(req);
+    res.setHeader('Cache-Control', 'private, no-store');
     return res.status(200).json({
       claimed:       true,
-      clerkUserId:   info.clerkUserId,
+      isOwner:       !!(me && info.clerkUserId && me === info.clerkUserId),
       minecraftName: info.minecraftName,
       claimedAt:     info.claimedAt,
     });

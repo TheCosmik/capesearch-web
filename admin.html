@@ -794,10 +794,10 @@ async function toggleBetaEnrollment() {
 
 // ── Inventory catalog (keep in sync with inventory.html) ─────────────────────
 var ADMIN_ITEM_CATALOG = [
-  { id:'bn-giphy123',    name:'Test Banner',     type:'banner',     imageUrl:'/cosmetics/bn-giphy123.gif',    rarity:'rare' },
-  { id:'bg-background1', name:'Test Background', type:'background', imageUrl:'/cosmetics/bg-background1.gif', rarity:'rare' },
-  { id:'bg-pink',        name:'Pink',            type:'background', imageUrl:'/cosmetics/bg-pink.gif',        rarity:'rare' },
-  { id:'bg-mvp',         name:'MVP',             type:'background', imageUrl:'/cosmetics/bg-mvp.webp',        rarity:'legendary' },
+  { id:'bn-giphy123',    name:'Test Banner',     type:'banner',     imageUrl:'/cosmetics/bn-giphy123.webp', thumbUrl:'/cosmetics/bn-giphy123.thumb.webp',    rarity:'rare' },
+  { id:'bg-background1', name:'Test Background', type:'background', imageUrl:'/cosmetics/bg-background1.webp', thumbUrl:'/cosmetics/bg-background1.thumb.webp', rarity:'rare' },
+  { id:'bg-pink',        name:'Pink',            type:'background', imageUrl:'/cosmetics/bg-pink.webp', thumbUrl:'/cosmetics/bg-pink.thumb.webp',        rarity:'rare' },
+  { id:'bg-mvp',         name:'MVP',             type:'background', imageUrl:'/cosmetics/bg-mvp.webp', thumbUrl:'/cosmetics/bg-mvp.thumb.webp',        rarity:'legendary' },
 ];
 
 function renderItemGrid() {
@@ -812,7 +812,7 @@ function renderItemGrid() {
     var typeLabel = item.type === 'banner' ? '🖼 Banner' : '🌄 Background';
     return '<div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--rad2);overflow:hidden">' +
       '<div style="height:110px;background:var(--bg);overflow:hidden;display:flex;align-items:center;justify-content:center">' +
-        '<img src="' + item.imageUrl + '" style="width:100%;height:100%;object-fit:cover" onerror="this.style.opacity=\'.2\'"/>' +
+        '<img src="' + (item.thumbUrl || item.imageUrl) + '" data-thumb="' + (item.thumbUrl || item.imageUrl) + '" data-full="' + item.imageUrl + '" loading="lazy" decoding="async" onmouseenter="this.src=this.dataset.full" onmouseleave="this.src=this.dataset.thumb" alt="" style="width:100%;height:100%;object-fit:cover" onerror="this.style.opacity=\'.2\'"/>' +
       '</div>' +
       '<div style="padding:.75rem">' +
         '<div style="font-weight:700;font-size:.875rem;margin-bottom:.25rem">' + escR(item.name) + '</div>' +
@@ -1210,7 +1210,7 @@ async function loadInvModal(cleanUuid) {
     body.innerHTML = items.map(function(itemId) {
       var meta = ADMIN_ITEM_CATALOG.find(function(c){ return c.id === itemId; });
       var name  = meta ? meta.name    : itemId;
-      var img   = meta ? meta.imageUrl : '';
+      var img   = meta ? (meta.thumbUrl || meta.imageUrl) : '';
       var type  = meta ? meta.type    : 'unknown';
       var equippedSlots = Object.entries(equipped).filter(function(e){ return e[1] === itemId; }).map(function(e){ return e[0]; });
       var equippedLabel = equippedSlots.length ? '<span style="font-size:.68rem;color:var(--green);font-weight:700">● Equipped (' + equippedSlots.join(', ') + ')</span>' : '';

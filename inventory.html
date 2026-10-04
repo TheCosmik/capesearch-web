@@ -224,10 +224,10 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
 // imageUrl           → the image/gif URL shown on profile + in the preview card
 // Add entries here as you create products on Tebex.
 var ITEM_CATALOG = [
-  { id:'bn-giphy123',    name:'Test Banner',      type:'banner',     imageUrl:'/cosmetics/bn-giphy123.gif',    rarity:'rare' },
-  { id:'bg-background1', name:'Test Background',  type:'background', imageUrl:'/cosmetics/bg-background1.gif', rarity:'rare' },
-  { id:'bg-pink',        name:'Pink',             type:'background', imageUrl:'/cosmetics/bg-pink.gif',        rarity:'rare' },
-  { id:'bg-mvp',         name:'MVP',              type:'background', imageUrl:'/cosmetics/bg-mvp.webp',        rarity:'legendary' },
+  { id:'bn-giphy123',    name:'Test Banner',      type:'banner',     imageUrl:'/cosmetics/bn-giphy123.webp', thumbUrl:'/cosmetics/bn-giphy123.thumb.webp',    rarity:'rare' },
+  { id:'bg-background1', name:'Test Background',  type:'background', imageUrl:'/cosmetics/bg-background1.webp', thumbUrl:'/cosmetics/bg-background1.thumb.webp', rarity:'rare' },
+  { id:'bg-pink',        name:'Pink',             type:'background', imageUrl:'/cosmetics/bg-pink.webp', thumbUrl:'/cosmetics/bg-pink.thumb.webp',        rarity:'rare' },
+  { id:'bg-mvp',         name:'MVP',              type:'background', imageUrl:'/cosmetics/bg-mvp.webp', thumbUrl:'/cosmetics/bg-mvp.thumb.webp',        rarity:'legendary' },
 ];
 
 var _allItems      = [];   // full owned list from API
@@ -256,7 +256,7 @@ function renderGrid(){
     var rarityCol  = RARITY_COLOR[item.rarity] || RARITY_COLOR.common;
     var typeLabel  = item.type === 'banner' ? 'Banner' : 'Background';
     var previewInner = item.imageUrl
-      ? '<img src="'+escHtml(item.imageUrl)+'" style="width:100%;height:100%;object-fit:cover;display:block"/>'
+      ? '<img src="'+escHtml(item.thumbUrl||item.imageUrl)+'" data-thumb="'+escHtml(item.thumbUrl||item.imageUrl)+'" data-full="'+escHtml(item.imageUrl)+'" loading="lazy" decoding="async" onmouseenter="this.src=this.dataset.full" onmouseleave="this.src=this.dataset.thumb" alt="" style="width:100%;height:100%;object-fit:cover;display:block"/>'
       : '<span style="font-size:2.5rem;color:var(--muted)">🖼</span>';
     return '<div class="inv-item'+(isEquipped?' equipped':'')+'" id="item-'+item.id+'">'
       +'<div class="inv-preview" style="background:var(--card2);padding:0">'+

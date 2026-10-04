@@ -471,6 +471,15 @@ var CAPE_TEXTURES={
   twisted:       'https://textures.minecraft.net/texture/24aafc451aa2cc34ddc7265211678585c0ef4da4d32edb75ecec1bd8b5408381',
 };
 
+// skinview3d's `viewer.animation = ...` setter resets the model's rotation to (0,0,0) whenever the
+// animation changes. That made the character jump back to its default facing every time walking
+// started or stopped. This swaps the animation but keeps the facing the user left it at.
+function setViewerAnimation(viewer, animation){
+  var po = viewer.playerObject;
+  var rx = po ? po.rotation.x : 0, ry = po ? po.rotation.y : 0, rz = po ? po.rotation.z : 0;
+  viewer.animation = animation;
+  if (po) po.rotation.set(rx, ry, rz);
+}
 function capePreview(c,size){
   var url=CAPE_IMGS[c.id];
   var h=size||88;
@@ -727,7 +736,7 @@ function initSkinView3D(capeImageUrl){
     walkBtn.classList.remove('active');
     walkBtn.onclick=function(){
       walking=!walking;
-      viewer.animation=walking?new skinview3d.WalkingAnimation():new skinview3d.IdleAnimation();
+      setViewerAnimation(viewer,walking?new skinview3d.WalkingAnimation():new skinview3d.IdleAnimation());
       walkBtn.classList.toggle('active',walking);
     };
 

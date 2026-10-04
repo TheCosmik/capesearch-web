@@ -1307,6 +1307,15 @@ function previewCape(card){
   row.addEventListener('touchstart',handler,{passive:true}); // no hover on touch screens
 })();
 
+// skinview3d's `viewer.animation = ...` setter resets the model's rotation to (0,0,0) whenever the
+// animation changes. That made the character jump back to its default facing every time walking
+// started or stopped. This swaps the animation but keeps the facing the user left it at.
+function setViewerAnimation(viewer, animation){
+  var po = viewer.playerObject;
+  var rx = po ? po.rotation.x : 0, ry = po ? po.rotation.y : 0, rz = po ? po.rotation.z : 0;
+  viewer.animation = animation;
+  if (po) po.rotation.set(rx, ry, rz);
+}
 function showViewerModel(){
   var v=window._profileViewer;
   if(v&&v.playerObject)v.playerObject.visible=true;
@@ -2226,7 +2235,7 @@ function initModalViewer(capeImageUrl){
     walkBtn.style.background='rgba(0,0,0,.55)';
     walkBtn.onclick=function(){
       walking=!walking;
-      viewer.animation=walking?new skinview3d.WalkingAnimation():new skinview3d.IdleAnimation();
+      setViewerAnimation(viewer,walking?new skinview3d.WalkingAnimation():new skinview3d.IdleAnimation());
       walkBtn.style.background=walking?'rgba(74,222,128,.2)':'rgba(0,0,0,.55)';
     };
     if(capeImageUrl)viewer.loadCape(capeImageUrl).catch(function(){});
@@ -2310,7 +2319,7 @@ function initProfileViewer(uuid){
     var walkBtn=document.getElementById('walkBtn');
     walkBtn.addEventListener('click',function(){
       walking=!walking;
-      viewer.animation=walking?new skinview3d.WalkingAnimation():null;
+      setViewerAnimation(viewer,walking?new skinview3d.WalkingAnimation():null);
       walkBtn.classList.toggle('active',walking);
     });
 
@@ -2329,7 +2338,7 @@ function initProfileViewer(uuid){
       resetBtn.onclick=function(){ // .onclick (not addEventListener) so re-initialising for another profile never stacks handlers
         var po=viewer.playerObject;
         // stop the walk cycle and any in-flight turn from the cape preview
-        walking=false; walkBtn.classList.remove('active'); viewer.animation=null;
+        walking=false; walkBtn.classList.remove('active'); setViewerAnimation(viewer,null);
         if(window._backTurnRaf){cancelAnimationFrame(window._backTurnRaf);window._backTurnRaf=null;}
         if(window._resetTurnRaf){cancelAnimationFrame(window._resetTurnRaf);window._resetTurnRaf=null;}
         // camera: orbit position, target and zoom

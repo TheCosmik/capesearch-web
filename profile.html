@@ -440,6 +440,17 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
       <div style="font-size:1.2rem;font-weight:800;margin-bottom:.35rem">Claim This Profile</div>
       <div style="font-size:.875rem;color:var(--txt2)" id="claimModalSub">Verify you own this Minecraft account</div>
     </div>
+    <!-- Microsoft sign-in (shown only when the server has MS_CLIENT_ID/SECRET configured) -->
+    <div id="claimMsSection" style="display:none;margin-bottom:1.25rem">
+      <button class="btn btn-p" id="claimMsBtn" onclick="startMicrosoftClaim()" style="width:100%;justify-content:center;gap:.6rem;padding:.75rem 1rem;font-size:.95rem">
+        <svg width="18" height="18" viewBox="0 0 21 21" aria-hidden="true"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>
+        <span id="claimMsBtnLabel">Verify with Microsoft</span>
+      </button>
+      <div style="font-size:.78rem;color:var(--muted);line-height:1.5;margin-top:.7rem;text-align:center">Sign in with the Microsoft account that owns this Minecraft profile. We only read your Minecraft username &mdash; your password is never shown to us and nothing from your Microsoft account is stored.</div>
+      <div id="claimMsError" style="display:none;margin-top:.7rem;font-size:.8rem;color:#f87171;text-align:center"></div>
+      <div style="text-align:center;margin-top:1rem"><a href="#" id="claimShowPlugin" onclick="showPluginClaim();return false" style="font-size:.78rem;color:var(--txt2)">Or verify on our Minecraft server instead</a></div>
+    </div>
+    <div id="claimPluginSection">
     <!-- Code display -->
     <div style="background:var(--bg);border:1px solid var(--bdr);border-radius:var(--rad2);padding:1.25rem;text-align:center;margin-bottom:1.5rem">
       <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.75rem">Your Verification Code</div>
@@ -461,6 +472,7 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
         <div style="font-size:.875rem;padding-top:2px">This profile will instantly link to your account</div>
       </div>
     </div>
+    </div><!-- /claimPluginSection -->
     <button class="btn btn-o" style="width:100%;justify-content:center" onclick="closeClaimModal()">Cancel</button>
   </div>
 </div>
@@ -2640,6 +2652,70 @@ function openClaimModal(uuid, name) {
   }
   var clerkUserId = window.Clerk.user.id;
   var overlay = document.getElementById('claimOverlay');
+  window._claimCtx = {uuid: uuid, name: name, clerkUserId: clerkUserId};
+  overlay.classList.add('show');
+  document.body.style.overflow = 'hidden';
+  document.getElementById('claimMsError').style.display = 'none';
+  // Fresh state every time the modal opens (it may have been left on the in-game view)
+  document.getElementById('claimMsSection').style.display = 'none';
+  document.getElementById('claimPluginSection').style.display = 'none';
+  document.getElementById('claimMsBtn').disabled = false;
+  document.getElementById('claimMsBtnLabel').textContent = 'Verify with Microsoft';
+  document.getElementById('claimShowPlugin').parentNode.style.display = '';
+  // Prefer Microsoft sign-in when the server has it configured; otherwise fall back to the in-game code.
+  fetch('/api/claim?action=ms-config')
+    .then(function(r){return r.ok?r.json():{enabled:false};})
+    .catch(function(){return {enabled:false};})
+    .then(function(cfg){ if (cfg && cfg.enabled) showMsClaim(); else showPluginClaim(); });
+}
+
+function showMsClaim() {
+  document.getElementById('claimMsSection').style.display = '';
+  document.getElementById('claimPluginSection').style.display = 'none';
+  document.getElementById('claimModalSub').textContent = 'Verify you own this Minecraft account';
+}
+
+function showPluginClaim() {
+  var ctx = window._claimCtx;
+  if (!ctx) return;
+  var msBtn = document.getElementById('claimShowPlugin');
+  if (msBtn) msBtn.parentNode.style.display = 'none';
+  document.getElementById('claimPluginSection').style.display = '';
+  startPluginClaim(ctx.uuid, ctx.name, ctx.clerkUserId);
+}
+
+async function startMicrosoftClaim() {
+  var ctx = window._claimCtx;
+  if (!ctx) return;
+  var btn = document.getElementById('claimMsBtn');
+  var label = document.getElementById('claimMsBtnLabel');
+  var errEl = document.getElementById('claimMsError');
+  errEl.style.display = 'none';
+  btn.disabled = true;
+  label.textContent = 'Redirecting to Microsoft…';
+  try {
+    var token = await getSessionToken();
+    if (!token) throw new Error('Please sign in again, then retry.');
+    var r = await fetch('/api/claim?action=ms-start', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json', 'Authorization':'Bearer '+token},
+      body: JSON.stringify({expectUuid: String(ctx.uuid).replace(/-/g,''), expectName: ctx.name}),
+    });
+    var d = await r.json().catch(function(){return {};});
+    if (!r.ok || !d.url) {
+      throw new Error(d.error === 'not_configured' ? 'Microsoft sign-in is not available right now.' : (d.error || 'Could not start Microsoft sign-in.'));
+    }
+    window.location.href = d.url;
+  } catch (e) {
+    errEl.textContent = e.message || 'Could not start Microsoft sign-in.';
+    errEl.style.display = '';
+    btn.disabled = false;
+    label.textContent = 'Verify with Microsoft';
+  }
+}
+
+function startPluginClaim(uuid, name, clerkUserId) {
+  var overlay = document.getElementById('claimOverlay');
 
   // Reset to loading state
   document.getElementById('claimCode').textContent = '......';
@@ -2709,6 +2785,39 @@ function closeClaimModal() {
 document.getElementById('claimOverlay').addEventListener('click', function(e) {
   if (e.target === this) closeClaimModal();
 });
+
+// Result of the Microsoft sign-in round trip (?claim=ok or ?claim_error=<code>)
+(function showMicrosoftClaimResult() {
+  var q = new URLSearchParams(location.search);
+  var ok = q.get('claim') === 'ok', err = q.get('claim_error');
+  if (!ok && !err) return;
+  var who = q.get('name') || 'this profile';
+  var MSGS = {
+    denied:       'Microsoft sign-in was cancelled.',
+    state:        'That verification link expired or was invalid. Please start again.',
+    mismatch:     'You signed in with a different Minecraft account than ' + who + '. Sign in with the Microsoft account that owns ' + who + '.',
+    no_xbox:      'That Microsoft account has no Xbox profile yet. Sign in once at minecraft.net to create it, then try again.',
+    child:        'That is a child account. An adult must add it to a Microsoft family group before it can sign in here.',
+    age_verify:   'That Microsoft account needs age verification on xbox.com before it can sign in here.',
+    region:       'Xbox Live is not available in that account\'s region.',
+    no_java:      'That Microsoft account does not own Minecraft: Java Edition.',
+    not_approved: 'Microsoft sign-in is not fully enabled yet. Please use the Minecraft server method for now.',
+    failed:       'Something went wrong verifying with Microsoft. Please try again.'
+  };
+  var msg = ok ? '✅ Verified with Microsoft — ' + who + ' is now linked to your account.' : (MSGS[err] || MSGS.failed);
+  var bar = document.createElement('div');
+  bar.setAttribute('role', 'status');
+  bar.style.cssText = 'position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:9999;max-width:min(560px,92vw);padding:.8rem 1.1rem;border-radius:10px;font-size:.88rem;font-weight:600;line-height:1.45;box-shadow:0 8px 30px rgba(0,0,0,.5);cursor:pointer;' +
+    (ok ? 'background:#14532d;border:1px solid #4ade80;color:#dcfce7' : 'background:#450a0a;border:1px solid #f87171;color:#fee2e2');
+  bar.textContent = msg;
+  bar.title = 'Click to dismiss';
+  bar.onclick = function(){ bar.remove(); };
+  document.body.appendChild(bar);
+  setTimeout(function(){ if (bar.parentNode) bar.remove(); }, 12000);
+  // drop the result params so a refresh doesn't replay the banner
+  q.delete('claim'); q.delete('claim_error');
+  history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString() : '') + location.hash);
+})();
 </script>
 <!-- ── SOCIAL LINKS ───────────────────────────────────────────────────────── -->
 <script>

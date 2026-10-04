@@ -3,6 +3,15 @@
 //
 // GET  /api/check-claim?uuid=   → check if a UUID has been claimed
 // POST /api/start-claim         → generate a verification code for in-game claiming
+//
+// Microsoft sign-in verification (see lib/microsoft-claim.js):
+// GET  /api/claim?action=ms-config    → { enabled }  (are MS_CLIENT_ID/SECRET set?)
+// POST /api/claim?action=ms-start     → { url }      (Clerk-authenticated)
+// GET  /api/ms-callback               → OAuth redirect target (rewritten to action=ms-callback)
+// Everything lives in this file's route because Vercel's free plan allows 12 functions.
+
+const crypto = require('crypto');
+const msClaim = require('../lib/microsoft-claim');
 
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no I/O/0/1 — easy to read
 const CODE_LEN   = 6;
@@ -11,7 +20,7 @@ const TTL_S      = 600; // 10 minutes
 function genCode() {
   let c = '';
   for (let i = 0; i < CODE_LEN; i++) {
-    c += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
+    c += CODE_CHARS[crypto.randomInt(CODE_CHARS.length)]; // CSPRNG: claim codes must not be guessable
   }
   return c;
 }
@@ -40,6 +49,15 @@ const OWNER_UUID = '97a449ca635d44da9e021fe62eef5bda';
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
+
+  // ── Microsoft sign-in verification ────────────────────────────────────────
+  const msAction = req.query && req.query.action;
+  if (req.method === 'GET' && msAction === 'ms-config') {
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json({ enabled: msClaim.isConfigured() });
+  }
+  if (msAction === 'ms-start')    return msClaim.start(req, res, { kv: kvPipeline });
+  if (msAction === 'ms-callback') return msClaim.callback(req, res, { kv: kvPipeline });
 
   // ── GET /api/claim?action=rank&uuid=&secret= ──────────────────────────────
   // Used by the CapeSearchRanks Minecraft plugin to look up a player's rank.

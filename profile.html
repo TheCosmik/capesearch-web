@@ -449,46 +449,39 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
       <div style="font-size:.78rem;color:var(--muted);line-height:1.5;margin-top:.7rem;text-align:center">Sign in with the Microsoft account that owns this Minecraft profile. We only read your Minecraft username &mdash; your password is never shown to us and nothing from your Microsoft account is stored.</div>
       <div id="claimMsError" style="display:none;margin-top:.7rem;font-size:.8rem;color:#f87171;text-align:center"></div>
     </div>
-    <!-- Skin challenge (default method: no Microsoft app, plugin or server needed) -->
+    <!-- Skin verification: the way profiles are claimed -->
     <div id="claimSkinSection" style="display:none;margin-bottom:1.25rem">
-      <div style="display:flex;gap:1rem;align-items:center;background:var(--bg);border:1px solid var(--bdr);border-radius:var(--rad2);padding:1rem;margin-bottom:1.1rem">
-        <img id="claimSkinPreview" alt="Your one-time verification skin" width="64" height="64" style="width:64px;height:64px;image-rendering:pixelated;border-radius:6px;background:var(--bg2);flex-shrink:0">
-        <div style="font-size:.82rem;color:var(--txt2);line-height:1.5">This is your <strong style="color:var(--txt)">one-time verification skin</strong>. It only works for you, only for <span id="claimSkinTimer" style="color:var(--txt);font-weight:600">15:00</span>, and you can switch back to your normal skin right after.</div>
+      <div id="claimSkinMain">
+        <div style="display:flex;gap:1rem;align-items:center;background:var(--bg);border:1px solid var(--bdr);border-radius:var(--rad2);padding:1rem;margin-bottom:1.1rem">
+          <img id="claimSkinPreview" alt="Your one-time verification skin" width="64" height="64" style="width:64px;height:64px;image-rendering:pixelated;border-radius:6px;background:var(--bg2);flex-shrink:0">
+          <div style="font-size:.82rem;color:var(--txt2);line-height:1.5">This is your <strong style="color:var(--txt)">one-time verification skin</strong>. It only works for you, only for <span id="claimSkinTimer" style="color:var(--txt);font-weight:600">15:00</span>, and you can switch back to your normal skin right after.</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:.8rem;margin-bottom:1.1rem">
+          <div style="display:flex;gap:.85rem;align-items:flex-start"><div style="background:var(--green);color:#0f1923;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:800;flex-shrink:0;margin-top:1px">1</div>
+            <div style="font-size:.875rem;padding-top:2px;min-width:0"><strong style="color:var(--txt)">Save your current skin</strong> so you can put it back afterwards<br>
+              <a id="claimOrigLink" class="btn btn-o btn-sm" href="#" style="display:none;margin-top:.45rem;text-decoration:none">Download my current skin</a>
+              <div id="claimOrigInfo" style="font-size:.76rem;color:var(--muted);margin-top:.35rem;line-height:1.45">Looking up your current skin…</div></div></div>
+          <div style="display:flex;gap:.85rem;align-items:flex-start"><div style="background:var(--green);color:#0f1923;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:800;flex-shrink:0;margin-top:1px">2</div>
+            <div style="font-size:.875rem;padding-top:2px"><a id="claimSkinDownload" download="capesearch-verify.png" href="#" style="color:var(--green);font-weight:700">Download the verification skin</a></div></div>
+          <div style="display:flex;gap:.85rem;align-items:flex-start"><div style="background:var(--green);color:#0f1923;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:800;flex-shrink:0;margin-top:1px">3</div>
+            <div style="font-size:.875rem;padding-top:2px">Upload it to <strong style="color:var(--txt)">this Minecraft account</strong> at <a href="https://www.minecraft.net/en-us/msaprofile/mygames/editskin" target="_blank" rel="noopener noreferrer" style="color:var(--green)">minecraft.net &rarr; Profile &rarr; Skin</a> (or in the Minecraft Launcher&rsquo;s Skins tab)</div></div>
+          <div style="display:flex;gap:.85rem;align-items:flex-start"><div style="background:var(--green);color:#0f1923;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:800;flex-shrink:0;margin-top:1px">4</div>
+            <div style="font-size:.875rem;padding-top:2px">Come back and press <strong style="color:var(--txt)">Check my skin</strong>, then restore your skin</div></div>
+        </div>
+        <button class="btn btn-p" id="claimSkinCheck" onclick="checkClaimSkin()" disabled style="width:100%;justify-content:center;padding:.7rem 1rem">Check my skin</button>
+        <div id="claimSkinStatus" role="status" style="min-height:1.2rem;margin-top:.7rem;font-size:.82rem;color:var(--txt2);text-align:center;line-height:1.5"></div>
       </div>
-      <div style="display:flex;flex-direction:column;gap:.7rem;margin-bottom:1.1rem">
-        <div style="display:flex;gap:.85rem;align-items:flex-start"><div style="background:var(--green);color:#0f1923;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:800;flex-shrink:0;margin-top:1px">1</div>
-          <div style="font-size:.875rem;padding-top:2px"><a id="claimSkinDownload" download="capesearch-verify.png" href="#" style="color:var(--green);font-weight:700">Download the verification skin</a></div></div>
-        <div style="display:flex;gap:.85rem;align-items:flex-start"><div style="background:var(--green);color:#0f1923;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:800;flex-shrink:0;margin-top:1px">2</div>
-          <div style="font-size:.875rem;padding-top:2px">Upload it to <strong style="color:var(--txt)">this Minecraft account</strong> at <a href="https://www.minecraft.net/en-us/msaprofile/mygames/editskin" target="_blank" rel="noopener noreferrer" style="color:var(--green)">minecraft.net &rarr; Profile &rarr; Skin</a> (or in the Minecraft Launcher&rsquo;s Skins tab)</div></div>
-        <div style="display:flex;gap:.85rem;align-items:flex-start"><div style="background:var(--green);color:#0f1923;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:800;flex-shrink:0;margin-top:1px">3</div>
-          <div style="font-size:.875rem;padding-top:2px">Come back and press <strong style="color:var(--txt)">Check my skin</strong></div></div>
-      </div>
-      <button class="btn btn-p" id="claimSkinCheck" onclick="checkClaimSkin()" disabled style="width:100%;justify-content:center;padding:.7rem 1rem">Check my skin</button>
-      <div id="claimSkinStatus" role="status" style="min-height:1.2rem;margin-top:.7rem;font-size:.82rem;color:var(--txt2);text-align:center;line-height:1.5"></div>
-    </div>
-    <div id="claimPluginSection">
-    <!-- Code display -->
-    <div style="background:var(--bg);border:1px solid var(--bdr);border-radius:var(--rad2);padding:1.25rem;text-align:center;margin-bottom:1.5rem">
-      <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.75rem">Your Verification Code</div>
-      <div id="claimCode" style="font-family:monospace;font-size:2.2rem;font-weight:900;letter-spacing:.25em;color:var(--green);margin-bottom:.5rem">——————</div>
-      <div style="font-size:.8rem;color:var(--muted)">Expires in <span id="claimTimer" style="color:var(--txt2);font-weight:600">10:00</span></div>
-    </div>
-    <!-- Steps -->
-    <div style="margin-bottom:1.5rem;display:flex;flex-direction:column;gap:.75rem">
-      <div style="display:flex;gap:.85rem;align-items:flex-start">
-        <div style="background:var(--green);color:#0f1923;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:800;flex-shrink:0;margin-top:1px">1</div>
-        <div style="font-size:.875rem;padding-top:2px">Join our Minecraft server: <strong style="color:var(--txt)">play.capesearch.net</strong></div>
-      </div>
-      <div style="display:flex;gap:.85rem;align-items:flex-start">
-        <div style="background:var(--green);color:#0f1923;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:800;flex-shrink:0;margin-top:1px">2</div>
-        <div style="font-size:.875rem;padding-top:2px">Type in chat: <code id="claimCmdPreview" style="background:var(--bg2);border:1px solid var(--bdr);padding:.2rem .5rem;border-radius:4px;font-size:.875rem;color:var(--green)">/claim ——————</code></div>
-      </div>
-      <div style="display:flex;gap:.85rem;align-items:flex-start">
-        <div style="background:var(--green);color:#0f1923;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:800;flex-shrink:0;margin-top:1px">3</div>
-        <div style="font-size:.875rem;padding-top:2px">This profile will instantly link to your account</div>
+      <div id="claimSkinRestore" style="display:none">
+        <div id="claimRestoreHead" style="font-size:.95rem;font-weight:800;color:var(--green);text-align:center;margin-bottom:.35rem">Verified!</div>
+        <div style="font-size:.85rem;color:var(--txt2);text-align:center;margin-bottom:1rem;line-height:1.5">Your profile is claimed. <strong style="color:var(--txt)">Now put your own skin back:</strong></div>
+        <div style="background:var(--bg);border:1px solid var(--bdr);border-radius:var(--rad2);padding:1rem;display:flex;flex-direction:column;gap:.6rem;align-items:center;margin-bottom:1rem">
+          <a id="claimRestoreDownload" class="btn btn-o btn-sm" href="#" style="display:none;text-decoration:none">Download my original skin</a>
+          <div id="claimRestoreMsg" style="font-size:.78rem;color:var(--muted);text-align:center;line-height:1.5"></div>
+          <a class="btn btn-p btn-sm" href="https://www.minecraft.net/en-us/msaprofile/mygames/editskin" target="_blank" rel="noopener noreferrer" style="text-decoration:none">Open my skin settings &rarr;</a>
+        </div>
+        <button class="btn btn-o" onclick="finishClaim()" style="width:100%;justify-content:center">Done</button>
       </div>
     </div>
-    </div><!-- /claimPluginSection -->
     <div id="claimAlts" style="text-align:center;margin:-.25rem 0 1.1rem;font-size:.78rem;display:flex;flex-direction:column;gap:.35rem"></div>
     <button class="btn btn-o" style="width:100%;justify-content:center" onclick="closeClaimModal()">Cancel</button>
   </div>
@@ -2523,8 +2516,6 @@ document.getElementById('unclaimOverlay').addEventListener('click', function(e){
 });
 
 // ── CLAIM FLOW ─────────────────────────────────────────────────────────────────
-var _claimTimer   = null;
-var _claimPoll    = null;
 
 function _renderActsWithClaim(uuid, name, isClaimed, ownerUserId) {
   var currentUserId = window.Clerk && window.Clerk.user ? window.Clerk.user.id : null;
@@ -2673,15 +2664,16 @@ function openClaimModal(uuid, name) {
   overlay.classList.add('show');
   document.body.style.overflow = 'hidden';
   document.getElementById('claimMsError').style.display = 'none';
-  // Fresh state every time the modal opens (it may have been left on the in-game view)
+  // Fresh state every time the modal opens (it may have been left on the success screen)
   document.getElementById('claimMsSection').style.display = 'none';
   document.getElementById('claimSkinSection').style.display = 'none';
-  document.getElementById('claimPluginSection').style.display = 'none';
   document.getElementById('claimAlts').innerHTML = '';
+  document.getElementById('claimSkinMain').style.display = '';
+  document.getElementById('claimSkinRestore').style.display = 'none';
   document.getElementById('claimMsBtn').disabled = false;
   document.getElementById('claimMsBtnLabel').textContent = 'Verify with Microsoft';
   stopClaimTimers();
-  // Microsoft sign-in is the quickest method when the server has it configured; otherwise the skin challenge.
+  // Microsoft sign-in is only offered if it has been configured on the server; otherwise it is the skin check.
   fetch('/api/claim?action=ms-config')
     .then(function(r){return r.ok?r.json():{enabled:false};})
     .catch(function(){return {enabled:false};})
@@ -2693,8 +2685,6 @@ function openClaimModal(uuid, name) {
 
 var _claimSkinTimer = null;
 function stopClaimTimers() {
-  if (_claimTimer)     { clearInterval(_claimTimer);     _claimTimer = null; }
-  if (_claimPoll)      { clearInterval(_claimPoll);      _claimPoll  = null; }
   if (_claimSkinTimer) { clearInterval(_claimSkinTimer); _claimSkinTimer = null; }
 }
 
@@ -2703,8 +2693,7 @@ function renderClaimAlts(current) {
   var ctx = window._claimCtx || {};
   var defs = [
     {id:'ms',     label:'Verify with Microsoft instead',            fn:showMsClaim,     show: !!ctx.msEnabled},
-    {id:'skin',   label:'Verify by changing your skin instead',     fn:showSkinClaim,   show: true},
-    {id:'plugin', label:'Verify on our Minecraft server instead',   fn:showPluginClaim, show: true}
+    {id:'skin',   label:'Verify by changing your skin instead',     fn:showSkinClaim,   show: true}
   ];
   var box = document.getElementById('claimAlts');
   box.innerHTML = '';
@@ -2720,25 +2709,107 @@ function setClaimView(view) {
   stopClaimTimers();
   document.getElementById('claimMsSection').style.display     = view === 'ms'     ? '' : 'none';
   document.getElementById('claimSkinSection').style.display   = view === 'skin'   ? '' : 'none';
-  document.getElementById('claimPluginSection').style.display = view === 'plugin' ? '' : 'none';
   document.getElementById('claimModalSub').textContent = 'Verify you own this Minecraft account';
   renderClaimAlts(view);
 }
 
 function showMsClaim() { setClaimView('ms'); }
 
-function showPluginClaim() {
-  var ctx = window._claimCtx;
-  if (!ctx) return;
-  setClaimView('plugin');
-  startPluginClaim(ctx.uuid, ctx.name, ctx.clerkUserId);
-}
-
 function showSkinClaim() {
   var ctx = window._claimCtx;
   if (!ctx) return;
   setClaimView('skin');
+  loadOriginalSkin();
   startSkinChallenge();
+}
+
+// ── Save / restore the player's real skin ──────────────────────────────────────
+// Fetched BEFORE the verification skin is uploaded. A copy is kept in sessionStorage for 30 minutes
+// so reopening this window (or reloading) after the upload still offers the true original, not the
+// temporary verification skin.
+function paintOriginalSkin(link, info, saved) {
+  var name = (window._claimCtx && window._claimCtx.name) || 'minecraft';
+  if (!saved) {
+    link.style.display = 'none';
+    info.textContent = 'We couldn’t look up your current skin, so save it yourself first (in your skin settings on minecraft.net) before changing anything.';
+    return;
+  }
+  if (saved.none) {
+    link.style.display = 'none';
+    info.textContent = 'You’re using a default skin, so there’s nothing to save. To go back afterwards, just reset your skin to the default.';
+    return;
+  }
+  info.textContent = 'Model: ' + (saved.slim ? 'Slim (Alex, thin arms)' : 'Classic (Steve, wide arms)') + ' — choose the same one when you upload it again.';
+  link.href = saved.dataUrl || saved.url;
+  if (saved.dataUrl) {
+    link.download = name + '-original-skin.png';
+    link.removeAttribute('target');
+    link.textContent = link.id === 'claimRestoreDownload' ? 'Download my original skin' : 'Download my current skin';
+  } else {
+    link.removeAttribute('download');
+    link.target = '_blank'; link.rel = 'noopener noreferrer';
+    link.textContent = 'Open my skin (right-click → Save image as…)';
+  }
+  link.style.display = '';
+}
+
+async function loadOriginalSkin() {
+  var ctx = window._claimCtx;
+  if (!ctx) return;
+  var uuid = String(ctx.uuid).replace(/-/g, '');
+  var link = document.getElementById('claimOrigLink');
+  var info = document.getElementById('claimOrigInfo');
+  link.style.display = 'none';
+  info.textContent = 'Looking up your current skin…';
+  var key = 'cs_origskin_' + uuid, saved = null;
+  try {
+    var cached = JSON.parse(sessionStorage.getItem(key) || 'null');
+    if (cached && cached.ts && Date.now() - cached.ts < 30 * 60 * 1000) saved = cached.saved;
+  } catch (e) {}
+  if (!saved) {
+    try {
+      var r = await fetch('/api/player-textures?uuid=' + encodeURIComponent(uuid));
+      var d = r.ok ? await r.json() : null;
+      if (!d) throw new Error('lookup failed');
+      if (!d.skin) {
+        saved = {none: true};
+      } else {
+        saved = {url: d.skin, slim: !!d.slim};
+        try {
+          var blob = await (await fetch(d.skin)).blob();
+          saved.dataUrl = await new Promise(function(res, rej) {
+            var fr = new FileReader(); fr.onload = function(){ res(fr.result); }; fr.onerror = rej; fr.readAsDataURL(blob);
+          });
+        } catch (e) { /* download blocked: fall back to a plain link to the texture */ }
+      }
+      try { sessionStorage.setItem(key, JSON.stringify({ts: Date.now(), saved: saved})); } catch (e) {}
+    } catch (e) {
+      window._claimOrig = null;
+      paintOriginalSkin(link, info, null);
+      return;
+    }
+  }
+  window._claimOrig = saved;
+  paintOriginalSkin(link, info, saved);
+}
+
+// Success screen: reminds the user to put their skin back and makes that quick
+function showClaimRestore(name) {
+  stopClaimTimers();
+  document.getElementById('claimSkinMain').style.display = 'none';
+  document.getElementById('claimSkinRestore').style.display = '';
+  document.getElementById('claimRestoreHead').textContent = '✅ Verified! ' + name + ' is now linked to your account.';
+  document.getElementById('claimModalSub').textContent = 'Last step: restore your skin';
+  var link = document.getElementById('claimRestoreDownload');
+  var msg = document.getElementById('claimRestoreMsg');
+  paintOriginalSkin(link, msg, window._claimOrig || null);
+  if (window._claimOrig && window._claimOrig.dataUrl) msg.textContent = 'Upload this file in your skin settings. ' + msg.textContent;
+}
+
+function finishClaim() {
+  var ctx = window._claimCtx;
+  closeClaimModal();
+  if (ctx) _renderActsWithClaim(ctx.uuid, ctx.name, true, ctx.clerkUserId);
 }
 
 function setSkinStatus(msg, kind) {
@@ -2802,9 +2873,8 @@ async function checkClaimSkin() {
     var d = await claimApi('skin-verify');
     switch (d.status) {
       case 'ok':
-        setSkinStatus('✅ Verified! ' + (d.name || ctx.name) + ' is now linked to your account. You can switch back to your normal skin.', 'ok');
-        stopClaimTimers();
-        setTimeout(function(){ closeClaimModal(); _renderActsWithClaim(ctx.uuid, ctx.name, true, ctx.clerkUserId); }, 2200);
+        showClaimRestore(d.name || ctx.name);
+        _renderActsWithClaim(ctx.uuid, ctx.name, true, ctx.clerkUserId);
         return;
       case 'no_match':
         setSkinStatus('We can’t see the verification skin on this account yet. Make sure you uploaded it to the right account — it can take up to a minute to show up, then check again.', 'err'); break;
@@ -2853,68 +2923,6 @@ async function startMicrosoftClaim() {
   }
 }
 
-function startPluginClaim(uuid, name, clerkUserId) {
-  var overlay = document.getElementById('claimOverlay');
-
-  // Reset to loading state
-  document.getElementById('claimCode').textContent = '......';
-  document.getElementById('claimCode').style.color = 'var(--green)';
-  document.getElementById('claimCmdPreview').textContent = '/claim ......';
-  document.getElementById('claimTimer').textContent = '10:00';
-  document.getElementById('claimModalSub').textContent = 'Generating your code…';
-  overlay.classList.add('show');
-  document.body.style.overflow = 'hidden';
-
-  fetch('/api/start-claim', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({clerkUserId:clerkUserId, minecraftUuid:uuid, minecraftName:name}),
-  })
-    .then(function(r){return r.ok?r.json():Promise.reject(r);})
-    .then(function(d) {
-      var code = d.code;
-      document.getElementById('claimCode').textContent = code;
-      document.getElementById('claimCmdPreview').textContent = '/claim '+code;
-      document.getElementById('claimModalSub').textContent = 'Verify you own this Minecraft account';
-
-      // Countdown timer
-      var secsLeft = d.expiresIn || 600;
-      if (_claimTimer) clearInterval(_claimTimer);
-      _claimTimer = setInterval(function() {
-        secsLeft--;
-        if (secsLeft <= 0) {
-          clearInterval(_claimTimer);
-          document.getElementById('claimTimer').textContent = 'Expired';
-          document.getElementById('claimCode').textContent = 'EXPIRED';
-          document.getElementById('claimCode').style.color = 'var(--muted)';
-          return;
-        }
-        var m = Math.floor(secsLeft/60), s = secsLeft%60;
-        document.getElementById('claimTimer').textContent = m+':'+(s<10?'0':'')+s;
-      }, 1000);
-
-      // Poll until claimed
-      if (_claimPoll) clearInterval(_claimPoll);
-      _claimPoll = setInterval(function() {
-        fetch('/api/check-claim?uuid='+encodeURIComponent(uuid))
-          .then(function(r){return r.ok?r.json():null;})
-          .then(function(data) {
-            if (data && data.claimed && data.clerkUserId === clerkUserId) {
-              clearInterval(_claimPoll);
-              clearInterval(_claimTimer);
-              closeClaimModal();
-              _renderActsWithClaim(uuid, name, true, clerkUserId);
-            }
-          })
-          .catch(function(){});
-      }, 3000);
-    })
-    .catch(function() {
-      document.getElementById('claimModalSub').textContent = 'Failed to generate code. Please try again.';
-      document.getElementById('claimCode').textContent = 'ERROR';
-    });
-}
-
 function closeClaimModal() {
   document.getElementById('claimOverlay').classList.remove('show');
   document.body.style.overflow = '';
@@ -2939,7 +2947,7 @@ document.getElementById('claimOverlay').addEventListener('click', function(e) {
     age_verify:   'That Microsoft account needs age verification on xbox.com before it can sign in here.',
     region:       'Xbox Live is not available in that account\'s region.',
     no_java:      'That Microsoft account does not own Minecraft: Java Edition.',
-    not_approved: 'Microsoft sign-in is not fully enabled yet. Please use the Minecraft server method for now.',
+    not_approved: 'Microsoft sign-in is not fully enabled yet. Please verify with your skin instead.',
     failed:       'Something went wrong verifying with Microsoft. Please try again.'
   };
   var msg = ok ? '✅ Verified with Microsoft — ' + who + ' is now linked to your account.' : (MSGS[err] || MSGS.failed);

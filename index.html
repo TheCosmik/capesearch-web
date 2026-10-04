@@ -194,12 +194,7 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:2rem 1rem;m
 <div class="hero">
   <div class="wrap">
     <h1>Join <span style="color:var(--txt)">Cape</span><span>Search</span></h1>
-    <p style="font-size:.95rem;margin-bottom:.5rem" data-i18n="index.hero_sub">Connect to our Minecraft server to claim your profile</p>
-    <div style="display:inline-flex;align-items:center;gap:.6rem;background:var(--card);border:1px solid var(--bdr);border-radius:var(--rad);padding:.55rem 1.1rem;font-size:.95rem;font-family:monospace;color:var(--txt2)">
-      <span style="color:var(--muted);font-size:.8rem;font-weight:600;font-family:sans-serif">IP</span>
-      <span id="serverIp" style="color:var(--txt);font-weight:600">play.capesearch.net</span>
-      <button onclick="copyIp(this)" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.85rem;padding:0;transition:color .15s" title="Copy IP" onmouseover="this.style.color='var(--green)'" onmouseout="this.style.color='var(--muted)'">📋</button>
-    </div>
+    <p style="font-size:.95rem;margin-bottom:.5rem" data-i18n="index.hero_sub">Look up any Minecraft player’s capes, skins and name history</p>
   </div>
 </div>
 
@@ -238,7 +233,7 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:2rem 1rem;m
       </div>
       <div class="faq-item">
         <div class="faq-q" onclick="toggleFaq(this)"><span data-i18n="faq.q3">How do I claim my profile?</span> <span class="faq-chevron">▼</span></div>
-        <div class="faq-a" data-i18n="faq.a3">To claim your Minecraft profile, log in or create a CapeSearch account using the button in the top right. Then search for your Minecraft username and click the "Claim Profile" button. You'll receive a short code to type in-game on our verification server, and your profile will be linked instantly.</div>
+        <div class="faq-a" data-i18n="faq.a3">To claim your Minecraft profile, log in or create a CapeSearch account using the button in the top right. Then search for your Minecraft username and click the "Claim Profile" button. You will get a one-time verification skin to upload to your Minecraft account; press "Check my skin" and your profile is linked. You can switch back to your normal skin right afterwards (we let you download it first).</div>
       </div>
       <div class="faq-item">
         <div class="faq-q" onclick="toggleFaq(this)"><span data-i18n="faq.q4">Why is my cape not showing up?</span> <span class="faq-chevron">▼</span></div>
@@ -552,13 +547,6 @@ function setupSearch(qId,dropId){
 function goClaimSearch(){
   var val = document.getElementById('claimSearchInput').value.trim();
   if(val) window.location.href = 'profile?player=' + encodeURIComponent(val);
-}
-
-function copyIp(btn){
-  navigator.clipboard.writeText('play.capesearch.net').then(function(){
-    btn.textContent='✅';
-    setTimeout(function(){btn.textContent='📋';},2000);
-  });
 }
 
 function toggleFaq(btn){

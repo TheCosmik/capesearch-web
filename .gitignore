@@ -10,3 +10,6 @@ desktop.ini
 # Editor dirs
 .vscode/
 .idea/
+
+# Old in-game claim plugin: source + build output, kept locally only (contained a shared secret)
+minecraft-plugin/

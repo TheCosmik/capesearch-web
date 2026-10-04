@@ -1,10 +1,9 @@
-// Merged claim handler — replaces check-claim.js and start-claim.js.
-// Vercel rewrites route both old URLs here transparently.
+// Merged claim handler. Vercel rewrites /api/check-claim here.
+// Profiles are claimed by verifying the account's skin (see lib/skin-claim.js).
 //
 // GET  /api/check-claim?uuid=   → check if a UUID has been claimed
-// POST /api/start-claim         → generate a verification code for in-game claiming
 //
-// Microsoft sign-in verification (see lib/microsoft-claim.js):
+// Microsoft sign-in verification (optional, dormant until configured; lib/microsoft-claim.js):
 // GET  /api/claim?action=ms-config    → { enabled }  (are MS_CLIENT_ID/SECRET set?)
 // POST /api/claim?action=ms-start     → { url }      (Clerk-authenticated)
 //
@@ -14,21 +13,8 @@
 // GET  /api/ms-callback               → OAuth redirect target (rewritten to action=ms-callback)
 // Everything lives in this file's route because Vercel's free plan allows 12 functions.
 
-const crypto = require('crypto');
 const msClaim = require('../lib/microsoft-claim');
 const skinClaim = require('../lib/skin-claim');
-
-const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no I/O/0/1 — easy to read
-const CODE_LEN   = 6;
-const TTL_S      = 600; // 10 minutes
-
-function genCode() {
-  let c = '';
-  for (let i = 0; i < CODE_LEN; i++) {
-    c += CODE_CHARS[crypto.randomInt(CODE_CHARS.length)]; // CSPRNG: claim codes must not be guessable
-  }
-  return c;
-}
 
 async function kvPipeline(commands) {
   const url   = process.env.UPSTASH_REDIS_REST_URL   || process.env.KV_REST_API_URL;
@@ -71,8 +57,8 @@ module.exports = async function handler(req, res) {
   // Returns: { rank: 'owner' | 'betatester' | 'member' | null }
   if (req.method === 'GET' && req.query.action === 'rank') {
     const { uuid, secret } = req.query;
-    const expectedSecret = process.env.PLUGIN_SECRET || '123123jdsflkjsdflksdfl';
-    if (!secret || secret !== expectedSecret) {
+    const expectedSecret = process.env.PLUGIN_SECRET; // no default: it must be configured explicitly
+    if (!expectedSecret || !secret || secret !== expectedSecret) {
       return res.status(403).json({ error: 'Forbidden' });
     }
     if (!uuid) return res.status(400).json({ error: 'uuid required' });
@@ -123,37 +109,6 @@ module.exports = async function handler(req, res) {
       minecraftName: info.minecraftName,
       claimedAt:     info.claimedAt,
     });
-  }
-
-  // ── POST /api/start-claim ─────────────────────────────────────────────────
-  if (req.method === 'POST') {
-    const { clerkUserId, minecraftUuid, minecraftName } = req.body || {};
-    if (!clerkUserId || !minecraftUuid || !minecraftName) {
-      return res.status(400).json({ error: 'clerkUserId, minecraftUuid and minecraftName required' });
-    }
-
-    const cleanUuid = minecraftUuid.replace(/-/g, '');
-    if (!/^[0-9a-f]{32}$/i.test(cleanUuid)) {
-      return res.status(400).json({ error: 'Invalid UUID' });
-    }
-
-    // Cancel any previous code this user generated (one active code at a time)
-    const userKey = `claimbyuser:${clerkUserId}`;
-    const [existing] = await kvPipeline([['GET', userKey]]);
-    if (existing) {
-      await kvPipeline([['DEL', `claimcode:${existing}`], ['DEL', userKey]]);
-    }
-
-    // Generate code and store with TTL
-    const code    = genCode();
-    const payload = JSON.stringify({ clerkUserId, minecraftUuid: cleanUuid, minecraftName });
-
-    await kvPipeline([
-      ['SET', `claimcode:${code}`, payload, 'EX', TTL_S],
-      ['SET', userKey,              code,    'EX', TTL_S],
-    ]);
-
-    return res.status(200).json({ code, expiresIn: TTL_S });
   }
 
   return res.status(405).end();

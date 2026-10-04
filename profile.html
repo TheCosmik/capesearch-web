@@ -315,6 +315,7 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:1.75rem 1re
         <canvas id="skinViewer3d" width="370" height="550"></canvas>
         <div class="viewer-btns">
           <button id="resetViewBtn" class="viewer-btn" title="Reset view" aria-label="Reset view" style="font-size:16px">↺</button>
+          <button id="elytraBtn" class="viewer-btn" title="Show cape as elytra" aria-label="Show cape as elytra" aria-pressed="false"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" aria-hidden="true"><path d="M11.2 5.2C9 3.4 5 3.6 2 6.6c2.4-.2 4.2.3 5.3 1.5-2 .4-3.7 1.7-4.5 3.8 1.9-.6 3.6-.4 4.9.4-.9 1.3-1.1 3-.7 4.9 1.1-1.3 2.4-2 3.9-2.1.3 1.4.8 2.4 1.5 3.1L11.2 5.2z"/><path transform="matrix(-1 0 0 1 24 0)" d="M11.2 5.2C9 3.4 5 3.6 2 6.6c2.4-.2 4.2.3 5.3 1.5-2 .4-3.7 1.7-4.5 3.8 1.9-.6 3.6-.4 4.9.4-.9 1.3-1.1 3-.7 4.9 1.1-1.3 2.4-2 3.9-2.1.3 1.4.8 2.4 1.5 3.1L11.2 5.2z"/></svg></button>
           <button id="walkBtn" class="viewer-btn" title="Toggle walking">🚶</button>
         </div>
       </div>
@@ -1289,7 +1290,7 @@ function previewCape(card){
   if(!url||!v)return;
   if(window._capePreviewed!==url){
     window._capePreviewed=url;
-    v.loadCape(url).catch(function(){});
+    loadViewerCape(v,url).catch(function(){});
     var prev=document.querySelector('#capesRow .c-previewing');
     if(prev)prev.classList.remove('c-previewing');
     card.classList.add('c-previewing');
@@ -1316,6 +1317,28 @@ function setViewerAnimation(viewer, animation){
   viewer.animation = animation;
   if (po) po.rotation.set(rx, ry, rz);
 }
+// Elytra mode for the profile character. skinview3d shows the same cape texture as either a cape or an
+// elytra, but loadCape() resets to a cape unless told otherwise, so all cape loads go through here.
+window._elytraMode = false;
+function loadViewerCape(viewer, url){
+  return viewer.loadCape(url, {backEquipment: window._elytraMode ? 'elytra' : 'cape'});
+}
+function toggleElytra(){
+  var v = window._profileViewer, btn = document.getElementById('elytraBtn');
+  if (!v || !v.playerObject || !btn) return;
+  if (!v.capeTexture) { // nothing loaded to turn into wings
+    btn.title = 'No cape to show as elytra';
+    setTimeout(function(){ btn.title = window._elytraMode ? 'Show elytra as cape' : 'Show cape as elytra'; }, 2200);
+    return;
+  }
+  window._elytraMode = !window._elytraMode;
+  v.playerObject.backEquipment = window._elytraMode ? 'elytra' : 'cape';
+  btn.classList.toggle('active', window._elytraMode);
+  btn.setAttribute('aria-pressed', window._elytraMode ? 'true' : 'false');
+  btn.title = window._elytraMode ? 'Show elytra as cape' : 'Show cape as elytra';
+  btn.setAttribute('aria-label', btn.title);
+}
+
 function showViewerModel(){
   var v=window._profileViewer;
   if(v&&v.playerObject)v.playerObject.visible=true;
@@ -1349,7 +1372,7 @@ function fetchTextures(uuid,attempt){
       }
       // 3D viewer: cape
       if(data.cape&&window._profileViewer&&!window._capePreviewed){
-        window._profileViewer.loadCape(data.cape).catch(function(){});
+        loadViewerCape(window._profileViewer,data.cape).catch(function(){});
       }
 
       // VIP green name + badges — shown inline next to the player name
@@ -2333,6 +2356,15 @@ function initProfileViewer(uuid){
       zoom: viewer.zoom
     };
     if(viewer.controls&&viewer.controls.saveState)viewer.controls.saveState(); // camera position / target / zoom
+    // a fresh viewer (new profile) starts with no hover-previewed cape and in cape (not elytra) mode
+    window._capePreviewed=null;
+    window._elytraMode=false;
+    var elytraBtn=document.getElementById('elytraBtn');
+    if(elytraBtn){
+      elytraBtn.classList.remove('active'); elytraBtn.setAttribute('aria-pressed','false');
+      elytraBtn.title='Show cape as elytra'; elytraBtn.setAttribute('aria-label','Show cape as elytra');
+      elytraBtn.onclick=toggleElytra;
+    }
     var resetBtn=document.getElementById('resetViewBtn');
     if(resetBtn){
       resetBtn.onclick=function(){ // .onclick (not addEventListener) so re-initialising for another profile never stacks handlers

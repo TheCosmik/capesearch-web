@@ -1265,25 +1265,9 @@ function fetchPlayerData(uuid, canonName){
 // whatever default skin it started with. Now we retry with backoff, and only fall
 // back to a third-party skin render once the retries are exhausted.
 // ── CAPE HOVER PREVIEW ────────────────────────────────────────────────────────
-// Hovering a cape card puts that cape on the 3D model and turns it to show the back.
-// The last hovered cape deliberately sticks (no mouseleave revert) until another card
-// is hovered or the page is refreshed.
-function turnModelToBack(){
-  var v=window._profileViewer;
-  if(!v||!v.playerObject)return;
-  var po=v.playerObject, TWO_PI=Math.PI*2;
-  var from=po.rotation.y;
-  // nearest 'back' angle (PI + k*2PI) so it takes the shortest way round
-  var to=Math.PI+Math.round((from-Math.PI)/TWO_PI)*TWO_PI;
-  if(Math.abs(to-from)<0.35)return;
-  var t0=performance.now(), dur=400;
-  if(window._backTurnRaf)cancelAnimationFrame(window._backTurnRaf);
-  (function step(now){
-    var p=Math.min(1,(now-t0)/dur), e=1-Math.pow(1-p,3);
-    po.rotation.y=from+(to-from)*e;
-    if(p<1)window._backTurnRaf=requestAnimationFrame(step);
-  })(t0);
-}
+// Hovering a cape card puts that cape on the 3D model (as a cape or, in elytra mode, as wings).
+// The model itself never moves: no turning, no camera change. The last hovered cape deliberately
+// sticks (no mouseleave revert) until another card is hovered or the page is refreshed.
 function previewCape(card){
   var url=card&&card.getAttribute('data-cape-url');
   var v=window._profileViewer;
@@ -1295,7 +1279,6 @@ function previewCape(card){
     if(prev)prev.classList.remove('c-previewing');
     card.classList.add('c-previewing');
   }
-  turnModelToBack();
 }
 (function bindCapePreview(){
   var row=document.getElementById('capesRow');
@@ -2349,8 +2332,8 @@ function initProfileViewer(uuid){
     // ── Reset view ─────────────────────────────────────────────────────────────
     // Remember exactly how the character was posed and framed when this profile loaded,
     // then put it back on demand. Dragging both orbits the camera (built-in controls) and
-    // spins the model (our handler), and the cape-hover preview also turns the model, so
-    // all of that is restored, plus zoom, the walk cycle and the limb pose.
+    // spins the model (our handler), so all of that is restored, plus zoom, the walk cycle
+    // and the limb pose.
     var initialView={
       rot: viewer.playerObject ? [viewer.playerObject.rotation.x, viewer.playerObject.rotation.y, viewer.playerObject.rotation.z] : [0,0,0],
       zoom: viewer.zoom
@@ -2371,7 +2354,6 @@ function initProfileViewer(uuid){
         var po=viewer.playerObject;
         // stop the walk cycle and any in-flight turn from the cape preview
         walking=false; walkBtn.classList.remove('active'); setViewerAnimation(viewer,null);
-        if(window._backTurnRaf){cancelAnimationFrame(window._backTurnRaf);window._backTurnRaf=null;}
         if(window._resetTurnRaf){cancelAnimationFrame(window._resetTurnRaf);window._resetTurnRaf=null;}
         // camera: orbit position, target and zoom
         if(viewer.controls&&viewer.controls.reset)viewer.controls.reset();

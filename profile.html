@@ -566,8 +566,11 @@ var CAPES=[
   {id:'founders',    name:"Founder's Cape",         wearers:148561, color:'#22d3ee',rare:false},
   {id:'zombiehorse', name:'Zombie Horse',           wearers:134416, color:'#4ade80',rare:true},
   {id:'mcc15',       name:'MCC 15th Year',          wearers:125928, color:'#f59e0b',rare:true},
+  {id:'aurora',      name:'Aurora Cape',            wearers:104222, color:'#38bdf8',rare:true},
   {id:'builder',     name:'Builder Cape',           wearers:62970,  color:'#a0704a',rare:true},
   {id:'experience',  name:'Minecraft Experience',   wearers:48246,  color:'#84cc16',rare:false},
+  {id:'twisted',     name:'Twisted Cape',           wearers:38669,  color:'#14b8a6',rare:false},
+  {id:'hero',        name:'Hero Cape',              wearers:23830,  color:'#dc2626',rare:false},
   {id:'minecon16',   name:'MineCon 2016',           wearers:7273,   color:'#10b981',rare:true},
   {id:'minecon15',   name:'MineCon 2015',           wearers:6810,   color:'#10b981',rare:true},
   {id:'minecon13',   name:'MineCon 2013',           wearers:6177,   color:'#10b981',rare:true},
@@ -641,6 +644,9 @@ var CAPE_IMGS={
   moonlighttrail:W+'Moonlight_Trail_Cape_JE.png/256px-Moonlight_Trail_Cape_JE.png',
   crafter:       W+'Crafter_Cape_JE.png/256px-Crafter_Cape_JE.png',
   builder:       W+'Builder_Cape_JE.png/256px-Builder_Cape_JE.png',
+  aurora:        W+'Aurora_Cape_JE.png/256px-Aurora_Cape_JE.png',
+  hero:          W+'Hero_Cape_JE.png/256px-Hero_Cape_JE.png',
+  twisted:       W+'Twisted_Cape_JE.png/256px-Twisted_Cape_JE.png',
 };
 var CAPE_TEXTURES={
   migrator:  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAAgCAYAAACinX6EAAACiElEQVR4XuWWT2oVQRjE3xGCCDG4MFF0EzSIGFBBEZTss8km4M6NJ/AE7gR3HsO1kHU2LvUIHsATjKlmaqjU149umh5BevHj9avpmf6q+ps/m1enPzZnr3cmsH9wmIXHP9y4NX3Zuz99v3OUBcfmOZtfD55V8eTp2+nw4Yt0/tX/HOEcME1TFzZq0o3XHNuGF7wNBuB6CTfSyhLAp/e7qRCAolgYwDE3WMILLsF18fvm5Dyha/t8N9JK2gEWffF5PwQAjcd1bgkvuASvr0DT8FcLgIuh1dUwxmx/naegwFyHuMEaNHyupfXoreJGWkmL0sjHm7cTP789TvA/DXKumsdDD3gIbq4GnKfdB1DHqgEwZRj9und3MU2o6U64+VwIbq4GmsyZXy0ANU/4WlONIbDl3TxgtwA3V0MuAO0+0jUAFK1m9X3sOubSKMceAHU3VwON4tdvQT6guwegOw4u7x1fC0DBXDeaCwC4uRrY6t6VvCZ00D0AmNYAfj86SriuxeCrz0OARt3N1cCdVvPalRquG2llCYBmsRADwJjmNQAa5acvd1/1+VrBZAma59qsiVBzI61cC4DtzwDYBdAYkJrkbrt5MBccDFYQnkVO1wB0h9n+f14+T7ALAMb/IgCuo3B9rceNtJIC4IURAM0TLoixB0DzPQPgmtoBuVvBjbSSAuCiLQFsewbM5wWDJTQArWO1DsD9VhsA5qpJfw12CmAJget6ENDdSCtB6MVsIBgsoQFoEKt1gAu9mAsNBksggOnd+RIAxmSYDrgyu4SgATCEIQLA+blb4L/pgPm1FQyWkA5YQvDd7/oh5MJoBGE0gjAaQRiNIIxGEEYjCKMRhNEIwmgEYTT+AksiJ9gdoefNAAAAAElFTkSuQmCC',
@@ -687,6 +693,9 @@ var CAPE_TEXTURES={
   moonlighttrail:'https://textures.minecraft.net/texture/fe8a02dfe9e390e44ff33d69feef9d3943f76d3901015bbd50f0b67722d288bd',
   crafter:       'https://textures.minecraft.net/texture/479eacefa3cdd7aca94207f36c0dd449653ddf259daf40544a5866baf05eee22',
   builder:       'https://textures.minecraft.net/texture/2c579968c64c1719740fd8c2a451461879b238002574fce48f7d1a7c36a1c7d4',
+  aurora:        'https://textures.minecraft.net/texture/7c418dfbd37412a55e9f1425c9807a591ad10cf71b1edb576a587be9114c277f',
+  hero:          'https://textures.minecraft.net/texture/bb384a1079b9a6f2811520c7991b6e8150d02e5a96457e44509e30822f72f38e',
+  twisted:       'https://textures.minecraft.net/texture/24aafc451aa2cc34ddc7265211678585c0ef4da4d32edb75ecec1bd8b5408381',
 };
 var EMOJIS={
   migrator:'🟣',vanilla:'🟡',common:'⬛',turtle:'🐢',follower:'💜',founders:'🌍',
@@ -696,7 +705,7 @@ var EMOJIS={
   minecon12:'🏆',mojangstudios:'🔴',minecon11:'🏆',translator:'🟠',mcc15:'🏆',
   scrolls:'🎲',realmsmapper:'🗺️',spade:'♠️',mojang:'🔴',cobalt:'🔵',translatorcn:'🌏',
   mojiramod:'🔴',translatorjp:'🌏',mojangclassic:'🔴',db:'🎵',mojangoffice:'🏢',
-  millionth:'🥇',moonlighttrail:'🌙',crafter:'🧰',builder:'🏗️',
+  millionth:'🥇',moonlighttrail:'🌙',crafter:'🧰',builder:'🏗️',aurora:'🌌',hero:'🦸',twisted:'🌀',
 };
 function fmt(n){return n.toLocaleString()}
 var PLAYERS=[
@@ -816,6 +825,13 @@ var CAPE_HASH_DATA={
     {name:'Crafter',              img:'capes/crafter.png',               id:'crafter'},
   '2c579968c64c1719740fd8c2a451461879b238002574fce48f7d1a7c36a1c7d4':
     {name:'Builder',              img:'capes/Builders.png',              id:'builder'},
+  // ── Added Oct 2026 (Minecraft Dungeons II capes; IDs from minecraft.wiki) ────
+  '7c418dfbd37412a55e9f1425c9807a591ad10cf71b1edb576a587be9114c277f':
+    {name:'Aurora',               img:'capes/Aurora.png',                id:'aurora'},
+  'bb384a1079b9a6f2811520c7991b6e8150d02e5a96457e44509e30822f72f38e':
+    {name:'Hero',                 img:'capes/Hero.png',                  id:'hero'},
+  '24aafc451aa2cc34ddc7265211678585c0ef4da4d32edb75ecec1bd8b5408381':
+    {name:'Twisted',              img:'capes/Twisted.png',               id:'twisted'},
   // ── add more below as they are identified ───────────────────────────────────
 };
 var FB='https://mc-heads.net/avatar/Steve/32';
@@ -1216,15 +1232,40 @@ function fetchPlayerData(uuid, canonName){
 }
 
 // ── LIVE TEXTURES (Mojang Session API via our proxy — authoritative) ──────────
-function fetchTextures(uuid){
+// Mojang's session server rate-limits aggressively (429), and the proxy can fail
+// transiently. Previously any non-200 was swallowed and the 3D viewer stayed on
+// whatever default skin it started with. Now we retry with backoff, and only fall
+// back to a third-party skin render once the retries are exhausted.
+function showViewerModel(){
+  var v=window._profileViewer;
+  if(v&&v.playerObject)v.playerObject.visible=true;
+}
+function loadFallbackSkin(uuid){
+  var v=window._profileViewer;
+  if(!v||window._skinFromMojang)return;
+  v.loadSkin('https://crafatar.com/skins/'+uuid.replace(/-/g,'')).then(showViewerModel).catch(showViewerModel);
+}
+function fetchTextures(uuid,attempt){
+  attempt=attempt||0;
   fetch('/api/player-textures?uuid='+encodeURIComponent(uuid))
-    .then(function(r){return r.ok?r.json():null})
+    .then(function(r){
+      if(r.ok)return r.json();
+      var e=new Error('textures http '+r.status);
+      e.retryable=(r.status!==400&&r.status!==404);
+      throw e;
+    },function(netErr){netErr.retryable=true;throw netErr;})
     .then(function(data){
       if(!data)return;
 
       // 3D viewer: skin
       if(data.skin&&window._profileViewer){
-        window._profileViewer.loadSkin(data.skin).catch(function(){});
+        window._skinFromMojang=true;
+        window._profileViewer.loadSkin(data.skin,{model:data.slim?'slim':'default'})
+          .then(showViewerModel)
+          .catch(function(){window._skinFromMojang=false;loadFallbackSkin(uuid);});
+      }else if(!data.skin){
+        // Player has no custom skin on record — show the viewer's built-in default
+        showViewerModel();
       }
       // 3D viewer: cape
       if(data.cape&&window._profileViewer){
@@ -1309,8 +1350,15 @@ function fetchTextures(uuid){
       document.getElementById('capesRow').innerHTML=cards||
         '<div style="color:var(--muted);font-size:.84rem;padding:.25rem 0">No cape history found.</div>';
     })
-    .catch(function(){
-      // leave existing placeholder in place
+    .catch(function(err){
+      if(err&&err.retryable){
+        if(attempt<3){
+          setTimeout(function(){fetchTextures(uuid,attempt+1);},1500*(attempt+1));
+        }else{
+          loadFallbackSkin(uuid);
+        }
+      }
+      else showViewerModel(); // 400/404 etc: nothing to retry, show the built-in default model
     });
 }
 
@@ -2164,15 +2212,17 @@ function initProfileViewer(uuid){
   canvas.style.display='block';
 
   try{
-    // Load skin immediately from crafatar so the model is visible right away,
-    // rather than showing a blank canvas until the async Mojang fetch resolves.
-    var cleanUuid=uuid.replace(/-/g,'');
+    // No skin is preloaded here: crafatar answers with a default Steve/Alex skin (HTTP 200)
+    // whenever its own Mojang lookup fails, which made profiles look like they had the
+    // default skin. The model stays hidden until fetchTextures() delivers the real skin
+    // (or, after retries fail, loadFallbackSkin()).
+    window._skinFromMojang=false;
     var viewer=new skinview3d.SkinViewer({
       canvas:canvas,
       width:370,
       height:550,
-      skin:'https://crafatar.com/skins/'+cleanUuid,
     });
+    if(viewer.playerObject)viewer.playerObject.visible=false;
 
     viewer.animation=null;
     viewer.autoRotate=false;

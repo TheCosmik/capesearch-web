@@ -50,6 +50,9 @@ const CAPE_HASH_IDS = {
   'bcfbe84c6542a4a5c213c1cacf8979b5e913dcb4ad783a8b80e3c4a7d5c8bdac': 'db',
   '479eacefa3cdd7aca94207f36c0dd449653ddf259daf40544a5866baf05eee22': 'crafter',
   '2c579968c64c1719740fd8c2a451461879b238002574fce48f7d1a7c36a1c7d4': 'builder',
+  '7c418dfbd37412a55e9f1425c9807a591ad10cf71b1edb576a587be9114c277f': 'aurora',
+  'bb384a1079b9a6f2811520c7991b6e8150d02e5a96457e44509e30822f72f38e': 'hero',
+  '24aafc451aa2cc34ddc7265211678585c0ef4da4d32edb75ecec1bd8b5408381': 'twisted',
 };
 
 // ── Hardcoded site owner (C0smik) — always has Owner role regardless of KV ───
@@ -257,6 +260,32 @@ async function updateCapeHistory(uuid, capeUrl, playerName) {
   }
   if (playerName) commands.push(['SET', `pname:${cleanUuid}`, playerName]);
   await kvPipeline(commands);
+}
+
+// ── Texture lookup with last-known-good cache ─────────────────────────────────
+// Mojang's session server returns 429 aggressively (limits are per-IP and Vercel
+// functions share IPs). Previously a 429 bubbled up to the browser, which then
+// left the 3D viewer on a default skin. We now store the last good result per
+// player in KV and fall back to it whenever Mojang is rate-limited or erroring.
+const TEX_CACHE_TTL_MS = 60 * 1000;   // reuse cached textures this long without calling Mojang
+
+function httpsUrl(u) {
+  return typeof u === 'string' ? u.replace(/^http:\/\//i, 'https://') : u;
+}
+
+async function fetchMojangProfile(cleanUuid) {
+  // One quick retry for transient failures (5xx / network); never retry a 429 inline.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const r = await fetch(
+        `https://sessionserver.mojang.com/session/minecraft/profile/${cleanUuid}`,
+        { headers: { 'User-Agent': 'CapeSearch/1.0' }, signal: AbortSignal.timeout(6000) }
+      );
+      if (r.status < 500) return r;
+    } catch { /* fall through to retry */ }
+    await new Promise(resolve => setTimeout(resolve, 300));
+  }
+  return null;
 }
 
 // ── Main handler ──────────────────────────────────────────────────────────────
@@ -902,26 +931,40 @@ module.exports = async function handler(req, res) {
     // Score 0 = never polled → cron will prioritise them immediately.
     kvPipeline([['ZADD', 'tracked:players', 'NX', 0, cleanUuid]]).catch(() => {});
 
-    // Fetch Mojang profile + KV history + role in parallel to keep latency low
-    const [mojangRes, history, role, beta, vip] = await Promise.all([
-      fetch(
-        `https://sessionserver.mojang.com/session/minecraft/profile/${cleanUuid}`,
-        { headers: { 'User-Agent': 'CapeSearch/1.0' }, signal: AbortSignal.timeout(8000) }
-      ),
+    // Fetch KV history + role + cached textures first (cheap); Mojang only if needed.
+    const [history, role, beta, vip, cachedTex] = await Promise.all([
       getCapeHistory(uuid),
       getRole(cleanUuid),
       getBeta(cleanUuid),
       getVip(cleanUuid),
+      kvGet(`tex:${cleanUuid}`),
     ]);
+    const cached = (cachedTex && cachedTex !== KV_READ_ERROR && typeof cachedTex === 'object') ? cachedTex : null;
+    const send = (tex, stale) => {
+      // Only let the CDN cache fresh results; a stale fallback should be retried soon.
+      res.setHeader('Cache-Control', stale ? 'no-store' : 's-maxage=15, stale-while-revalidate=5');
+      return res.status(200).json({
+        skin: httpsUrl(tex.skin) || null, cape: httpsUrl(tex.cape) || null, slim: !!tex.slim,
+        name: tex.name, history: Array.isArray(history) ? history : [],
+        role: role || null, beta: !!beta, vip: !!vip, stale: !!stale,
+      });
+    };
 
-    if (mojangRes.status === 204 || mojangRes.status === 404) {
+    // Fresh enough? Skip Mojang entirely.
+    if (cached && Date.now() - (cached.ts || 0) < TEX_CACHE_TTL_MS) return send(cached, false);
+
+    const mojangRes = await fetchMojangProfile(cleanUuid);
+
+    if (mojangRes && (mojangRes.status === 204 || mojangRes.status === 404)) {
       return res.status(404).json({ error: 'Player not found' });
     }
-    if (mojangRes.status === 429) {
-      return res.status(429).json({ error: 'Mojang rate limit — try again shortly' });
-    }
-    if (!mojangRes.ok) {
-      return res.status(mojangRes.status).json({ error: 'Mojang API error' });
+    if (!mojangRes || !mojangRes.ok) {
+      // 429 / 5xx / network failure: serve last known textures if we have any
+      if (cached) return send(cached, true);
+      if (mojangRes && mojangRes.status === 429) {
+        return res.status(429).json({ error: 'Mojang rate limit — try again shortly' });
+      }
+      return res.status(mojangRes ? mojangRes.status : 502).json({ error: 'Mojang API error' });
     }
 
     const profile = await mojangRes.json();
@@ -929,7 +972,7 @@ module.exports = async function handler(req, res) {
       profile.properties.find(p => p.name === 'textures');
 
     if (!texProp || !texProp.value) {
-      return res.status(200).json({ skin: null, cape: null, slim: false, history });
+      return res.status(200).json({ skin: null, cape: null, slim: false, name: profile.name, history: Array.isArray(history) ? history : [], role: role || null, beta: !!beta, vip: !!vip });
     }
 
     const payload  = JSON.parse(Buffer.from(texProp.value, 'base64').toString('utf8'));
@@ -940,14 +983,13 @@ module.exports = async function handler(req, res) {
     const slim = !!(textures.SKIN && textures.SKIN.metadata &&
                     textures.SKIN.metadata.model === 'slim');
 
-    // Update KV history + reverse index in the background — doesn't block the response
+    // Update KV history + reverse index + texture cache in the background — doesn't block the response
+    kvSet(`tex:${cleanUuid}`, { skin, cape, slim, name: profile.name, ts: Date.now() }).catch(() => {});
     if (cape) {
       updateCapeHistory(uuid, cape, profile.name).catch(() => {});
     }
 
-    // Cache 15 s at the CDN edge; serve stale for 5 s while revalidating
-    res.setHeader('Cache-Control', 's-maxage=15, stale-while-revalidate=5');
-    return res.status(200).json({ skin, cape, slim, name: profile.name, history: Array.isArray(history) ? history : [], role: role || null, beta: !!beta, vip: !!vip });
+    return send({ skin, cape, slim, name: profile.name }, false);
 
   } catch (err) {
     return res.status(500).json({ error: 'Proxy error: ' + err.message });

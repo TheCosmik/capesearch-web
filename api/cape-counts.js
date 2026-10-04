@@ -55,6 +55,9 @@ const NAME_MAP = {
   'Prismarine':            'prismarine',
   'Crafter':               'crafter',
   'Builder':               'builder',
+  'Aurora':                'aurora',
+  'Hero':                  'hero',
+  'Twisted':               'twisted',
 };
 
 // ── KV helpers ────────────────────────────────────────────────────────────────

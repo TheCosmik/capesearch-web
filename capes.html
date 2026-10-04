@@ -298,8 +298,11 @@ var CAPES=[
   {id:'founders',    name:"Founder's Cape",         wearers:151751, color:'#22d3ee',rare:false},
   {id:'zombiehorse', name:'Zombie Horse',           wearers:136459, color:'#4ade80',rare:true},
   {id:'mcc15',       name:'MCC 15th Year',          wearers:126294, color:'#f59e0b',rare:true},
+  {id:'aurora',      name:'Aurora Cape',            wearers:104222, color:'#38bdf8',rare:true},
   {id:'builder',     name:'Builder Cape',           wearers:99481,  color:'#a0704a',rare:true},
   {id:'experience',  name:'Minecraft Experience',   wearers:49750,  color:'#84cc16',rare:false},
+  {id:'twisted',     name:'Twisted Cape',           wearers:38669,  color:'#14b8a6',rare:false},
+  {id:'hero',        name:'Hero Cape',              wearers:23830,  color:'#dc2626',rare:false},
   {id:'minecon16',   name:'MineCon 2016',           wearers:7272,   color:'#10b981',rare:true},
   {id:'minecon15',   name:'MineCon 2015',           wearers:6806,   color:'#10b981',rare:true},
   {id:'minecon13',   name:'MineCon 2013',           wearers:6173,   color:'#10b981',rare:true},
@@ -355,7 +358,7 @@ var EMOJIS={
   minecon12:'🏆',mojangstudios:'🔴',minecon11:'🏆',translator:'🟠',mcc15:'🏆',
   scrolls:'🎲',realmsmapper:'🗺️',spade:'♠️',mojang:'🔴',cobalt:'🔵',translatorcn:'🌏',
   mojiramod:'🔴',translatorjp:'🌏',mojangclassic:'🔴',db:'🎵',mojangoffice:'🏢',
-  millionth:'🥇',moonlighttrail:'🌙',crafter:'🧰',builder:'🏗️',
+  millionth:'🥇',moonlighttrail:'🌙',crafter:'🧰',builder:'🏗️',aurora:'🌌',hero:'🦸',twisted:'🌀',
 };
 var FB='https://mc-heads.net/avatar/Steve/32';
 function fmt(n){return n.toLocaleString()}
@@ -409,6 +412,9 @@ var CAPE_IMGS={
   moonlighttrail:W+'Moonlight_Trail_Cape_JE.png/256px-Moonlight_Trail_Cape_JE.png',
   crafter:      W+'Crafter_Cape_JE.png/256px-Crafter_Cape_JE.png',
   builder:      W+'Builder_Cape_JE.png/256px-Builder_Cape_JE.png',
+  aurora:       W+'Aurora_Cape_JE.png/256px-Aurora_Cape_JE.png',
+  hero:         W+'Hero_Cape_JE.png/256px-Hero_Cape_JE.png',
+  twisted:      W+'Twisted_Cape_JE.png/256px-Twisted_Cape_JE.png',
 };
 
 // ── CAPE TEXTURES (actual UV maps — used for 3D viewer) ──────────────────────
@@ -458,6 +464,9 @@ var CAPE_TEXTURES={
   moonlighttrail:'https://textures.minecraft.net/texture/fe8a02dfe9e390e44ff33d69feef9d3943f76d3901015bbd50f0b67722d288bd',
   crafter:       'https://textures.minecraft.net/texture/479eacefa3cdd7aca94207f36c0dd449653ddf259daf40544a5866baf05eee22',
   builder:       'https://textures.minecraft.net/texture/2c579968c64c1719740fd8c2a451461879b238002574fce48f7d1a7c36a1c7d4',
+  aurora:        'https://textures.minecraft.net/texture/7c418dfbd37412a55e9f1425c9807a591ad10cf71b1edb576a587be9114c277f',
+  hero:          'https://textures.minecraft.net/texture/bb384a1079b9a6f2811520c7991b6e8150d02e5a96457e44509e30822f72f38e',
+  twisted:       'https://textures.minecraft.net/texture/24aafc451aa2cc34ddc7265211678585c0ef4da4d32edb75ecec1bd8b5408381',
 };
 
 function capePreview(c,size){

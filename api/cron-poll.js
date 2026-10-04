@@ -40,6 +40,7 @@ const NAME_MAP  = {
   'Birthday':'birthday','Translator (Japanese)':'translatorjp','Spade':'spade',
   'Snowman':'snowman','Millionth Customer':'millionth','Moonlight Trail':'moonlighttrail',
   'dB':'db','Prismarine':'prismarine','Crafter':'crafter','Builder':'builder',
+  'Aurora':'aurora','Hero':'hero','Twisted':'twisted',
 };
 
 // ── KV helper ─────────────────────────────────────────────────────────────────

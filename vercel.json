@@ -8,6 +8,8 @@
   ],
   "rewrites": [
     { "source": "/api/check-claim", "destination": "/api/claim" },
-    { "source": "/api/ms-callback", "destination": "/api/claim?action=ms-callback" }
+    { "source": "/api/ms-callback", "destination": "/api/claim?action=ms-callback" },
+    { "source": "/head/:id/:size", "destination": "/api/player-textures?action=head&id=:id&size=:size" },
+    { "source": "/head/:id", "destination": "/api/player-textures?action=head&id=:id" }
   ]
 }

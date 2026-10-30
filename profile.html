@@ -863,15 +863,15 @@ var CAPE_HASH_DATA={
     {name:'Twisted',              img:'capes/Twisted.png',               id:'twisted'},
   // ── add more below as they are identified ───────────────────────────────────
 };
-var FB='https://mc-heads.net/avatar/Steve/32';
-function av(uuid){return'https://crafatar.com/avatars/'+uuid+'?size=64&overlay'}
-function avN(name){return'https://mc-heads.net/avatar/'+encodeURIComponent(name)+'/32'}
+var FB='/head/Steve/32';
+function av(uuid){return'/head/'+uuid+'/64'}
+function avN(name){return'/head/'+encodeURIComponent(name)+'/32'}
 function body(uuid){return'https://mc-heads.net/player/'+uuid}
 
 function _setOG(name, uuid) {
   var title = name + ' – CapeSearch';
   var desc  = 'View ' + name + '\'s Minecraft cape, skin, name history, and profile on CapeSearch.';
-  var img   = uuid ? 'https://mc-heads.net/avatar/' + uuid + '/128' : 'https://capesearch.net/og-image.png';
+  var img   = uuid ? 'https://capesearch.net/head/' + uuid + '/128' : 'https://capesearch.net/og-image.png';
   var url   = 'https://capesearch.net/profile.html?name=' + encodeURIComponent(name);
   document.title = title;
   function sm(sel, val) { var el = document.querySelector(sel); if (el) el.setAttribute('content', val); }
@@ -905,11 +905,11 @@ function applyUUID(uuid,canonName){
   document.getElementById('pUUID').innerHTML=
     'UUID: <code style="font-size:.8rem;color:var(--txt2)">'+uuid+'</code>'+
     ' &nbsp;<button class="btn btn-o" style="padding:2px 8px;font-size:11px" onclick="copyText(\''+uuid+'\',this)">📋</button>';
-  document.getElementById('bodyImg').src='https://mc-heads.net/avatar/'+uuid+'/96';
+  document.getElementById('bodyImg').src='/head/'+uuid+'/96';
   document.getElementById('bodyImg').style.display='block';
   document.getElementById('bigBody').src=body(uuid);
-  document.getElementById('skinUrl').textContent='https://crafatar.com/skins/'+uuid;
-  document.getElementById('dlSkin').href='https://crafatar.com/skins/'+uuid;
+  document.getElementById('skinUrl').textContent='https://minotar.net/skin/'+uuid;
+  document.getElementById('dlSkin').href='https://minotar.net/skin/'+uuid;
   document.getElementById('pActs').innerHTML=
     '<button class="btn btn-p" id="followBtn" onclick="toggleFollow()">⭐ Follow</button>'+
     '<button class="btn btn-o">🔗 Share</button>'+
@@ -1168,7 +1168,7 @@ function loadFollowers(cleanUuid) {
       grid.innerHTML = list.map(function(f) {
         var href = f.mcUuid ? 'profile.html?name=' + encodeURIComponent(f.name) : '#';
         var avatar = f.mcUuid
-          ? 'https://mc-heads.net/avatar/' + f.mcUuid + '/42'
+          ? '/head/' + f.mcUuid + '/42'
           : FB;
         return '<a href="' + href + '" class="pc">' +
           '<img src="' + avatar + '" onerror="this.src=\'' + FB + '\'" alt="' + f.name + '" style="image-rendering:pixelated"/>' +
@@ -1330,7 +1330,7 @@ function showViewerModel(){
 function loadFallbackSkin(uuid){
   var v=window._profileViewer;
   if(!v||window._skinFromMojang)return;
-  v.loadSkin('https://crafatar.com/skins/'+uuid.replace(/-/g,'')).then(showViewerModel).catch(showViewerModel);
+  v.loadSkin('https://minotar.net/skin/'+uuid.replace(/-/g,'')).then(showViewerModel).catch(showViewerModel);
 }
 function fetchTextures(uuid,attempt){
   attempt=attempt||0;
@@ -1506,8 +1506,8 @@ function _renderComments(comments,isOwner,currentUserId){
     var canDelete=isOwner||(_activeMcUuid&&c.authorUuid&&c.authorUuid===_activeMcUuid);
     return'<div class="comment" id="cmt-'+escHtml(c.id)+'">'+
       '<a href="profile.html?name='+encodeURIComponent(c.authorName)+'" style="flex-shrink:0;display:block">'+
-        '<img class="comment-av" src="https://mc-heads.net/avatar/'+encodeURIComponent(c.authorUuid)+'/36" '+
-          'onerror="this.src=\'https://mc-heads.net/avatar/Steve/36\'" alt="" style="display:block">'+
+        '<img class="comment-av" src="/head/'+encodeURIComponent(c.authorUuid)+'/36" '+
+          'onerror="this.src=\'/head/Steve/36\'" alt="" style="display:block">'+
       '</a>'+
       '<div class="comment-body">'+
         '<span style="display:inline-flex;align-items:center;gap:.35rem;flex-wrap:wrap;margin-bottom:.2rem">'+
@@ -1780,9 +1780,9 @@ async function loadCatEntries(catId) {
     }
     grid.innerHTML = entries.map(function(e) {
       var href = 'profile.html?name=' + encodeURIComponent(e.name);
-      var avatar = 'https://mc-heads.net/avatar/' + e.uuid + '/32';
+      var avatar = '/head/' + e.uuid + '/32';
       return '<a href="'+href+'" class="saved-entry">'+
-        '<img src="'+avatar+'" onerror="this.src=\''+escHtml('https://mc-heads.net/avatar/Steve/32')+'\'" alt="'+escHtml(e.name)+'"/>'+
+        '<img src="'+avatar+'" onerror="this.src=\''+escHtml('/head/Steve/32')+'\'" alt="'+escHtml(e.name)+'"/>'+
         '<span class="se-name">'+escHtml(e.name)+'</span>'+
         '<button class="saved-entry-rm" title="Remove" onclick="removeSavedEntry(event,\''+escHtml(catId)+'\',\''+escHtml(e.uuid)+'\',\''+escHtml(e.name)+'\')">✕</button>'+
       '</a>';

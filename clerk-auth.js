@@ -42,7 +42,7 @@ function _esc(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 function _mcFace(uuid) {
-  return 'https://mc-heads.net/avatar/' + uuid + '/34';
+  return '/head/' + uuid + '/34';
 }
 function _activeKey(userId) {
   return 'cs-active-mc:' + userId;
@@ -86,9 +86,9 @@ function _renderBellDrop(drop, notifications) {
     return;
   }
 
-  var FB = 'https://mc-heads.net/avatar/Steve/32';
+  var FB = '/head/Steve/32';
   var rows = notifications.map(function(n) {
-    var avatar = n.fromMcUuid ? 'https://mc-heads.net/avatar/' + _esc(n.fromMcUuid) + '/32' : FB;
+    var avatar = n.fromMcUuid ? '/head/' + _esc(n.fromMcUuid) + '/32' : FB;
     var href   = n.fromMcUuid ? 'profile.html?name=' + encodeURIComponent(n.fromName) : '#';
     var unseen = !n.seen;
     return '<a href="' + href + '" style="display:flex;align-items:center;gap:.65rem;padding:.6rem .9rem;'

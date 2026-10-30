@@ -290,12 +290,141 @@ async function fetchMojangProfile(cleanUuid) {
   return null;
 }
 
+// ── Player head images:  /head/<uuid | name>/<size>  (rewritten to ?action=head) ──────────
+// Third-party avatar sites (mc-heads, crafatar...) kept answering with a wrong picture (the default Steve)
+// whenever THEIR Mojang lookup failed, which looked like "heads not loading". We draw the head ourselves
+// from the player's real skin texture, the same source the 3D model uses, and let the CDN cache it.
+// Only if we truly cannot read the skin do we redirect to another avatar service (briefly cached).
+const { decodePng, encodePng } = require('../lib/png');
+
+const HEAD_TEX_FRESH_MS  = 10 * 60 * 1000;     // reuse a cached skin url this long before asking Mojang again
+const DEFAULT_SKIN_NAMES = new Set(['steve', 'alex', 'mhf_steve', 'mhf_alex']);
+
+function headFallback(res, id, size, seconds) {
+  // 302 to a service that renders default skins correctly; short cache so a transient failure never sticks
+  res.setHeader('Cache-Control', `public, max-age=0, s-maxage=${seconds || 60}`);
+  res.setHeader('Location', `https://minotar.net/avatar/${encodeURIComponent(id)}/${size}`);
+  return res.status(302).end();
+}
+
+// Returns a skin texture URL (string), null (player has no custom skin) or undefined (could not find out).
+async function headSkinUrl(uuid) {
+  const cached = await kvGet(`tex:${uuid}`);
+  const hit = (cached && cached !== KV_READ_ERROR && typeof cached === 'object') ? cached : null;
+  if (hit && Date.now() - (hit.ts || 0) < HEAD_TEX_FRESH_MS) return hit.skin ? httpsUrl(hit.skin) : null;
+
+  const m = await fetchMojangProfile(uuid);
+  if (m && m.ok) {
+    try {
+      const profile = await m.json();
+      const prop = (profile.properties || []).find(p => p.name === 'textures');
+      const tex = prop ? JSON.parse(Buffer.from(prop.value, 'base64').toString('utf8')).textures || {} : {};
+      const skin = tex.SKIN ? tex.SKIN.url : null;
+      const cape = tex.CAPE ? tex.CAPE.url : null;
+      const slim = !!(tex.SKIN && tex.SKIN.metadata && tex.SKIN.metadata.model === 'slim');
+      kvSet(`tex:${uuid}`, { skin, cape, slim, name: profile.name, ts: Date.now() }).catch(() => {});
+      return skin ? httpsUrl(skin) : null;
+    } catch { /* fall through to stale */ }
+  } else if (m && (m.status === 204 || m.status === 404)) {
+    return undefined;                                   // no such player
+  }
+  // Mojang rate-limited / erroring: a stale copy is far better than a wrong picture
+  return hit ? (hit.skin ? httpsUrl(hit.skin) : null) : undefined;
+}
+
+// Draws the 8x8 face (+ hat layer) of a decoded skin, scaled up with nearest-neighbour.
+function renderHeadPng(skinPng, scale) {
+  const img = decodePng(skinPng);
+  if (img.width < 64 || img.height < 32 || img.width % 64 !== 0) throw new Error('unexpected skin size');
+  const f = img.width / 64;                                // 1 for classic skins, 2 for 128x128 HD, ...
+  const at = (x, y) => { const o = (y * f * img.width + x * f) * 4; return [img.rgba[o], img.rgba[o + 1], img.rgba[o + 2], img.rgba[o + 3]]; };
+
+  // Minecraft's own "Notch transparency hack": on LEGACY skins (64x32 / 128x64) whose overlay area
+  // (x 32-63, y 0-31) has no transparent pixel at all, the whole overlay is discarded. Old skins fill the
+  // unused texture with solid colour, and drawing it would paint a solid block over the face.
+  const legacy = img.height * 2 === img.width;
+  let useHat = true;
+  if (legacy) {
+    useHat = false;
+    for (let y = 0; y < 32 && !useHat; y++) for (let x = 32; x < 64; x++) if (at(x, y)[3] < 128) { useHat = true; break; }
+  }
+  const S = 8 * scale;
+  const out = Buffer.alloc(S * S * 4);
+  for (let oy = 0; oy < S; oy++) {
+    for (let ox = 0; ox < S; ox++) {
+      const cx = Math.floor(ox / scale), cy = Math.floor(oy / scale);
+      const base = at(8 + cx, 8 + cy);                     // face of the head
+      const hat  = useHat ? at(40 + cx, 8 + cy) : [0, 0, 0, 0]; // hat / overlay layer
+      const a = hat[3] / 255;
+      const o = (oy * S + ox) * 4;
+      out[o]     = Math.round(hat[0] * a + base[0] * (1 - a));
+      out[o + 1] = Math.round(hat[1] * a + base[1] * (1 - a));
+      out[o + 2] = Math.round(hat[2] * a + base[2] * (1 - a));
+      out[o + 3] = Math.max(base[3], hat[3]);
+    }
+  }
+  return encodePng(S, S, out);
+}
+
+async function handleHead(req, res) {
+  const rawId = String(req.query.id || req.query.uuid || '').trim();
+  const size  = Math.min(256, Math.max(8, parseInt(req.query.size, 10) || 64));
+  const scale = Math.max(1, Math.min(32, Math.round(size / 8)));
+
+  const dashless = rawId.replace(/-/g, '').toLowerCase();
+  let uuid = /^[0-9a-f]{32}$/.test(dashless) ? dashless : null;
+  const name = !uuid && /^[A-Za-z0-9_]{1,16}$/.test(rawId) ? rawId : null;
+  if (!uuid && !name) return res.status(400).json({ error: 'invalid id' });
+
+  // "Steve"/"Alex" are used by the pages as the placeholder for "no player": show the default skin, not
+  // whichever real account happens to be called Steve.
+  if (name && DEFAULT_SKIN_NAMES.has(name.toLowerCase())) return headFallback(res, 'MHF_Steve', size, 86400);
+
+  if (!uuid) {                                              // resolve a name to a uuid (cached a day)
+    const key = `uuid-by-name:${name.toLowerCase()}`;
+    const cachedId = await kvGet(key);
+    if (typeof cachedId === 'string' && /^[0-9a-f]{32}$/.test(cachedId)) uuid = cachedId;
+    else {
+      try {
+        const r = await fetch(`https://api.mojang.com/users/profiles/minecraft/${encodeURIComponent(name)}`, { signal: AbortSignal.timeout(5000) });
+        if (r.ok) { const d = await r.json(); if (d && /^[0-9a-f]{32}$/i.test(d.id || '')) { uuid = d.id.toLowerCase(); kvPipeline([['SET', key, JSON.stringify(uuid), 'EX', '86400']]).catch(() => {}); } }
+      } catch { /* handled below */ }
+    }
+    if (!uuid) return headFallback(res, name, size);
+  }
+
+  let skinUrl;
+  try { skinUrl = await headSkinUrl(uuid); } catch { skinUrl = undefined; }
+  if (skinUrl === undefined) return headFallback(res, uuid, size);          // could not find out
+  if (skinUrl === null)      return headFallback(res, uuid, size, 600);     // default skin: let minotar draw it
+
+  let host;
+  try { host = new URL(skinUrl).hostname; } catch { return headFallback(res, uuid, size); }
+  if (host !== 'textures.minecraft.net') return headFallback(res, uuid, size);  // never fetch arbitrary hosts
+
+  try {
+    const t = await fetch(skinUrl, { signal: AbortSignal.timeout(6000) });
+    if (!t.ok) return headFallback(res, uuid, size);
+    const buf = Buffer.from(await t.arrayBuffer());
+    if (buf.length > 200 * 1024) return headFallback(res, uuid, size);
+    const png = renderHeadPng(buf, scale);
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=86400');
+    return res.status(200).send(png);
+  } catch {
+    return headFallback(res, uuid, size);
+  }
+}
+
 // ── Main handler ──────────────────────────────────────────────────────────────
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
+
+  // ── Player head image (public, CDN-cached) ────────────────────────────────
+  if (req.method === 'GET' && req.query.action === 'head') return handleHead(req, res);
 
   // ── Name history proxy (laby.net — avoids CORS from the browser) ─────────
   // Called as /api/player-textures?action=names&uuid={hyphenated-uuid}

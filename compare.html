@@ -374,7 +374,7 @@ function onInput(side) {
   // Avatar preview after 350ms
   clearTimeout(_debounce[side]);
   _debounce[side] = setTimeout(function() {
-    avEl.src = 'https://mc-heads.net/avatar/' + encodeURIComponent(val) + '/28';
+    avEl.src = '/head/' + encodeURIComponent(val) + '/28';
     avEl.onload  = function() { wrap.classList.add('has-avatar'); };
     avEl.onerror = function() { wrap.classList.remove('has-avatar'); };
   }, 350);
@@ -522,7 +522,7 @@ function renderCard(side) {
     return;
   }
 
-  var faceUrl = 'https://mc-heads.net/avatar/' + p.uuid + '/72';
+  var faceUrl = '/head/' + p.uuid + '/72';
   var bodyUrl = 'https://mc-heads.net/player/' + p.uuid;
 
   // Badges
@@ -577,7 +577,7 @@ function renderCard(side) {
 
   el.innerHTML =
     '<div class="pc-header">' +
-      '<img class="pc-avatar" src="' + faceUrl + '" alt="' + escH(p.name) + '" onerror="this.src=\'https://mc-heads.net/avatar/steve/72\'"/>' +
+      '<img class="pc-avatar" src="' + faceUrl + '" alt="' + escH(p.name) + '" onerror="this.src=\'/head/steve/72\'"/>' +
       '<div class="pc-info">' +
         '<div class="pc-name"><a href="profile.html?name=' + encodeURIComponent(p.name) + '" style="color:var(--txt);text-decoration:none" target="_blank">' + escH(p.name) + ' ↗</a></div>' +
         '<div class="pc-uuid">' + p.uuid + '</div>' +
@@ -663,7 +663,7 @@ function tryHighlights() {
     inpA.value = a;
     document.getElementById('wrapA').classList.add('has-input');
     document.getElementById('clearA').style.display = 'block';
-    document.getElementById('avatarA').src = 'https://mc-heads.net/avatar/' + encodeURIComponent(a) + '/28';
+    document.getElementById('avatarA').src = '/head/' + encodeURIComponent(a) + '/28';
     document.getElementById('avatarA').onload = function(){ document.getElementById('wrapA').classList.add('has-avatar'); };
     loadPlayer('A', a);
   }
@@ -672,7 +672,7 @@ function tryHighlights() {
     inpB.value = b;
     document.getElementById('wrapB').classList.add('has-input');
     document.getElementById('clearB').style.display = 'block';
-    document.getElementById('avatarB').src = 'https://mc-heads.net/avatar/' + encodeURIComponent(b) + '/28';
+    document.getElementById('avatarB').src = '/head/' + encodeURIComponent(b) + '/28';
     document.getElementById('avatarB').onload = function(){ document.getElementById('wrapB').classList.add('has-avatar'); };
     loadPlayer('B', b);
   }

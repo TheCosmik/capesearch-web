@@ -567,7 +567,7 @@ function renderTable(filtered) {
         '</div>';
 
     return '<tr data-name="' + (p.name||'').toLowerCase() + '" data-uuid="' + p.uuid + '" data-role="' + (p.role||'') + '" data-beta="' + (p.beta ? '1' : '') + '" data-vip="' + (p.vip ? '1' : '') + '">' +
-      '<td style="width:42px"><img src="https://mc-heads.net/avatar/' + p.uuid + '/36" style="width:36px;height:36px;border-radius:5px;image-rendering:pixelated;display:block" onerror="this.style.opacity=\'.3\'"/></td>' +
+      '<td style="width:42px"><img src="/head/' + p.uuid + '/36" style="width:36px;height:36px;border-radius:5px;image-rendering:pixelated;display:block" onerror="this.style.opacity=\'.3\'"/></td>' +
       '<td><a href="profile.html?name=' + encodeURIComponent(p.name||p.uuid) + '" style="font-weight:700;font-size:.875rem">' + (p.name||p.uuid.slice(0,8)) + '</a></td>' +
       '<td style="font-family:monospace;font-size:.75rem;color:var(--txt2)">' +
         '<span title="' + shortUuid + '">' + dispUuid + '</span>' +
@@ -875,7 +875,7 @@ async function lookupGrantPlayer(val) {
     }
     _grantResolvedUuid = uuid;
     var shortUuid = uuid.replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/, '$1-$2-$3-$4-$5');
-    document.getElementById('grantPlayerAvatar').src = 'https://mc-heads.net/avatar/' + uuid + '/36';
+    document.getElementById('grantPlayerAvatar').src = '/head/' + uuid + '/36';
     document.getElementById('grantPlayerName').textContent = name;
     document.getElementById('grantPlayerUuid').textContent = shortUuid;
     preview.style.display = 'flex';
@@ -978,7 +978,7 @@ function loadReports() {
           '</div>'+
           // Comment author
           '<div style="display:flex;gap:.6rem;align-items:center">'+
-            '<img src="https://mc-heads.net/avatar/'+r.commentAuthorUuid+'/28" style="width:28px;height:28px;border-radius:4px;image-rendering:pixelated;flex-shrink:0" onerror="this.style.opacity=\'.3\'"/>'+
+            '<img src="/head/'+r.commentAuthorUuid+'/28" style="width:28px;height:28px;border-radius:4px;image-rendering:pixelated;flex-shrink:0" onerror="this.style.opacity=\'.3\'"/>'+
             '<div>'+
               '<div style="font-size:.72rem;color:var(--muted)">Commenter</div>'+
               '<a href="profile.html?name='+encodeURIComponent(r.commentAuthorName)+'" style="font-weight:700;font-size:.85rem">'+r.commentAuthorName+'</a>'+
@@ -991,7 +991,7 @@ function loadReports() {
           '</div>'+
           // Reporter
           '<div style="display:flex;gap:.6rem;align-items:center">'+
-            (r.reporterUuid?'<img src="https://mc-heads.net/avatar/'+r.reporterUuid+'/28" style="width:28px;height:28px;border-radius:4px;image-rendering:pixelated;flex-shrink:0" onerror="this.style.opacity=\'.3\'"/>':'<div style="width:28px;height:28px;border-radius:4px;background:var(--bdr);flex-shrink:0"></div>')+
+            (r.reporterUuid?'<img src="/head/'+r.reporterUuid+'/28" style="width:28px;height:28px;border-radius:4px;image-rendering:pixelated;flex-shrink:0" onerror="this.style.opacity=\'.3\'"/>':'<div style="width:28px;height:28px;border-radius:4px;background:var(--bdr);flex-shrink:0"></div>')+
             '<div>'+
               '<div style="font-size:.72rem;color:var(--muted)">Reported by</div>'+
               '<span style="font-weight:700;font-size:.85rem">'+escR(r.reporterName)+'</span>'+
@@ -1138,12 +1138,12 @@ function renderAuditLog() {
         '<td style="padding:.6rem 1rem"><span style="font-weight:700;color:'+meta.color+'">' + escR(meta.label) + '</span></td>' +
         '<td style="padding:.6rem 1rem">' +
           (e.actorUuid
-            ? '<div style="display:flex;align-items:center;gap:.4rem"><img src="https://mc-heads.net/avatar/'+e.actorUuid+'/20" style="width:20px;height:20px;border-radius:3px;image-rendering:pixelated"/><span style="font-weight:600">'+escR(e.actorName)+'</span></div>'
+            ? '<div style="display:flex;align-items:center;gap:.4rem"><img src="/head/'+e.actorUuid+'/20" style="width:20px;height:20px;border-radius:3px;image-rendering:pixelated"/><span style="font-weight:600">'+escR(e.actorName)+'</span></div>'
             : escR(e.actorName||'—')) +
         '</td>' +
         '<td style="padding:.6rem 1rem">' +
           (e.targetUuid
-            ? '<div style="display:flex;align-items:center;gap:.4rem"><img src="https://mc-heads.net/avatar/'+e.targetUuid+'/20" style="width:20px;height:20px;border-radius:3px;image-rendering:pixelated"/><span>'+escR(e.targetName)+'</span></div>'
+            ? '<div style="display:flex;align-items:center;gap:.4rem"><img src="/head/'+e.targetUuid+'/20" style="width:20px;height:20px;border-radius:3px;image-rendering:pixelated"/><span>'+escR(e.targetName)+'</span></div>'
             : escR(e.targetName||'—')) +
         '</td>' +
         '<td style="padding:.6rem 1rem;font-family:monospace;font-size:.75rem">' + fmtAuditDetail(e) + '</td>' +
@@ -1179,7 +1179,7 @@ function openInvModal(uuid, name) {
   _invModalUuid = uuid;
   _invModalName = name;
   var clean = uuid.replace(/-/g,'');
-  document.getElementById('invModalAvatar').src = 'https://mc-heads.net/avatar/' + clean + '/36';
+  document.getElementById('invModalAvatar').src = '/head/' + clean + '/36';
   document.getElementById('invModalName').textContent = name;
   document.getElementById('invModalBody').innerHTML = '<div style="text-align:center;padding:2rem;color:var(--muted);font-size:.85rem">Loading…</div>';
   document.getElementById('invOverlay').style.display = 'flex';

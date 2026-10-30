@@ -366,10 +366,10 @@ var EMOJIS={
   mojiramod:'🔴',translatorjp:'🌏',mojangclassic:'🔴',db:'🎵',mojangoffice:'🏢',
   millionth:'🥇',moonlighttrail:'🌙',crafter:'🧰',builder:'🏗️',aurora:'🌌',hero:'🦸',twisted:'🌀',
 };
-var FB='https://mc-heads.net/avatar/Steve/32';
+var FB='/head/Steve/32';
 function fmt(n){return n.toLocaleString()}
-function av(uuid){return'https://crafatar.com/avatars/'+uuid+'?size=64&overlay'}
-function avN(name){return'https://mc-heads.net/avatar/'+encodeURIComponent(name)+'/32'}
+function av(uuid){return'/head/'+uuid+'/64'}
+function avN(name){return'/head/'+encodeURIComponent(name)+'/32'}
 
 // ── CAPE IMAGES (wiki renders — used for grid card previews) ─────────────────
 var W='https://minecraft.wiki/images/thumb/';
@@ -628,8 +628,8 @@ document.querySelectorAll('.fbtn').forEach(function(btn){
 document.getElementById('sortSel').addEventListener('change',function(){curS=this.value;renderGrid()});
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
-function avN(name){return'https://mc-heads.net/avatar/'+encodeURIComponent(name)+'/32'}
-var FB='https://mc-heads.net/avatar/Steve/32';
+function avN(name){return'/head/'+encodeURIComponent(name)+'/32'}
+var FB='/head/Steve/32';
 
 // ── SEARCH ────────────────────────────────────────────────────────────────────
 (function(){
